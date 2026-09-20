@@ -1,9 +1,10 @@
-from sqlalchemy import Enum, ForeignKey, String, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import ForeignKey, String, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.models.enums import TeamRole
 from app.models.mixins import TimestampMixin
+from app.models.role import Role
+from app.models.user import User
 
 
 class Team(Base, TimestampMixin):
@@ -14,9 +15,9 @@ class Team(Base, TimestampMixin):
 
 
 class TeamMember(Base, TimestampMixin):
-    """Team membership. Not used for authorization decisions in V1 (everyone
-    can see everything, per spec) — this exists so RBAC can be layered on
-    later without a schema migration.
+    """Team membership. Role is not yet used for authorization decisions
+    (everyone can see everything, per spec) — see app.models.role.Role for
+    where that will hook in later.
     """
 
     __tablename__ = "team_members"
@@ -25,4 +26,7 @@ class TeamMember(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    role: Mapped[TeamRole] = mapped_column(Enum(TeamRole, name="team_role"), default=TeamRole.MEMBER, nullable=False)
+    role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"), nullable=False)
+
+    user: Mapped[User] = relationship(User)
+    role: Mapped[Role] = relationship(Role)

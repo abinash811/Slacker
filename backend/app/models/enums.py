@@ -16,11 +16,6 @@ class TicketPriority(str, enum.Enum):
     URGENT = "urgent"
 
 
-class TeamRole(str, enum.Enum):
-    MEMBER = "member"
-    MANAGER = "manager"
-
-
 class EventSource(str, enum.Enum):
     DASHBOARD = "dashboard"
     SLACK = "slack"

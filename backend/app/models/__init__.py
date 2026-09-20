@@ -1,6 +1,7 @@
 from app.models.audit import AuditEvent
 from app.models.category import Category
-from app.models.enums import EventSource, TeamRole, TicketPriority, TicketStatus
+from app.models.enums import EventSource, TicketPriority, TicketStatus
+from app.models.role import Role
 from app.models.sla import SLAPolicy
 from app.models.slack import SlackChannel, SlackEventDedup
 from app.models.team import Team, TeamMember
@@ -17,9 +18,9 @@ __all__ = [
     "AuditEvent",
     "Category",
     "EventSource",
-    "TeamRole",
     "TicketPriority",
     "TicketStatus",
+    "Role",
     "SLAPolicy",
     "SlackChannel",
     "SlackEventDedup",

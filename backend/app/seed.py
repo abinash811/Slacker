@@ -7,6 +7,7 @@ Run with: python -m app.seed
 
 from app.core.database import SessionLocal
 from app.models.category import Category
+from app.models.role import Role
 from app.models.sla import SLAPolicy
 from app.models.team import Team
 from app.models.user import User
@@ -41,6 +42,14 @@ def run() -> None:
                 User(email="abinash@example.com", name="Abinash"),
                 User(email="rahul@example.com", name="Rahul"),
                 User(email="priya@example.com", name="Priya"),
+            ]
+        )
+
+        db.add_all(
+            [
+                Role(name="Member"),
+                Role(name="Lead", can_create_settings=True),
+                Role(name="Manager", can_create_settings=True, can_edit_settings=True, can_delete_settings=True),
             ]
         )
 

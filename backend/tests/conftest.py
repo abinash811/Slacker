@@ -65,6 +65,7 @@ def _clean_tables(db_session):
         "slack_channels",
         "sla_policies",
         "team_members",
+        "roles",
         "users",
         "categories",
         "teams",

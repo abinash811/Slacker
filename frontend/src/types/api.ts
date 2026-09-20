@@ -6,6 +6,27 @@ export interface Team {
   name: string
 }
 
+export interface Role {
+  id: number
+  name: string
+  can_create_settings: boolean
+  can_edit_settings: boolean
+  can_delete_settings: boolean
+  is_archived: boolean
+}
+
+export interface TeamMemberEntry {
+  id: number
+  user: User
+  role: Role
+}
+
+export interface TeamDetail {
+  id: number
+  name: string
+  members: TeamMemberEntry[]
+}
+
 export interface Category {
   id: number
   name: string

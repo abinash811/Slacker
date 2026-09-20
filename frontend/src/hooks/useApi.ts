@@ -5,8 +5,11 @@ import type {
   Category,
   DashboardSummary,
   OwnerPendingItem,
+  Role,
   SLAPolicy,
   Team,
+  TeamDetail,
+  TeamMemberEntry,
   Ticket,
   TicketCreateRequest,
   TicketFiltersState,
@@ -150,6 +153,98 @@ export function useResolveTicket(ticketId: number) {
   const { invalidate } = useTicketMutation()
   return useMutation({
     mutationFn: () => api.post<Ticket>(`/tickets/${ticketId}/resolve`),
+    onSuccess: invalidate,
+  })
+}
+
+// --- Roles & Teams (Settings) ---
+
+export function useRoles(includeArchived = false) {
+  return useQuery({
+    queryKey: ['roles', includeArchived],
+    queryFn: () => api.get<Role[]>(`/roles${buildQuery({ include_archived: includeArchived ? 'true' : undefined })}`),
+  })
+}
+
+interface RoleInput {
+  name: string
+  can_create_settings: boolean
+  can_edit_settings: boolean
+  can_delete_settings: boolean
+}
+
+export function useCreateRole() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: RoleInput) => api.post<Role>('/roles', payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['roles'] }),
+  })
+}
+
+export function useUpdateRole() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...payload }: Partial<RoleInput> & { id: number; is_archived?: boolean }) =>
+      api.patch<Role>(`/roles/${id}`, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['roles'] }),
+  })
+}
+
+export function useTeamsList() {
+  return useQuery({ queryKey: ['teams'], queryFn: () => api.get<Team[]>('/teams') })
+}
+
+export function useTeamDetail(teamId: number | undefined) {
+  return useQuery({
+    queryKey: ['team-detail', teamId],
+    queryFn: () => api.get<TeamDetail>(`/teams/${teamId}/detail`),
+    enabled: teamId !== undefined,
+  })
+}
+
+function useTeamMutation() {
+  const queryClient = useQueryClient()
+  return () => queryClient.invalidateQueries({ predicate: (q) => ['teams', 'team-detail'].includes(q.queryKey[0] as string) })
+}
+
+export function useCreateTeam() {
+  const invalidate = useTeamMutation()
+  return useMutation({
+    mutationFn: (name: string) => api.post<TeamDetail>('/teams', { name }),
+    onSuccess: invalidate,
+  })
+}
+
+export function useRenameTeam(teamId: number) {
+  const invalidate = useTeamMutation()
+  return useMutation({
+    mutationFn: (name: string) => api.patch<TeamDetail>(`/teams/${teamId}`, { name }),
+    onSuccess: invalidate,
+  })
+}
+
+export function useAddTeamMember(teamId: number) {
+  const invalidate = useTeamMutation()
+  return useMutation({
+    mutationFn: (payload: { user_id: number; role_id: number }) =>
+      api.post<TeamMemberEntry>(`/teams/${teamId}/members`, payload),
+    onSuccess: invalidate,
+  })
+}
+
+export function useUpdateTeamMemberRole(teamId: number) {
+  const invalidate = useTeamMutation()
+  return useMutation({
+    mutationFn: ({ memberId, roleId }: { memberId: number; roleId: number }) =>
+      api.patch<TeamMemberEntry>(`/teams/${teamId}/members/${memberId}`, { role_id: roleId }),
+    onSuccess: invalidate,
+  })
+}
+
+export function useRemoveTeamMember(teamId: number) {
+  const invalidate = useTeamMutation()
+  return useMutation({
+    mutationFn: (memberId: number) => api.delete(`/teams/${teamId}/members/${memberId}`),
     onSuccess: invalidate,
   })
 }
