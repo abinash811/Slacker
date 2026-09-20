@@ -39,5 +39,20 @@ services:
     ports:
       - "3000:80"
 
+  # Only does anything when SLACK_USE_SOCKET_MODE=true and real Slack
+  # credentials are set in .env — lets you develop against Slack without
+  # exposing a public HTTP URL (see docs/ARCHITECTURE.md / SLACK_SETUP.md).
+  # Production should use the backend's HTTP /slack/events route instead.
+  slack-listener:
+    build: ./backend
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://slacker:slacker@db:5432/slacker
+    command: python -m app.slack.socket_mode
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   pgdata:
