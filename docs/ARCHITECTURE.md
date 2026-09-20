@@ -86,3 +86,40 @@ Full column-level detail lives in `docs/DATABASE.md`.
 3. Single shared Slack workspace/install assumed for V1 (no multi-tenant OAuth flow).
 4. `users_select` in Slack shows the full workspace member list, not filtered by our `team_members` mapping — V1 accepts this (spec explicitly defers RBAC); a V2 improvement is to filter via a static `conversations_select`-style allow-list once team membership is enforced.
 5. Business-hours SLA, notifications, escalation, and reassignment-of-team history are intentionally out of scope for V1 per the spec.
+
+## 7. Near-Term Roadmap (identified during live testing, deliberately deferred)
+
+These came up while testing the real Slack integration end-to-end and were
+consciously punted rather than built ad hoc — captured here so they aren't
+lost before V2 planning:
+
+- **Resolve with a note.** Slack's `confirm` dialog (what Resolve currently
+  uses) is Yes/No only — it cannot collect text. Adding a note would mean
+  replacing it with a modal (like Assign/Status/Priority already use),
+  optionally required or optional. The note itself would post into the
+  Slack thread rather than being duplicated into the database, consistent
+  with the existing "Slack holds conversation" principle.
+- **A "Reopen" button in place of the four action buttons once a ticket is
+  Resolved/Closed.** Slack Block Kit has no disabled-button state — the
+  only way to stop Resolve from being clicked again is to remove it from
+  the message. Reopening would be an ordinary status change back to Open
+  (same ticket, already fully supported by `ticket_service.change_status`
+  and its history table) — no new backend logic needed, just a new button
+  and a status-conditional branch in `build_ticket_blocks`.
+- **A dashboard-level "reopened tickets" metric.** The underlying data
+  already exists the moment reopening is built (a `ticket_status_history`
+  row where `new_status=open` and `previous_status` was resolved/closed is
+  a reopen event, visible on that ticket's own timeline) — but nothing
+  aggregates it into a count/list on the analytics page yet.
+- **Related/linked tickets.** When one Slack message actually describes
+  several distinct issues for different teams, V1's answer is to create
+  separate tickets manually — there's no field linking them as siblings of
+  one source conversation. Would need a small addition to the data model
+  (e.g. a `related_ticket_id` or a join table) plus dashboard/Slack surface
+  for it.
+- **A "Create ticket from this message" Slack message shortcut** (as
+  opposed to today's global shortcut, which starts blank). Right-clicking
+  an existing message and pre-filling the ticket description with its text
+  and a permalink would speed up the manual multi-ticket workflow above,
+  though it still wouldn't link the resulting tickets together (see
+  previous point).
