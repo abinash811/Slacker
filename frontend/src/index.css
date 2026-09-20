@@ -24,29 +24,31 @@
   --radius: 0.5rem;
 }
 
-:root[data-theme="dark"],
-:root:not([data-theme="light"]) {
-  @media (prefers-color-scheme: dark) {
-    --background: #0b0b0f;
-    --foreground: #f3f4f6;
-    --muted: #16161d;
-    --muted-foreground: #9ca3af;
-    --border: #262631;
-    --card: #121218;
-    --card-foreground: #f3f4f6;
+/* Light is the only theme applied automatically — this internal tool
+   should look the same for everyone regardless of OS setting. The dark
+   palette is kept here, gated behind an explicit `data-theme="dark"` on
+   <html>, so a manual theme toggle can be added later without redoing
+   the token set. */
+:root[data-theme="dark"] {
+  --background: #0b0b0f;
+  --foreground: #f3f4f6;
+  --muted: #16161d;
+  --muted-foreground: #9ca3af;
+  --border: #262631;
+  --card: #121218;
+  --card-foreground: #f3f4f6;
 
-    --primary: #818cf8;
-    --primary-foreground: #0b0b0f;
-    --accent: #1e1b4b;
-    --accent-foreground: #c7d2fe;
+  --primary: #818cf8;
+  --primary-foreground: #0b0b0f;
+  --accent: #1e1b4b;
+  --accent-foreground: #c7d2fe;
 
-    --success: #34d399;
-    --success-bg: #052e21;
-    --warning: #fbbf24;
-    --warning-bg: #3a2a05;
-    --danger: #f87171;
-    --danger-bg: #3a0d0d;
-  }
+  --success: #34d399;
+  --success-bg: #052e21;
+  --warning: #fbbf24;
+  --warning-bg: #3a2a05;
+  --danger: #f87171;
+  --danger-bg: #3a0d0d;
 }
 
 @theme inline {

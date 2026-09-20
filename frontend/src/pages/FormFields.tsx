@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { SlidersHorizontal, Tags, Timer } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -43,7 +45,9 @@ function CategoriesSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base font-semibold text-foreground">Categories</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+          <Tags className="h-4 w-4 text-muted-foreground" /> Categories
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <ArchivableList
@@ -77,7 +81,9 @@ function SlaPoliciesSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base font-semibold text-foreground">SLA Policies</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+          <Timer className="h-4 w-4 text-muted-foreground" /> SLA Policies
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <ArchivableList
@@ -124,7 +130,9 @@ function CustomFieldsSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base font-semibold text-foreground">Custom Fields</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+          <SlidersHorizontal className="h-4 w-4 text-muted-foreground" /> Custom Fields
+        </CardTitle>
         <p className="text-xs text-muted-foreground">
           Extra fields shown on the ticket creation form — e.g. Business ID, Doctor ID, Mobile Number.
         </p>
@@ -182,13 +190,19 @@ function ArchivableList({
   onArchiveToggle: (id: number, is_archived: boolean) => void
 }) {
   if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">None yet.</p>
+    return <p className="rounded-md bg-muted/30 px-3 py-4 text-center text-sm text-muted-foreground">None yet — add one below.</p>
   }
   return (
     <div className="flex flex-col gap-1">
       {items.map((item) => (
-        <div key={item.id} className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted">
-          <span className={item.is_archived ? 'text-muted-foreground line-through' : ''}>{item.label}</span>
+        <div
+          key={item.id}
+          className={cn(
+            'flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted',
+            item.is_archived && 'bg-muted/30',
+          )}
+        >
+          <span className={item.is_archived ? 'text-muted-foreground line-through' : 'text-foreground'}>{item.label}</span>
           <div className="flex items-center gap-2">
             {item.is_archived ? <Badge variant="neutral">Archived</Badge> : <Badge variant="success">Active</Badge>}
             <Button variant="ghost" size="sm" onClick={() => onArchiveToggle(item.id, !item.is_archived)}>

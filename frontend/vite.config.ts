@@ -12,5 +12,14 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // Mirrors the nginx /api proxy used in docker-compose (see
+    // frontend/nginx.conf) so dev and prod never need different CORS
+    // handling — the browser only ever talks to its own origin.
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+    },
   },
 })

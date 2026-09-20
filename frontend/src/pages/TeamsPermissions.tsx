@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ShieldCheck, UserPlus, UsersRound } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -6,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 import {
   useAddTeamMember,
   useCreateRole,
@@ -45,7 +47,9 @@ function RolesSection() {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold text-foreground">Roles</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <ShieldCheck className="h-4 w-4 text-muted-foreground" /> Roles
+          </CardTitle>
           <RoleFormDialog onSubmit={(payload) => createRole.mutate(payload)} trigger={<Button size="sm">New Role</Button>} />
         </div>
       </CardHeader>
@@ -63,7 +67,10 @@ function RolesSection() {
           </thead>
           <tbody>
             {(roles ?? []).map((role) => (
-              <tr key={role.id} className="border-b border-border last:border-0">
+              <tr
+                key={role.id}
+                className={cn('border-b border-border last:border-0 hover:bg-muted/60', role.is_archived && 'bg-muted/30 text-muted-foreground')}
+              >
                 <td className="py-2 font-medium">{role.name}</td>
                 <td className="py-2">{role.can_create_settings ? '✓' : '—'}</td>
                 <td className="py-2">{role.can_edit_settings ? '✓' : '—'}</td>
@@ -170,11 +177,15 @@ function TeamsSection() {
   const [selectedTeamId, setSelectedTeamId] = useState<number | undefined>(undefined)
   const [newTeamName, setNewTeamName] = useState('')
 
+  const selectedTeam = (teams ?? []).find((t) => t.id === selectedTeamId)
+
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <Card className="lg:col-span-1">
         <CardHeader>
-          <CardTitle className="text-base font-semibold text-foreground">Teams</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <UsersRound className="h-4 w-4 text-muted-foreground" /> Teams
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <div className="flex flex-col gap-1">
@@ -182,11 +193,17 @@ function TeamsSection() {
               <button
                 key={team.id}
                 onClick={() => setSelectedTeamId(team.id)}
-                className={`rounded-md px-3 py-2 text-left text-sm hover:bg-muted ${selectedTeamId === team.id ? 'bg-muted font-medium' : ''}`}
+                className={cn(
+                  'rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted',
+                  selectedTeamId === team.id ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground',
+                )}
               >
                 {team.name}
               </button>
             ))}
+            {(teams ?? []).length === 0 && (
+              <p className="px-3 py-4 text-center text-sm text-muted-foreground">No teams yet — add one below.</p>
+            )}
           </div>
           <div className="flex gap-2 border-t border-border pt-3">
             <Input placeholder="New team name" value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} />
@@ -205,11 +222,20 @@ function TeamsSection() {
 
       <Card className="lg:col-span-2">
         <CardHeader>
-          <CardTitle className="text-base font-semibold text-foreground">
-            {selectedTeamId ? 'Members' : 'Select a team'}
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <UserPlus className="h-4 w-4 text-muted-foreground" />
+            {selectedTeam ? `${selectedTeam.name} — Members` : 'Select a team'}
           </CardTitle>
         </CardHeader>
-        <CardContent>{selectedTeamId && <TeamMembers teamId={selectedTeamId} />}</CardContent>
+        <CardContent>
+          {selectedTeamId ? (
+            <TeamMembers teamId={selectedTeamId} />
+          ) : (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Pick a team on the left to view and manage its members.
+            </p>
+          )}
+        </CardContent>
       </Card>
     </div>
   )
@@ -241,7 +267,7 @@ function TeamMembers({ teamId }: { teamId: number }) {
         </thead>
         <tbody>
           {(team?.members ?? []).map((member) => (
-            <tr key={member.id} className="border-b border-border last:border-0">
+            <tr key={member.id} className="border-b border-border last:border-0 hover:bg-muted/60">
               <td className="py-2 font-medium">{member.user.name}</td>
               <td className="py-2">
                 <Select
@@ -269,15 +295,15 @@ function TeamMembers({ teamId }: { teamId: number }) {
           ))}
           {(team?.members ?? []).length === 0 && (
             <tr>
-              <td colSpan={3} className="py-4 text-center text-sm text-muted-foreground">
-                No members yet.
+              <td colSpan={3} className="py-6 text-center text-sm text-muted-foreground">
+                No members yet — add one below.
               </td>
             </tr>
           )}
         </tbody>
       </table>
 
-      <div className="flex items-end gap-2 border-t border-border pt-3">
+      <div className="flex items-end gap-2 rounded-md border border-dashed border-border bg-muted/30 p-3">
         <div className="flex-1">
           <Label className="mb-1.5 block text-xs">Add member</Label>
           <Select value={newUserId} onValueChange={setNewUserId}>
