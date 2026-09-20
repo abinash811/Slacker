@@ -15,7 +15,7 @@ and documented limitations.
 ```
 backend/    FastAPI + SQLAlchemy + Alembic + Slack Bolt (Python)
 frontend/   React + TypeScript + Vite + Tailwind (+ shadcn-style components)
-docs/       ARCHITECTURE.md, DATABASE.md, API.md, SLACK_SETUP.md, DEPLOYMENT.md
+docs/       ARCHITECTURE.md, DATABASE.md, API.md, SLACK_SETUP.md, DEPLOYMENT.md, ROADMAP.md
 ```
 
 Inside `backend/app/`: `models/` (SQLAlchemy), `schemas/` (Pydantic),
@@ -76,8 +76,9 @@ comparisons, global filters, a dev-mode auth abstraction ready to be
 swapped for company SSO, Slack event signature verification + retry
 deduplication.
 
-**Deliberately not built in V1** (see spec section 25 / `docs/ARCHITECTURE.md`
-roadmap): RBAC, real authentication, notifications/escalation, email/WhatsApp
-integration, AI features, multi-workspace Slack install. The schema and
-service-layer separation were designed so these can be added later without
-rewriting what's here — see each doc's "future roadmap" notes.
+**Deliberately not built in V1**: RBAC, real authentication,
+notifications/escalation, email/WhatsApp integration, AI features,
+multi-workspace Slack install. The schema and service-layer separation
+were designed so these can be added later without rewriting what's here —
+see `docs/ROADMAP.md` for the full list, including a few smaller gaps
+identified while testing the Slack integration live.
