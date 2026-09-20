@@ -12,6 +12,7 @@ from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
+from app.models.custom_field import TicketCustomFieldValue
 from app.models.enums import EventSource, TicketPriority, TicketStatus
 from app.models.sla import SLAPolicy
 from app.models.ticket import (
@@ -23,7 +24,7 @@ from app.models.ticket import (
 )
 from app.models.user import User
 from app.schemas.ticket import TimelineEvent
-from app.services import audit_service, sla_service
+from app.services import audit_service, custom_field_service, sla_service
 from app.services.filters import TicketFilters, apply as apply_filters
 
 RESOLVED_STATUSES = {TicketStatus.RESOLVED, TicketStatus.CLOSED}
@@ -34,13 +35,16 @@ TICKET_LOAD_OPTIONS = (
     joinedload(Ticket.sla_policy),
     joinedload(Ticket.owner),
     joinedload(Ticket.created_by),
+    joinedload(Ticket.custom_field_values).joinedload(TicketCustomFieldValue.field_definition),
 )
 
 
 def get_ticket_or_404(db: Session, ticket_id: int) -> Ticket:
-    ticket = db.execute(
-        select(Ticket).options(*TICKET_LOAD_OPTIONS).where(Ticket.id == ticket_id)
-    ).scalar_one_or_none()
+    ticket = (
+        db.execute(select(Ticket).options(*TICKET_LOAD_OPTIONS).where(Ticket.id == ticket_id))
+        .unique()
+        .scalar_one_or_none()
+    )
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket not found")
     return ticket
@@ -59,6 +63,7 @@ def create_ticket(
     owner_id: int | None,
     created_by: User,
     source: EventSource,
+    custom_field_values: list[tuple[int, str]] | None = None,
 ) -> Ticket:
     policy = db.get(SLAPolicy, sla_policy_id)
     if policy is None:
@@ -90,6 +95,9 @@ def create_ticket(
     db.add(TicketPriorityHistory(ticket_id=ticket.id, previous_priority=None, new_priority=priority, changed_by_id=created_by.id))
     if owner_id is not None:
         db.add(TicketAssignment(ticket_id=ticket.id, previous_owner_id=None, new_owner_id=owner_id, changed_by_id=created_by.id))
+
+    if custom_field_values:
+        custom_field_service.save_values(db, ticket.id, custom_field_values)
 
     audit_service.record_event(
         db,
@@ -258,11 +266,15 @@ def list_tickets(
 
 
 def find_ticket_by_slack_message(db: Session, channel_id: str, message_ts: str) -> Ticket | None:
-    return db.execute(
-        select(Ticket)
-        .options(*TICKET_LOAD_OPTIONS)
-        .where(Ticket.slack_channel_id == channel_id, Ticket.slack_message_ts == message_ts)
-    ).scalar_one_or_none()
+    return (
+        db.execute(
+            select(Ticket)
+            .options(*TICKET_LOAD_OPTIONS)
+            .where(Ticket.slack_channel_id == channel_id, Ticket.slack_message_ts == message_ts)
+        )
+        .unique()
+        .scalar_one_or_none()
+    )
 
 
 def get_timeline(db: Session, ticket: Ticket) -> list[TimelineEvent]:

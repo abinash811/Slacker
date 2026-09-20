@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from app.models.ticket import Ticket
+from app.schemas.custom_field import CustomFieldValueOut
 from app.schemas.lookup import CategoryOut, SLAPolicyOut, TeamOut
 from app.schemas.ticket import TicketListItem, TicketOut
 from app.schemas.user import UserOut
@@ -34,6 +35,10 @@ def to_ticket_out(ticket: Ticket) -> TicketOut:
         sla_breached=breached,
         sla_remaining_seconds=remaining,
         age_seconds=int((now - ticket.created_at).total_seconds()),
+        custom_field_values=[
+            CustomFieldValueOut(field_definition_id=v.field_definition_id, label=v.field_definition.label, value=v.value)
+            for v in ticket.custom_field_values
+        ],
     )
 
 

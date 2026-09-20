@@ -3,6 +3,8 @@ import { api, buildQuery } from '@/lib/api'
 import type {
   BreakdownItem,
   Category,
+  CustomFieldDefinition,
+  CustomFieldType,
   DashboardSummary,
   OwnerPendingItem,
   Role,
@@ -246,5 +248,88 @@ export function useRemoveTeamMember(teamId: number) {
   return useMutation({
     mutationFn: (memberId: number) => api.delete(`/teams/${teamId}/members/${memberId}`),
     onSuccess: invalidate,
+  })
+}
+
+// --- Form Fields & Dropdowns (Settings) ---
+
+export function useCategoriesAdmin(includeArchived = true) {
+  return useQuery({
+    queryKey: ['categories-admin', includeArchived],
+    queryFn: () => api.get<Category[]>(`/categories${buildQuery({ include_archived: includeArchived ? 'true' : undefined })}`),
+  })
+}
+
+function useLookupMutation(keys: string[]) {
+  const queryClient = useQueryClient()
+  return () => queryClient.invalidateQueries({ predicate: (q) => keys.includes(q.queryKey[0] as string) })
+}
+
+export function useCreateCategory() {
+  const invalidate = useLookupMutation(['categories', 'categories-admin'])
+  return useMutation({
+    mutationFn: (name: string) => api.post<Category>('/categories', { name }),
+    onSuccess: invalidate,
+  })
+}
+
+export function useUpdateCategory() {
+  const invalidate = useLookupMutation(['categories', 'categories-admin'])
+  return useMutation({
+    mutationFn: ({ id, ...payload }: { id: number; name?: string; is_archived?: boolean }) =>
+      api.patch<Category>(`/categories/${id}`, payload),
+    onSuccess: invalidate,
+  })
+}
+
+export function useSlaPoliciesAdmin(includeArchived = true) {
+  return useQuery({
+    queryKey: ['sla-policies-admin', includeArchived],
+    queryFn: () =>
+      api.get<SLAPolicy[]>(`/sla-policies${buildQuery({ include_archived: includeArchived ? 'true' : undefined })}`),
+  })
+}
+
+export function useCreateSlaPolicy() {
+  const invalidate = useLookupMutation(['sla-policies', 'sla-policies-admin'])
+  return useMutation({
+    mutationFn: (payload: { name: string; duration_hours: number; is_default: boolean }) =>
+      api.post<SLAPolicy>('/sla-policies', payload),
+    onSuccess: invalidate,
+  })
+}
+
+export function useUpdateSlaPolicy() {
+  const invalidate = useLookupMutation(['sla-policies', 'sla-policies-admin'])
+  return useMutation({
+    mutationFn: ({ id, ...payload }: { id: number; name?: string; duration_hours?: number; is_default?: boolean; is_archived?: boolean }) =>
+      api.patch<SLAPolicy>(`/sla-policies/${id}`, payload),
+    onSuccess: invalidate,
+  })
+}
+
+export function useCustomFields(includeArchived = true) {
+  return useQuery({
+    queryKey: ['custom-fields', includeArchived],
+    queryFn: () =>
+      api.get<CustomFieldDefinition[]>(`/custom-fields${buildQuery({ include_archived: includeArchived ? 'true' : undefined })}`),
+  })
+}
+
+export function useCreateCustomField() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { label: string; field_type: CustomFieldType; options: string[] | null }) =>
+      api.post<CustomFieldDefinition>('/custom-fields', payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['custom-fields'] }),
+  })
+}
+
+export function useUpdateCustomField() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...payload }: { id: number; label?: string; options?: string[] | null; is_archived?: boolean }) =>
+      api.patch<CustomFieldDefinition>(`/custom-fields/${id}`, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['custom-fields'] }),
   })
 }

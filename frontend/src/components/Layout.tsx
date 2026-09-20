@@ -13,6 +13,7 @@ export function Layout() {
               <NavItem to="/">Dashboard</NavItem>
               <NavItem to="/tickets">Tickets</NavItem>
               <NavItem to="/teams">Teams &amp; Permissions</NavItem>
+              <NavItem to="/settings/fields">Form Fields</NavItem>
             </nav>
           </div>
           <DevUserSwitcher />

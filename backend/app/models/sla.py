@@ -27,3 +27,4 @@ class SLAPolicy(Base, TimestampMixin):
         Enum(TicketPriority, name="sla_priority"), nullable=True
     )
     is_default: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

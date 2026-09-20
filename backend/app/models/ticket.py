@@ -5,6 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.models.category import Category
+from app.models.custom_field import TicketCustomFieldValue
 from app.models.enums import TicketPriority, TicketStatus
 from app.models.mixins import TimestampMixin, utcnow
 from app.models.sla import SLAPolicy
@@ -65,6 +66,9 @@ class Ticket(Base, TimestampMixin):
     sla_policy: Mapped[SLAPolicy] = relationship(SLAPolicy)
     owner: Mapped[User | None] = relationship(User, foreign_keys=[owner_id])
     created_by: Mapped[User] = relationship(User, foreign_keys=[created_by_id])
+    custom_field_values: Mapped[list[TicketCustomFieldValue]] = relationship(
+        TicketCustomFieldValue, cascade="all, delete-orphan"
+    )
 
 
 class TicketAssignment(Base, TimestampMixin):

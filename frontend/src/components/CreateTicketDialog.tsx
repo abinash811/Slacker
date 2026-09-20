@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useCategories, useCreateTicket, useSlaPolicies, useTeams, useUsers } from '@/hooks/useApi'
+import { useCategories, useCreateTicket, useCustomFields, useSlaPolicies, useTeams, useUsers } from '@/hooks/useApi'
 import type { TicketPriority } from '@/types/api'
 
 const PRIORITIES: TicketPriority[] = ['low', 'medium', 'high', 'urgent']
@@ -15,6 +15,7 @@ export function CreateTicketDialog() {
   const { data: categories } = useCategories()
   const { data: slaPolicies } = useSlaPolicies()
   const { data: users } = useUsers()
+  const { data: customFields } = useCustomFields(false)
   const createTicket = useCreateTicket()
 
   const [form, setForm] = useState({
@@ -27,11 +28,13 @@ export function CreateTicketDialog() {
     sla_policy_id: '',
     owner_id: '',
   })
+  const [customValues, setCustomValues] = useState<Record<number, string>>({})
 
   const canSubmit = form.title && form.description && form.customer && form.category_id && form.team_id && form.sla_policy_id
 
   function reset() {
     setForm({ title: '', description: '', customer: '', category_id: '', team_id: '', priority: 'medium', sla_policy_id: '', owner_id: '' })
+    setCustomValues({})
   }
 
   async function handleSubmit() {
@@ -46,6 +49,9 @@ export function CreateTicketDialog() {
       sla_policy_id: Number(form.sla_policy_id),
       owner_id: form.owner_id ? Number(form.owner_id) : null,
       push_to_slack: true,
+      custom_field_values: Object.entries(customValues)
+        .filter(([, value]) => value)
+        .map(([field_definition_id, value]) => ({ field_definition_id: Number(field_definition_id), value })),
     })
     reset()
     setOpen(false)
@@ -112,6 +118,22 @@ export function CreateTicketDialog() {
               allowEmpty
             />
           </Field>
+          {(customFields ?? []).map((field) => (
+            <Field key={field.id} label={field.label}>
+              {field.field_type === 'dropdown' ? (
+                <SimpleSelect
+                  value={customValues[field.id] ?? ''}
+                  onChange={(v) => setCustomValues({ ...customValues, [field.id]: v })}
+                  options={(field.options ?? []).map((o) => ({ value: o, label: o }))}
+                />
+              ) : (
+                <Input
+                  value={customValues[field.id] ?? ''}
+                  onChange={(e) => setCustomValues({ ...customValues, [field.id]: e.target.value })}
+                />
+              )}
+            </Field>
+          ))}
           <Button className="mt-2" disabled={!canSubmit || createTicket.isPending} onClick={handleSubmit}>
             {createTicket.isPending ? 'Creating…' : 'Create & push to Slack'}
           </Button>

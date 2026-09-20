@@ -4,6 +4,7 @@ import { Dashboard } from '@/pages/Dashboard'
 import { Tickets } from '@/pages/Tickets'
 import { TicketDetail } from '@/pages/TicketDetail'
 import { TeamsPermissions } from '@/pages/TeamsPermissions'
+import { FormFields } from '@/pages/FormFields'
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/tickets" element={<Tickets />} />
         <Route path="/tickets/:id" element={<TicketDetail />} />
         <Route path="/teams" element={<TeamsPermissions />} />
+        <Route path="/settings/fields" element={<FormFields />} />
       </Route>
     </Routes>
   )

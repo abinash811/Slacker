@@ -69,6 +69,9 @@ export function TicketDetail() {
                 <Info label="Created by" value={ticket.created_by.name} />
                 <Info label="First response" value={ticket.first_response_at ? formatDateTime(ticket.first_response_at) : '—'} />
                 <Info label="Resolved" value={ticket.resolved_at ? formatDateTime(ticket.resolved_at) : '—'} />
+                {ticket.custom_field_values.map((field) => (
+                  <Info key={field.field_definition_id} label={field.label} value={field.value} />
+                ))}
               </dl>
             </CardContent>
           </Card>

@@ -30,6 +30,7 @@ export interface TeamDetail {
 export interface Category {
   id: number
   name: string
+  is_archived: boolean
 }
 
 export interface SLAPolicy {
@@ -37,6 +38,23 @@ export interface SLAPolicy {
   name: string
   duration_hours: number
   is_default: boolean
+  is_archived: boolean
+}
+
+export type CustomFieldType = 'text' | 'dropdown'
+
+export interface CustomFieldDefinition {
+  id: number
+  label: string
+  field_type: CustomFieldType
+  options: string[] | null
+  is_archived: boolean
+}
+
+export interface CustomFieldValue {
+  field_definition_id: number
+  label: string
+  value: string
 }
 
 export interface User {
@@ -71,6 +89,7 @@ export interface Ticket {
   sla_breached: boolean
   sla_remaining_seconds: number | null
   age_seconds: number
+  custom_field_values: CustomFieldValue[]
 }
 
 export interface TicketListItem {
@@ -162,4 +181,5 @@ export interface TicketCreateRequest {
   sla_policy_id: number
   owner_id?: number | null
   push_to_slack: boolean
+  custom_field_values?: { field_definition_id: number; value: string }[]
 }

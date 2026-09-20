@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import TicketPriority, TicketStatus
+from app.schemas.custom_field import CustomFieldValueInput, CustomFieldValueOut
 from app.schemas.lookup import CategoryOut, SLAPolicyOut, TeamOut
 from app.schemas.user import UserOut
 
@@ -20,6 +21,7 @@ class TicketCreateRequest(BaseModel):
     # (Slack -> dashboard) always posts, since the ticket originates there.
     push_to_slack: bool = True
     slack_channel_id: str | None = None  # explicit override; else team routing applies
+    custom_field_values: list[CustomFieldValueInput] = []
 
 
 class AssignRequest(BaseModel):
@@ -62,6 +64,8 @@ class TicketOut(BaseModel):
     sla_breached: bool
     sla_remaining_seconds: int | None
     age_seconds: int
+
+    custom_field_values: list[CustomFieldValueOut] = []
 
 
 class TicketListItem(BaseModel):

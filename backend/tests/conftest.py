@@ -56,6 +56,8 @@ def _clean_tables(db_session):
 
     tables = [
         "audit_events",
+        "ticket_custom_field_values",
+        "custom_field_definitions",
         "ticket_comments",
         "ticket_priority_history",
         "ticket_status_history",

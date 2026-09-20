@@ -1,5 +1,6 @@
 from app.models.audit import AuditEvent
 from app.models.category import Category
+from app.models.custom_field import CustomFieldDefinition, CustomFieldType, TicketCustomFieldValue
 from app.models.enums import EventSource, TicketPriority, TicketStatus
 from app.models.role import Role
 from app.models.sla import SLAPolicy
@@ -17,6 +18,9 @@ from app.models.user import User
 __all__ = [
     "AuditEvent",
     "Category",
+    "CustomFieldDefinition",
+    "CustomFieldType",
+    "TicketCustomFieldValue",
     "EventSource",
     "TicketPriority",
     "TicketStatus",
