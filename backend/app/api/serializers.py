@@ -1,0 +1,57 @@
+from datetime import datetime, timezone
+
+from app.models.ticket import Ticket
+from app.schemas.lookup import CategoryOut, SLAPolicyOut, TeamOut
+from app.schemas.ticket import TicketListItem, TicketOut
+from app.schemas.user import UserOut
+from app.services import sla_service
+
+
+def to_ticket_out(ticket: Ticket) -> TicketOut:
+    now = datetime.now(timezone.utc)
+    breached, remaining = sla_service.sla_status(ticket.sla_due_at, ticket.resolved_at, now)
+    return TicketOut(
+        id=ticket.id,
+        ticket_number=ticket.ticket_number,
+        title=ticket.title,
+        description=ticket.description,
+        customer=ticket.customer,
+        category=CategoryOut.model_validate(ticket.category),
+        team=TeamOut.model_validate(ticket.team),
+        priority=ticket.priority,
+        status=ticket.status,
+        sla_policy=SLAPolicyOut.model_validate(ticket.sla_policy),
+        sla_due_at=ticket.sla_due_at,
+        owner=UserOut.model_validate(ticket.owner) if ticket.owner else None,
+        created_by=UserOut.model_validate(ticket.created_by),
+        slack_channel_id=ticket.slack_channel_id,
+        slack_message_ts=ticket.slack_message_ts,
+        created_at=ticket.created_at,
+        first_response_at=ticket.first_response_at,
+        resolved_at=ticket.resolved_at,
+        closed_at=ticket.closed_at,
+        updated_at=ticket.updated_at,
+        sla_breached=breached,
+        sla_remaining_seconds=remaining,
+        age_seconds=int((now - ticket.created_at).total_seconds()),
+    )
+
+
+def to_list_item(ticket: Ticket) -> TicketListItem:
+    now = datetime.now(timezone.utc)
+    breached, _ = sla_service.sla_status(ticket.sla_due_at, ticket.resolved_at, now)
+    return TicketListItem(
+        id=ticket.id,
+        ticket_number=ticket.ticket_number,
+        title=ticket.title,
+        customer=ticket.customer,
+        category_name=ticket.category.name,
+        team_name=ticket.team.name,
+        owner_name=ticket.owner.name if ticket.owner else None,
+        priority=ticket.priority,
+        status=ticket.status,
+        sla_breached=breached,
+        created_at=ticket.created_at,
+        age_seconds=int((now - ticket.created_at).total_seconds()),
+        updated_at=ticket.updated_at,
+    )
