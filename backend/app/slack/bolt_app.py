@@ -90,6 +90,24 @@ def handle_create_ticket_command(ack, body, client):
     client.views_open(trigger_id=body["trigger_id"], view=view)
 
 
+def _extract_custom_field_values(values: dict) -> list[tuple[int, str]]:
+    """Reads every `custom_field_<id>` block (see
+    `slack_service._build_custom_field_block`) out of a modal's submitted
+    state, handling both the text-input and dropdown shapes. Blocks with
+    no answer (they're optional) are skipped rather than saved as empty.
+    """
+    results = []
+    for block_id, block_values in values.items():
+        if not block_id.startswith("custom_field_"):
+            continue
+        field_id = int(block_id.removeprefix("custom_field_"))
+        answer = block_values["value"]
+        value = answer.get("value") or (answer.get("selected_option") or {}).get("value")
+        if value:
+            results.append((field_id, value))
+    return results
+
+
 @bolt_app.view("create_ticket_modal")
 def handle_create_ticket_submission(ack, body, client, view):
     ack()
@@ -109,6 +127,7 @@ def handle_create_ticket_submission(ack, body, client, view):
             owner_id=None,
             created_by=creator,
             source=EventSource.SLACK,
+            custom_field_values=_extract_custom_field_values(values),
         )
         slack_service.post_ticket_message(db, ticket)
 

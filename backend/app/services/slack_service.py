@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.models.category import Category
+from app.models.custom_field import CustomFieldDefinition, CustomFieldType
 from app.models.enums import TicketPriority
 from app.models.sla import SLAPolicy
 from app.models.slack import SlackChannel
@@ -89,6 +90,11 @@ def build_ticket_blocks(ticket: Ticket) -> list[dict]:
         {"type": "mrkdwn", "text": f"*SLA:*\n{ticket.sla_policy.duration_hours} hours"},
         {"type": "mrkdwn", "text": f"*Owner:*\n{owner_line}"},
     ]
+    # Slack section blocks cap out at 10 fields; fine for the fixed 6 plus
+    # a handful of custom fields, but this will need pagination/overflow
+    # handling if the custom field list grows much larger.
+    for value in ticket.custom_field_values:
+        fields.append({"type": "mrkdwn", "text": f"*{value.field_definition.label}:*\n{value.value}"})
 
     blocks = [
         {
@@ -179,8 +185,15 @@ def update_ticket_message(ticket: Ticket) -> None:
 def build_create_ticket_modal(db: Session) -> dict:
     """Workflow B (spec section 5): Slack -> dashboard ticket creation."""
     teams = db.execute(select(Team).order_by(Team.name)).scalars().all()
-    categories = db.execute(select(Category).order_by(Category.name)).scalars().all()
-    sla_policies = db.execute(select(SLAPolicy).order_by(SLAPolicy.duration_hours)).scalars().all()
+    categories = db.execute(
+        select(Category).where(Category.is_archived.is_(False)).order_by(Category.name)
+    ).scalars().all()
+    sla_policies = db.execute(
+        select(SLAPolicy).where(SLAPolicy.is_archived.is_(False)).order_by(SLAPolicy.duration_hours)
+    ).scalars().all()
+    custom_fields = db.execute(
+        select(CustomFieldDefinition).where(CustomFieldDefinition.is_archived.is_(False)).order_by(CustomFieldDefinition.label)
+    ).scalars().all()
 
     def option(text: str, value: str) -> dict:
         return {"text": {"type": "plain_text", "text": text}, "value": value}
@@ -251,7 +264,33 @@ def build_create_ticket_modal(db: Session) -> dict:
                     "options": [option(f"{s.name}", str(s.id)) for s in sla_policies],
                 },
             },
-        ],
+        ]
+        + [_build_custom_field_block(field) for field in custom_fields],
+    }
+
+
+def _build_custom_field_block(field: CustomFieldDefinition) -> dict:
+    """block_id encodes the field's id (`custom_field_<id>`) so the
+    `view_submission` handler can map the answer back to the right
+    CustomFieldDefinition without a second lookup.
+    """
+    block_id = f"custom_field_{field.id}"
+    if field.field_type == CustomFieldType.DROPDOWN:
+        element = {
+            "type": "static_select",
+            "action_id": "value",
+            "options": [
+                {"text": {"type": "plain_text", "text": opt}, "value": opt} for opt in (field.options or [])
+            ],
+        }
+    else:
+        element = {"type": "plain_text_input", "action_id": "value"}
+    return {
+        "type": "input",
+        "block_id": block_id,
+        "label": {"type": "plain_text", "text": field.label[:75]},  # Slack label limit
+        "element": element,
+        "optional": True,
     }
 
 
