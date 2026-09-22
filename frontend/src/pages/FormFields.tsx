@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SlidersHorizontal, Tags, Timer } from 'lucide-react'
+import { Folder, SlidersHorizontal, Tags, Timer } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -11,11 +11,14 @@ import {
   useCreateCategory,
   useCreateCustomField,
   useCreateSlaPolicy,
+  useCreateTag,
   useCustomFields,
   useSlaPoliciesAdmin,
+  useTags,
   useUpdateCategory,
   useUpdateCustomField,
   useUpdateSlaPolicy,
+  useUpdateTag,
 } from '@/hooks/useApi'
 import type { CustomFieldType } from '@/types/api'
 
@@ -30,9 +33,48 @@ export function FormFields() {
       </div>
 
       <CategoriesSection />
+      <TagsSection />
       <SlaPoliciesSection />
       <CustomFieldsSection />
     </div>
+  )
+}
+
+function TagsSection() {
+  const { data: tags } = useTags()
+  const createTag = useCreateTag()
+  const updateTag = useUpdateTag()
+  const [name, setName] = useState('')
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+          <Tags className="h-4 w-4 text-muted-foreground" /> Tags
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Multi-select labels for a ticket — e.g. Appointment, Prescription — so one ticket can carry several at once.
+        </p>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <ArchivableList
+          items={(tags ?? []).map((t) => ({ id: t.id, label: t.name, is_archived: t.is_archived }))}
+          onArchiveToggle={(id, is_archived) => updateTag.mutate({ id, is_archived })}
+        />
+        <div className="flex gap-2 border-t border-border pt-3">
+          <Input placeholder="New tag name" value={name} onChange={(e) => setName(e.target.value)} />
+          <Button
+            disabled={!name}
+            onClick={() => {
+              createTag.mutate(name)
+              setName('')
+            }}
+          >
+            Add
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -46,7 +88,7 @@ function CategoriesSection() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-          <Tags className="h-4 w-4 text-muted-foreground" /> Categories
+          <Folder className="h-4 w-4 text-muted-foreground" /> Categories
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">

@@ -41,6 +41,12 @@ export interface SLAPolicy {
   is_archived: boolean
 }
 
+export interface Tag {
+  id: number
+  name: string
+  is_archived: boolean
+}
+
 export type CustomFieldType = 'text' | 'dropdown'
 
 export interface CustomFieldDefinition {
@@ -90,6 +96,7 @@ export interface Ticket {
   sla_remaining_seconds: number | null
   age_seconds: number
   custom_field_values: CustomFieldValue[]
+  tags: Tag[]
 }
 
 export interface TicketListItem {
@@ -182,4 +189,5 @@ export interface TicketCreateRequest {
   owner_id?: number | null
   push_to_slack: boolean
   custom_field_values?: { field_definition_id: number; value: string }[]
+  tag_ids?: number[]
 }

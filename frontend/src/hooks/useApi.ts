@@ -9,6 +9,7 @@ import type {
   OwnerPendingItem,
   Role,
   SLAPolicy,
+  Tag,
   Team,
   TeamDetail,
   TeamMemberEntry,
@@ -331,5 +332,37 @@ export function useUpdateCustomField() {
     mutationFn: ({ id, ...payload }: { id: number; label?: string; options?: string[] | null; is_archived?: boolean }) =>
       api.patch<CustomFieldDefinition>(`/custom-fields/${id}`, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['custom-fields'] }),
+  })
+}
+
+export function useTags(includeArchived = true) {
+  return useQuery({
+    queryKey: ['tags', includeArchived],
+    queryFn: () => api.get<Tag[]>(`/tags${buildQuery({ include_archived: includeArchived ? 'true' : undefined })}`),
+  })
+}
+
+export function useCreateTag() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (name: string) => api.post<Tag>('/tags', { name }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tags'] }),
+  })
+}
+
+export function useUpdateTag() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...payload }: { id: number; name?: string; is_archived?: boolean }) =>
+      api.patch<Tag>(`/tags/${id}`, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tags'] }),
+  })
+}
+
+export function useUpdateTicketTags(ticketId: number) {
+  const { invalidate } = useTicketMutation()
+  return useMutation({
+    mutationFn: (tag_ids: number[]) => api.post<Ticket>(`/tickets/${ticketId}/tags`, { tag_ids }),
+    onSuccess: invalidate,
   })
 }

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Sequence, String, Text
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, Sequence, String, Table, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -9,12 +9,23 @@ from app.models.custom_field import TicketCustomFieldValue
 from app.models.enums import TicketPriority, TicketStatus
 from app.models.mixins import TimestampMixin, utcnow
 from app.models.sla import SLAPolicy
+from app.models.tag import Tag
 from app.models.team import Team
 from app.models.user import User
 
 # Human-facing ticket numbers (e.g. "#1024") start at 1000 so early tickets
 # don't look like a fresh/empty system, matching the spec's examples.
 ticket_number_seq = Sequence("ticket_number_seq", start=1000)
+
+# Plain association table — tags carry no per-ticket metadata of their own,
+# so there's no need for a mapped model here (unlike custom fields, whose
+# join row also stores a value).
+ticket_tags = Table(
+    "ticket_tags",
+    Base.metadata,
+    Column("ticket_id", ForeignKey("tickets.id"), primary_key=True),
+    Column("tag_id", ForeignKey("tags.id"), primary_key=True),
+)
 
 
 class Ticket(Base, TimestampMixin):
@@ -69,6 +80,7 @@ class Ticket(Base, TimestampMixin):
     custom_field_values: Mapped[list[TicketCustomFieldValue]] = relationship(
         TicketCustomFieldValue, cascade="all, delete-orphan"
     )
+    tags: Mapped[list[Tag]] = relationship(Tag, secondary=ticket_tags, order_by=Tag.name)
 
 
 class TicketAssignment(Base, TimestampMixin):

@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useCategories, useCreateTicket, useCustomFields, useSlaPolicies, useTeams, useUsers } from '@/hooks/useApi'
+import { TagPicker } from '@/components/TagPicker'
+import { useCategories, useCreateTicket, useCustomFields, useSlaPolicies, useTags, useTeams, useUsers } from '@/hooks/useApi'
 import type { TicketPriority } from '@/types/api'
 
 const PRIORITIES: TicketPriority[] = ['low', 'medium', 'high', 'urgent']
@@ -16,6 +17,7 @@ export function CreateTicketDialog() {
   const { data: slaPolicies } = useSlaPolicies()
   const { data: users } = useUsers()
   const { data: customFields } = useCustomFields(false)
+  const { data: tags } = useTags(false)
   const createTicket = useCreateTicket()
 
   const [form, setForm] = useState({
@@ -29,12 +31,14 @@ export function CreateTicketDialog() {
     owner_id: '',
   })
   const [customValues, setCustomValues] = useState<Record<number, string>>({})
+  const [tagIds, setTagIds] = useState<number[]>([])
 
   const canSubmit = form.title && form.description && form.customer && form.category_id && form.team_id && form.sla_policy_id
 
   function reset() {
     setForm({ title: '', description: '', customer: '', category_id: '', team_id: '', priority: 'medium', sla_policy_id: '', owner_id: '' })
     setCustomValues({})
+    setTagIds([])
   }
 
   async function handleSubmit() {
@@ -52,6 +56,7 @@ export function CreateTicketDialog() {
       custom_field_values: Object.entries(customValues)
         .filter(([, value]) => value)
         .map(([field_definition_id, value]) => ({ field_definition_id: Number(field_definition_id), value })),
+      tag_ids: tagIds,
     })
     reset()
     setOpen(false)
@@ -134,6 +139,9 @@ export function CreateTicketDialog() {
               )}
             </Field>
           ))}
+          <Field label="Tags (optional)">
+            <TagPicker tags={tags ?? []} selectedIds={tagIds} onChange={setTagIds} />
+          </Field>
           <Button className="mt-2" disabled={!canSubmit || createTicket.isPending} onClick={handleSubmit}>
             {createTicket.isPending ? 'Creating…' : 'Create & push to Slack'}
           </Button>

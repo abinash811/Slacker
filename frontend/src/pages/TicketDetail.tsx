@@ -2,14 +2,18 @@ import { useParams, Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 import { PriorityBadge, StatusBadge, SlaBadge } from '@/components/StatusPriorityBadges'
+import { TagPicker } from '@/components/TagPicker'
 import {
   useAssignTicket,
   useChangePriority,
   useChangeStatus,
   useResolveTicket,
+  useTags,
   useTicket,
   useTicketTimeline,
+  useUpdateTicketTags,
   useUsers,
 } from '@/hooks/useApi'
 import { formatDateTime, formatDuration } from '@/lib/format'
@@ -24,11 +28,13 @@ export function TicketDetail() {
   const { data: ticket } = useTicket(ticketId)
   const { data: timeline } = useTicketTimeline(ticketId)
   const { data: users } = useUsers()
+  const { data: activeTags } = useTags(false)
 
   const assign = useAssignTicket(ticketId)
   const changeStatus = useChangeStatus(ticketId)
   const changePriority = useChangePriority(ticketId)
   const resolve = useResolveTicket(ticketId)
+  const updateTags = useUpdateTicketTags(ticketId)
 
   if (!ticket) return null
 
@@ -55,6 +61,15 @@ export function TicketDetail() {
             </CardHeader>
             <CardContent className="flex flex-col gap-3 text-sm">
               <p className="whitespace-pre-wrap text-foreground">{ticket.description}</p>
+              {ticket.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {ticket.tags.map((tag) => (
+                    <Badge key={tag.id} variant="accent">
+                      {tag.name}
+                    </Badge>
+                  ))}
+                </div>
+              )}
               <dl className="grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm">
                 <Info label="Customer" value={ticket.customer} />
                 <Info label="Category" value={ticket.category.name} />
@@ -152,6 +167,14 @@ export function TicketDetail() {
             >
               Resolve ticket
             </Button>
+
+            <ActionField label="Tags">
+              <TagPicker
+                tags={activeTags ?? []}
+                selectedIds={ticket.tags.map((t) => t.id)}
+                onChange={(ids) => updateTags.mutate(ids)}
+              />
+            </ActionField>
           </CardContent>
         </Card>
       </div>

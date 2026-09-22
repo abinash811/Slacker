@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.models.enums import TicketPriority, TicketStatus
 from app.schemas.custom_field import CustomFieldValueInput, CustomFieldValueOut
 from app.schemas.lookup import CategoryOut, SLAPolicyOut, TeamOut
+from app.schemas.tag import TagOut
 from app.schemas.user import UserOut
 
 
@@ -22,6 +23,7 @@ class TicketCreateRequest(BaseModel):
     push_to_slack: bool = True
     slack_channel_id: str | None = None  # explicit override; else team routing applies
     custom_field_values: list[CustomFieldValueInput] = []
+    tag_ids: list[int] = []
 
 
 class AssignRequest(BaseModel):
@@ -34,6 +36,10 @@ class StatusChangeRequest(BaseModel):
 
 class PriorityChangeRequest(BaseModel):
     priority: TicketPriority
+
+
+class TagsUpdateRequest(BaseModel):
+    tag_ids: list[int]
 
 
 class TicketOut(BaseModel):
@@ -66,6 +72,7 @@ class TicketOut(BaseModel):
     age_seconds: int
 
     custom_field_values: list[CustomFieldValueOut] = []
+    tags: list[TagOut] = []
 
 
 class TicketListItem(BaseModel):

@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from app.models.ticket import Ticket
 from app.schemas.custom_field import CustomFieldValueOut
 from app.schemas.lookup import CategoryOut, SLAPolicyOut, TeamOut
+from app.schemas.tag import TagOut
 from app.schemas.ticket import TicketListItem, TicketOut
 from app.schemas.user import UserOut
 from app.services import sla_service
@@ -39,6 +40,7 @@ def to_ticket_out(ticket: Ticket) -> TicketOut:
             CustomFieldValueOut(field_definition_id=v.field_definition_id, label=v.field_definition.label, value=v.value)
             for v in ticket.custom_field_values
         ],
+        tags=[TagOut.model_validate(t) for t in ticket.tags],
     )
 
 

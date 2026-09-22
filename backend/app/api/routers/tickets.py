@@ -13,6 +13,7 @@ from app.schemas.ticket import (
     AssignRequest,
     PriorityChangeRequest,
     StatusChangeRequest,
+    TagsUpdateRequest,
     TicketCreateRequest,
     TicketListResponse,
     TicketOut,
@@ -64,6 +65,7 @@ def create_ticket(
         created_by=current_user,
         source=EventSource.DASHBOARD,
         custom_field_values=[(v.field_definition_id, v.value) for v in payload.custom_field_values],
+        tag_ids=payload.tag_ids,
     )
 
     if payload.push_to_slack:
@@ -141,4 +143,16 @@ def resolve_ticket(
     ticket = ticket_service.get_ticket_or_404(db, ticket_id)
     ticket = ticket_service.resolve_ticket(db, ticket, current_user, EventSource.DASHBOARD)
     update_ticket_message(ticket)
+    return to_ticket_out(ticket_service.get_ticket_or_404(db, ticket.id))
+
+
+@router.post("/{ticket_id}/tags", response_model=TicketOut)
+def update_ticket_tags(
+    ticket_id: int,
+    payload: TagsUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TicketOut:
+    ticket = ticket_service.get_ticket_or_404(db, ticket_id)
+    ticket_service.update_tags(db, ticket, payload.tag_ids, current_user, EventSource.DASHBOARD)
     return to_ticket_out(ticket_service.get_ticket_or_404(db, ticket.id))

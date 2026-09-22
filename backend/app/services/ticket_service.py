@@ -24,7 +24,7 @@ from app.models.ticket import (
 )
 from app.models.user import User
 from app.schemas.ticket import TimelineEvent
-from app.services import audit_service, custom_field_service, sla_service
+from app.services import audit_service, custom_field_service, sla_service, tag_service
 from app.services.filters import TicketFilters, apply as apply_filters
 
 RESOLVED_STATUSES = {TicketStatus.RESOLVED, TicketStatus.CLOSED}
@@ -36,6 +36,7 @@ TICKET_LOAD_OPTIONS = (
     joinedload(Ticket.owner),
     joinedload(Ticket.created_by),
     joinedload(Ticket.custom_field_values).joinedload(TicketCustomFieldValue.field_definition),
+    joinedload(Ticket.tags),
 )
 
 
@@ -64,6 +65,7 @@ def create_ticket(
     created_by: User,
     source: EventSource,
     custom_field_values: list[tuple[int, str]] | None = None,
+    tag_ids: list[int] | None = None,
 ) -> Ticket:
     policy = db.get(SLAPolicy, sla_policy_id)
     if policy is None:
@@ -98,6 +100,9 @@ def create_ticket(
 
     if custom_field_values:
         custom_field_service.save_values(db, ticket.id, custom_field_values)
+
+    if tag_ids:
+        tag_service.set_tags(db, ticket, tag_ids)
 
     audit_service.record_event(
         db,
@@ -208,6 +213,21 @@ def change_priority(db: Session, ticket: Ticket, new_priority: TicketPriority, c
 
 def resolve_ticket(db: Session, ticket: Ticket, resolved_by: User, source: EventSource) -> Ticket:
     return change_status(db, ticket, TicketStatus.RESOLVED, resolved_by, source)
+
+
+def update_tags(db: Session, ticket: Ticket, tag_ids: list[int], changed_by: User, source: EventSource) -> Ticket:
+    tag_service.set_tags(db, ticket, tag_ids)
+    audit_service.record_event(
+        db,
+        ticket_id=ticket.id,
+        actor_id=changed_by.id,
+        source=source,
+        event_type="tags_changed",
+        payload={"tag_ids": tag_ids},
+    )
+    db.commit()
+    db.refresh(ticket)
+    return ticket
 
 
 def record_comment_reference(

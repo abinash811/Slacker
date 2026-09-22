@@ -9,6 +9,7 @@ from app.core.database import SessionLocal
 from app.models.category import Category
 from app.models.role import Role
 from app.models.sla import SLAPolicy
+from app.models.tag import Tag
 from app.models.team import Team
 from app.models.user import User
 
@@ -25,6 +26,8 @@ def run() -> None:
 
         categories = {name: Category(name=name) for name in ["Product", "Billing", "Technical", "General"]}
         db.add_all(categories.values())
+
+        db.add_all(Tag(name=name) for name in ["Appointment", "Prescription", "Payments", "Login"])
 
         db.flush()
 
