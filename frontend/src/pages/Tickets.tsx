@@ -11,6 +11,9 @@ const COLUMNS: { key: string; label: string }[] = [
   { key: 'ticket_number', label: 'Ticket' },
   { key: 'title', label: 'Title' },
   { key: 'customer', label: 'Customer' },
+  { key: 'business_id', label: 'Business ID' },
+  { key: 'mobile_number', label: 'Mobile' },
+  { key: 'doctor_name', label: 'Doctor' },
   { key: 'category_name', label: 'Category' },
   { key: 'team_name', label: 'Team' },
   { key: 'owner_name', label: 'Owner' },
@@ -77,6 +80,9 @@ export function Tickets() {
                 <td className="whitespace-nowrap px-3 py-2 font-medium">#{t.ticket_number}</td>
                 <td className="max-w-64 truncate px-3 py-2">{t.title}</td>
                 <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{t.customer}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{t.business_id ?? '—'}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{t.mobile_number ?? '—'}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{t.doctor_name ?? '—'}</td>
                 <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{t.category_name}</td>
                 <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{t.team_name}</td>
                 <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{t.owner_name ?? 'Unassigned'}</td>

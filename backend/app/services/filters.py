@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import Select
+from sqlalchemy import Select, or_
 
 from app.models.enums import TicketPriority, TicketStatus
 from app.models.ticket import Ticket
@@ -23,6 +23,10 @@ class TicketFilters:
     sla_status: str | None = None  # "breached" | "ok"
     date_from: datetime | None = None
     date_to: datetime | None = None
+    # Matches against the fixed identifying fields only (Business ID,
+    # Mobile Number, Doctor Name) — not a general full-text search over
+    # title/description.
+    search: str | None = None
 
 
 def apply(stmt: Select, filters: TicketFilters, now: datetime) -> Select:
@@ -43,4 +47,13 @@ def apply(stmt: Select, filters: TicketFilters, now: datetime) -> Select:
     if filters.sla_status is not None:
         breached = sla_service.sla_breach_condition(Ticket.resolved_at, Ticket.sla_due_at, now)
         stmt = stmt.where(breached if filters.sla_status == "breached" else ~breached)
+    if filters.search:
+        pattern = f"%{filters.search}%"
+        stmt = stmt.where(
+            or_(
+                Ticket.business_id.ilike(pattern),
+                Ticket.mobile_number.ilike(pattern),
+                Ticket.doctor_name.ilike(pattern),
+            )
+        )
     return stmt

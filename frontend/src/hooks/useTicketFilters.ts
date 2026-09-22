@@ -18,6 +18,7 @@ export function useTicketFilters(): [TicketFiltersState, (next: Partial<TicketFi
     sla_status: (params.get('sla_status') as 'breached' | 'ok') || undefined,
     date_from: params.get('date_from') || undefined,
     date_to: params.get('date_to') || undefined,
+    search: params.get('search') || undefined,
   }
 
   function update(next: Partial<TicketFiltersState>) {

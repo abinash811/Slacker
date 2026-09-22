@@ -77,6 +77,9 @@ export interface Ticket {
   title: string
   description: string
   customer: string
+  business_id: string | null
+  mobile_number: string | null
+  doctor_name: string | null
   category: Category
   team: Team
   priority: TicketPriority
@@ -104,6 +107,9 @@ export interface TicketListItem {
   ticket_number: number
   title: string
   customer: string
+  business_id: string | null
+  mobile_number: string | null
+  doctor_name: string | null
   category_name: string
   team_name: string
   owner_name: string | null
@@ -176,12 +182,16 @@ export interface TicketFiltersState {
   sla_status?: 'breached' | 'ok'
   date_from?: string
   date_to?: string
+  search?: string
 }
 
 export interface TicketCreateRequest {
   title: string
   description: string
   customer: string
+  business_id?: string
+  mobile_number?: string
+  doctor_name?: string
   category_id: number
   team_id: number
   priority: TicketPriority

@@ -90,6 +90,12 @@ def build_ticket_blocks(ticket: Ticket) -> list[dict]:
         {"type": "mrkdwn", "text": f"*SLA:*\n{ticket.sla_policy.duration_hours} hours"},
         {"type": "mrkdwn", "text": f"*Owner:*\n{owner_line}"},
     ]
+    if ticket.business_id:
+        fields.append({"type": "mrkdwn", "text": f"*Business ID:*\n{ticket.business_id}"})
+    if ticket.mobile_number:
+        fields.append({"type": "mrkdwn", "text": f"*Mobile Number:*\n{ticket.mobile_number}"})
+    if ticket.doctor_name:
+        fields.append({"type": "mrkdwn", "text": f"*Doctor Name:*\n{ticket.doctor_name}"})
     # Slack section blocks cap out at 10 fields; fine for the fixed 6 plus
     # a handful of custom fields, but this will need pagination/overflow
     # handling if the custom field list grows much larger.
@@ -222,6 +228,27 @@ def build_create_ticket_modal(db: Session) -> dict:
                 "block_id": "customer",
                 "label": {"type": "plain_text", "text": "Customer"},
                 "element": {"type": "plain_text_input", "action_id": "value"},
+            },
+            {
+                "type": "input",
+                "block_id": "business_id",
+                "label": {"type": "plain_text", "text": "Business ID"},
+                "element": {"type": "plain_text_input", "action_id": "value"},
+                "optional": True,
+            },
+            {
+                "type": "input",
+                "block_id": "mobile_number",
+                "label": {"type": "plain_text", "text": "Mobile Number"},
+                "element": {"type": "plain_text_input", "action_id": "value"},
+                "optional": True,
+            },
+            {
+                "type": "input",
+                "block_id": "doctor_name",
+                "label": {"type": "plain_text", "text": "Doctor Name"},
+                "element": {"type": "plain_text_input", "action_id": "value"},
+                "optional": True,
             },
             {
                 "type": "input",

@@ -72,6 +72,9 @@ export function TicketDetail() {
               )}
               <dl className="grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm">
                 <Info label="Customer" value={ticket.customer} />
+                <Info label="Business ID" value={ticket.business_id ?? '—'} />
+                <Info label="Mobile Number" value={ticket.mobile_number ?? '—'} />
+                <Info label="Doctor Name" value={ticket.doctor_name ?? '—'} />
                 <Info label="Category" value={ticket.category.name} />
                 <Info label="Team" value={ticket.team.name} />
                 <Info label="Owner" value={ticket.owner?.name ?? 'Unassigned'} />

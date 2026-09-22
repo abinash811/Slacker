@@ -13,6 +13,9 @@ class TicketCreateRequest(BaseModel):
     title: str = Field(min_length=1, max_length=500)
     description: str = Field(min_length=1)
     customer: str = Field(min_length=1, max_length=255)
+    business_id: str | None = Field(default=None, max_length=100)
+    mobile_number: str | None = Field(default=None, max_length=32)
+    doctor_name: str | None = Field(default=None, max_length=255)
     category_id: int
     team_id: int
     priority: TicketPriority = TicketPriority.MEDIUM
@@ -50,6 +53,9 @@ class TicketOut(BaseModel):
     title: str
     description: str
     customer: str
+    business_id: str | None
+    mobile_number: str | None
+    doctor_name: str | None
     category: CategoryOut
     team: TeamOut
     priority: TicketPriority
@@ -80,6 +86,9 @@ class TicketListItem(BaseModel):
     ticket_number: int
     title: str
     customer: str
+    business_id: str | None
+    mobile_number: str | None
+    doctor_name: str | None
     category_name: str
     team_name: str
     owner_name: str | None

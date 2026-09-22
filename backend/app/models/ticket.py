@@ -45,6 +45,11 @@ class Ticket(Base, TimestampMixin):
     description: Mapped[str] = mapped_column(Text, nullable=False)
     customer: Mapped[str] = mapped_column(String(255), nullable=False)
 
+    # Fixed (not admin-defined) searchable fields — see filters.py search.
+    business_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    mobile_number: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    doctor_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"), nullable=False)
     team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), nullable=False)
 

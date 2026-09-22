@@ -24,6 +24,9 @@ export function CreateTicketDialog() {
     title: '',
     description: '',
     customer: '',
+    business_id: '',
+    mobile_number: '',
+    doctor_name: '',
     category_id: '',
     team_id: '',
     priority: 'medium' as TicketPriority,
@@ -36,7 +39,19 @@ export function CreateTicketDialog() {
   const canSubmit = form.title && form.description && form.customer && form.category_id && form.team_id && form.sla_policy_id
 
   function reset() {
-    setForm({ title: '', description: '', customer: '', category_id: '', team_id: '', priority: 'medium', sla_policy_id: '', owner_id: '' })
+    setForm({
+      title: '',
+      description: '',
+      customer: '',
+      business_id: '',
+      mobile_number: '',
+      doctor_name: '',
+      category_id: '',
+      team_id: '',
+      priority: 'medium',
+      sla_policy_id: '',
+      owner_id: '',
+    })
     setCustomValues({})
     setTagIds([])
   }
@@ -47,6 +62,9 @@ export function CreateTicketDialog() {
       title: form.title,
       description: form.description,
       customer: form.customer,
+      business_id: form.business_id || undefined,
+      mobile_number: form.mobile_number || undefined,
+      doctor_name: form.doctor_name || undefined,
       category_id: Number(form.category_id),
       team_id: Number(form.team_id),
       priority: form.priority,
@@ -85,6 +103,17 @@ export function CreateTicketDialog() {
           <Field label="Customer / Account" htmlFor="ticket-customer">
             <Input id="ticket-customer" value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })} />
           </Field>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Business ID" htmlFor="ticket-business-id">
+              <Input id="ticket-business-id" value={form.business_id} onChange={(e) => setForm({ ...form, business_id: e.target.value })} />
+            </Field>
+            <Field label="Mobile Number" htmlFor="ticket-mobile-number">
+              <Input id="ticket-mobile-number" value={form.mobile_number} onChange={(e) => setForm({ ...form, mobile_number: e.target.value })} />
+            </Field>
+            <Field label="Doctor Name" htmlFor="ticket-doctor-name">
+              <Input id="ticket-doctor-name" value={form.doctor_name} onChange={(e) => setForm({ ...form, doctor_name: e.target.value })} />
+            </Field>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Category">
               <SimpleSelect

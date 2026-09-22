@@ -1,5 +1,8 @@
+import { useEffect, useState } from 'react'
+import { Search } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { useCategories, useTeams, useUsers } from '@/hooks/useApi'
 import type { TicketFiltersState } from '@/types/api'
 
@@ -20,6 +23,10 @@ export function FilterBar({ filters, onChange }: Props) {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <SearchInput
+        value={filters.search}
+        onChange={(v) => onChange({ search: v })}
+      />
       <FilterSelect
         label="Team"
         value={filters.team_id?.toString()}
@@ -75,12 +82,39 @@ export function FilterBar({ filters, onChange }: Props) {
               priority: undefined,
               status: undefined,
               sla_status: undefined,
+              search: undefined,
             })
           }
         >
           Clear filters
         </Button>
       )}
+    </div>
+  )
+}
+
+function SearchInput({ value, onChange }: { value: string | undefined; onChange: (v: string | undefined) => void }) {
+  const [draft, setDraft] = useState(value ?? '')
+
+  useEffect(() => setDraft(value ?? ''), [value])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (draft !== (value ?? '')) onChange(draft || undefined)
+    }, 300)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft])
+
+  return (
+    <div className="relative">
+      <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        placeholder="Search Business ID, Mobile, Doctor…"
+        className="w-64 pl-8"
+      />
     </div>
   )
 }

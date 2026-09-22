@@ -33,6 +33,7 @@ function filtersToQuery(filters: TicketFiltersState) {
     sla_status: filters.sla_status,
     date_from: filters.date_from,
     date_to: filters.date_to,
+    search: filters.search,
   })
 }
 
@@ -65,6 +66,7 @@ export function useTickets(
     sla_status: filters.sla_status,
     date_from: filters.date_from,
     date_to: filters.date_to,
+    search: filters.search,
     sort_by: opts.sortBy,
     sort_dir: opts.sortDir,
     page: opts.page,

@@ -15,6 +15,7 @@ def get_ticket_filters(
     sla_status: str | None = Query(default=None, pattern="^(breached|ok)$"),
     date_from: datetime | None = Query(default=None),
     date_to: datetime | None = Query(default=None),
+    search: str | None = Query(default=None),
 ) -> TicketFilters:
     return TicketFilters(
         team_id=team_id,
@@ -25,4 +26,5 @@ def get_ticket_filters(
         sla_status=sla_status,
         date_from=date_from,
         date_to=date_to,
+        search=search,
     )
