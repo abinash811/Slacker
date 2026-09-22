@@ -20,6 +20,7 @@ def _to_detail(db: Session, team) -> TeamDetailOut:
     return TeamDetailOut(
         id=team.id,
         name=team.name,
+        is_default=team.is_default,
         members=[TeamMemberOut.model_validate(m) for m in members],
     )
 
@@ -40,6 +41,13 @@ def create_team(payload: TeamCreateRequest, db: Session = Depends(get_db)) -> Te
 def rename_team(team_id: int, payload: TeamUpdateRequest, db: Session = Depends(get_db)) -> TeamDetailOut:
     team = team_service.get_team_or_404(db, team_id)
     team = team_service.rename_team(db, team, payload.name)
+    return _to_detail(db, team)
+
+
+@router.post("/{team_id}/set-default", response_model=TeamDetailOut)
+def set_default_team(team_id: int, db: Session = Depends(get_db)) -> TeamDetailOut:
+    team = team_service.get_team_or_404(db, team_id)
+    team = team_service.set_default_team(db, team)
     return _to_detail(db, team)
 
 

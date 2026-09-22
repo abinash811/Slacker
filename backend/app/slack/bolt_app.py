@@ -10,6 +10,7 @@ refresh the Slack message. No ticket business logic is duplicated here.
 import logging
 from datetime import datetime, timezone
 
+from fastapi import HTTPException
 from slack_bolt import App
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select
@@ -18,6 +19,7 @@ from app.core.config import get_settings
 from app.core.database import SessionLocal
 from app.models.enums import EventSource, TicketPriority, TicketStatus
 from app.models.slack import SlackEventDedup
+from app.models.team import Team
 from app.services import slack_service, ticket_service
 from app.slack import identity
 
@@ -150,6 +152,16 @@ def handle_assign_click(ack, body, client):
     client.views_open(trigger_id=body["trigger_id"], view=view)
 
 
+@bolt_app.action("ticket_team")
+def handle_team_click(ack, body, client):
+    ack()
+    ticket_id = int(body["actions"][0]["value"])
+    with SessionLocal() as db:
+        ticket = ticket_service.get_ticket_or_404(db, ticket_id)
+        view = slack_service.build_team_modal(db, ticket)
+    client.views_open(trigger_id=body["trigger_id"], view=view)
+
+
 @bolt_app.action("ticket_status")
 def handle_status_click(ack, body, client):
     ack()
@@ -197,7 +209,24 @@ def handle_assign_submission(ack, body, client, view):
         new_owner = identity.resolve_or_create_user(db, client, selected_slack_user_id)
         actor = identity.resolve_or_create_user(db, client, body["user"]["id"])
         ticket = ticket_service.get_ticket_or_404(db, ticket_id)
-        ticket = ticket_service.assign_ticket(db, ticket, new_owner, actor, EventSource.SLACK)
+        try:
+            ticket = ticket_service.assign_ticket(db, ticket, new_owner, actor, EventSource.SLACK)
+        except HTTPException as e:
+            client.chat_postMessage(channel=body["user"]["id"], text=f"Couldn't assign ticket #{ticket.ticket_number}: {e.detail}")
+            return
+        slack_service.update_ticket_message(ticket)
+
+
+@bolt_app.view("team_modal")
+def handle_team_submission(ack, body, client, view):
+    ack()
+    ticket_id = int(view["private_metadata"])
+    new_team_id = int(view["state"]["values"]["team"]["value"]["selected_option"]["value"])
+    with SessionLocal() as db:
+        actor = identity.resolve_or_create_user(db, client, body["user"]["id"])
+        ticket = ticket_service.get_ticket_or_404(db, ticket_id)
+        new_team = db.get(Team, new_team_id)
+        ticket = ticket_service.change_team(db, ticket, new_team, actor, EventSource.SLACK)
         slack_service.update_ticket_message(ticket)
 
 

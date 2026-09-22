@@ -66,6 +66,13 @@ class Ticket(Base, TimestampMixin):
     owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
+    # The locked "who from the default (Support) team owns closing this."
+    # Set the first time a default-team member self-assigns; from then on
+    # only default-team members may change it (see ticket_service.assign_ticket).
+    # `owner_id` auto-reverts to this whenever the ticket's team comes back
+    # to the default team (see ticket_service.change_team).
+    support_assignee_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+
     # Slack references only — never message content (see docs/DATABASE.md).
     slack_channel_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
     slack_message_ts: Mapped[str | None] = mapped_column(String(32), nullable=True)
@@ -82,6 +89,7 @@ class Ticket(Base, TimestampMixin):
     sla_policy: Mapped[SLAPolicy] = relationship(SLAPolicy)
     owner: Mapped[User | None] = relationship(User, foreign_keys=[owner_id])
     created_by: Mapped[User] = relationship(User, foreign_keys=[created_by_id])
+    support_assignee: Mapped[User | None] = relationship(User, foreign_keys=[support_assignee_id])
     custom_field_values: Mapped[list[TicketCustomFieldValue]] = relationship(
         TicketCustomFieldValue, cascade="all, delete-orphan"
     )
@@ -98,7 +106,19 @@ class TicketAssignment(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     ticket_id: Mapped[int] = mapped_column(ForeignKey("tickets.id"), index=True, nullable=False)
     previous_owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
-    new_owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    # Nullable: a team change can clear the assignee back to unassigned
+    # (see ticket_service.change_team), which is itself a recorded transition.
+    new_owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    changed_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+
+
+class TicketTeamHistory(Base, TimestampMixin):
+    __tablename__ = "ticket_team_history"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ticket_id: Mapped[int] = mapped_column(ForeignKey("tickets.id"), index=True, nullable=False)
+    previous_team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id"), nullable=True)
+    new_team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), nullable=False)
     changed_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
 

@@ -14,6 +14,7 @@ import {
   useCreateTeam,
   useRemoveTeamMember,
   useRoles,
+  useSetDefaultTeam,
   useTeamDetail,
   useTeamsList,
   useUpdateRole,
@@ -174,6 +175,7 @@ function PermissionCheckbox({
 function TeamsSection() {
   const { data: teams } = useTeamsList()
   const createTeam = useCreateTeam()
+  const setDefaultTeam = useSetDefaultTeam()
   const [selectedTeamId, setSelectedTeamId] = useState<number | undefined>(undefined)
   const [newTeamName, setNewTeamName] = useState('')
 
@@ -186,20 +188,36 @@ function TeamsSection() {
           <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
             <UsersRound className="h-4 w-4 text-muted-foreground" /> Teams
           </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            New tickets route to the default team automatically; only its members can reassign its locked support owner.
+          </p>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <div className="flex flex-col gap-1">
             {(teams ?? []).map((team: Team) => (
-              <button
+              <div
                 key={team.id}
-                onClick={() => setSelectedTeamId(team.id)}
                 className={cn(
-                  'rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted',
+                  'flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted',
                   selectedTeamId === team.id ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground',
                 )}
               >
-                {team.name}
-              </button>
+                <button onClick={() => setSelectedTeamId(team.id)} className="flex-1 text-left">
+                  {team.name}
+                </button>
+                {team.is_default ? (
+                  <Badge variant="accent">Default</Badge>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDefaultTeam.mutate(team.id)}
+                    disabled={setDefaultTeam.isPending}
+                  >
+                    Set default
+                  </Button>
+                )}
+              </div>
             ))}
             {(teams ?? []).length === 0 && (
               <p className="px-3 py-4 text-center text-sm text-muted-foreground">No teams yet — add one below.</p>

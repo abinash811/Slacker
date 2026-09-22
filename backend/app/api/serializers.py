@@ -28,6 +28,7 @@ def to_ticket_out(ticket: Ticket) -> TicketOut:
         sla_policy=SLAPolicyOut.model_validate(ticket.sla_policy),
         sla_due_at=ticket.sla_due_at,
         owner=UserOut.model_validate(ticket.owner) if ticket.owner else None,
+        support_assignee=UserOut.model_validate(ticket.support_assignee) if ticket.support_assignee else None,
         created_by=UserOut.model_validate(ticket.created_by),
         slack_channel_id=ticket.slack_channel_id,
         slack_message_ts=ticket.slack_message_ts,

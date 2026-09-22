@@ -133,7 +133,15 @@ export function useCreateTicket() {
 export function useAssignTicket(ticketId: number) {
   const { invalidate } = useTicketMutation()
   return useMutation({
-    mutationFn: (owner_id: number) => api.post<Ticket>(`/tickets/${ticketId}/assign`, { owner_id }),
+    mutationFn: (owner_id: number | null) => api.post<Ticket>(`/tickets/${ticketId}/assign`, { owner_id }),
+    onSuccess: invalidate,
+  })
+}
+
+export function useChangeTeam(ticketId: number) {
+  const { invalidate } = useTicketMutation()
+  return useMutation({
+    mutationFn: (team_id: number) => api.post<Ticket>(`/tickets/${ticketId}/team`, { team_id }),
     onSuccess: invalidate,
   })
 }
@@ -224,6 +232,14 @@ export function useRenameTeam(teamId: number) {
   const invalidate = useTeamMutation()
   return useMutation({
     mutationFn: (name: string) => api.patch<TeamDetail>(`/teams/${teamId}`, { name }),
+    onSuccess: invalidate,
+  })
+}
+
+export function useSetDefaultTeam() {
+  const invalidate = useTeamMutation()
+  return useMutation({
+    mutationFn: (teamId: number) => api.post<TeamDetail>(`/teams/${teamId}/set-default`),
     onSuccess: invalidate,
   })
 }

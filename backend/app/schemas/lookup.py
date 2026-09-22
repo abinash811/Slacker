@@ -5,6 +5,7 @@ class TeamOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     name: str
+    is_default: bool = False
 
 
 class CategoryOut(BaseModel):

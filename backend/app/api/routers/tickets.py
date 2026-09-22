@@ -8,12 +8,14 @@ from app.api.serializers import to_list_item, to_ticket_out
 from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.models.enums import EventSource
+from app.models.team import Team
 from app.models.user import User
 from app.schemas.ticket import (
     AssignRequest,
     PriorityChangeRequest,
     StatusChangeRequest,
     TagsUpdateRequest,
+    TeamChangeRequest,
     TicketCreateRequest,
     TicketListResponse,
     TicketOut,
@@ -102,11 +104,29 @@ def assign_ticket(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> TicketOut:
-    new_owner = db.get(User, payload.owner_id)
-    if new_owner is None:
-        raise HTTPException(status_code=404, detail="User not found")
+    new_owner = None
+    if payload.owner_id is not None:
+        new_owner = db.get(User, payload.owner_id)
+        if new_owner is None:
+            raise HTTPException(status_code=404, detail="User not found")
     ticket = ticket_service.get_ticket_or_404(db, ticket_id)
     ticket = ticket_service.assign_ticket(db, ticket, new_owner, current_user, EventSource.DASHBOARD)
+    update_ticket_message(ticket)
+    return to_ticket_out(ticket_service.get_ticket_or_404(db, ticket.id))
+
+
+@router.post("/{ticket_id}/team", response_model=TicketOut)
+def change_ticket_team(
+    ticket_id: int,
+    payload: TeamChangeRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TicketOut:
+    new_team = db.get(Team, payload.team_id)
+    if new_team is None:
+        raise HTTPException(status_code=404, detail="Team not found")
+    ticket = ticket_service.get_ticket_or_404(db, ticket_id)
+    ticket = ticket_service.change_team(db, ticket, new_team, current_user, EventSource.DASHBOARD)
     update_ticket_message(ticket)
     return to_ticket_out(ticket_service.get_ticket_or_404(db, ticket.id))
 

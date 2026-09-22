@@ -15,16 +15,18 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.custom_field import TicketCustomFieldValue
 from app.models.enums import EventSource, TicketPriority, TicketStatus
 from app.models.sla import SLAPolicy
+from app.models.team import Team
 from app.models.ticket import (
     Ticket,
     TicketAssignment,
     TicketComment,
     TicketPriorityHistory,
     TicketStatusHistory,
+    TicketTeamHistory,
 )
 from app.models.user import User
 from app.schemas.ticket import TimelineEvent
-from app.services import audit_service, custom_field_service, sla_service, tag_service
+from app.services import audit_service, custom_field_service, sla_service, tag_service, team_service
 from app.services.filters import TicketFilters, apply as apply_filters
 
 RESOLVED_STATUSES = {TicketStatus.RESOLVED, TicketStatus.CLOSED}
@@ -35,6 +37,7 @@ TICKET_LOAD_OPTIONS = (
     joinedload(Ticket.sla_policy),
     joinedload(Ticket.owner),
     joinedload(Ticket.created_by),
+    joinedload(Ticket.support_assignee),
     joinedload(Ticket.custom_field_values).joinedload(TicketCustomFieldValue.field_definition),
     joinedload(Ticket.tags),
 )
@@ -101,8 +104,12 @@ def create_ticket(
 
     db.add(TicketStatusHistory(ticket_id=ticket.id, previous_status=None, new_status=TicketStatus.OPEN, changed_by_id=created_by.id))
     db.add(TicketPriorityHistory(ticket_id=ticket.id, previous_priority=None, new_priority=priority, changed_by_id=created_by.id))
+    db.add(TicketTeamHistory(ticket_id=ticket.id, previous_team_id=None, new_team_id=team_id, changed_by_id=created_by.id))
     if owner_id is not None:
         db.add(TicketAssignment(ticket_id=ticket.id, previous_owner_id=None, new_owner_id=owner_id, changed_by_id=created_by.id))
+        default_team = team_service.get_default_team(db)
+        if default_team is not None and team_id == default_team.id:
+            ticket.support_assignee_id = owner_id
 
     if custom_field_values:
         custom_field_service.save_values(db, ticket.id, custom_field_values)
@@ -124,17 +131,34 @@ def create_ticket(
     return get_ticket_or_404(db, ticket.id)
 
 
-def assign_ticket(db: Session, ticket: Ticket, new_owner: User, changed_by: User, source: EventSource) -> Ticket:
-    if ticket.owner_id == new_owner.id:
+def assign_ticket(db: Session, ticket: Ticket, new_owner: User | None, changed_by: User, source: EventSource) -> Ticket:
+    """Sets the current assignee. While the ticket sits with the default
+    (Support) team, this doubles as the "support assignee" — locked so
+    only default-team members can hand it to another default-team member
+    (workload rebalancing). Any other team's leg is unrestricted, and
+    doesn't touch the lock (see change_team for how it's restored).
+    """
+    new_owner_id = new_owner.id if new_owner else None
+    if ticket.owner_id == new_owner_id:
         return ticket  # no-op: already the owner, don't pollute history
 
+    default_team = team_service.get_default_team(db)
+    on_default_team = default_team is not None and ticket.team_id == default_team.id
+    if on_default_team:
+        if not team_service.is_team_member(db, default_team.id, changed_by.id):
+            raise HTTPException(status_code=403, detail=f"Only {default_team.name} team members can reassign this ticket")
+        if new_owner is not None and not team_service.is_team_member(db, default_team.id, new_owner.id):
+            raise HTTPException(status_code=400, detail=f"{new_owner.name} is not a member of {default_team.name}")
+
     previous_owner_id = ticket.owner_id
-    ticket.owner_id = new_owner.id
+    ticket.owner_id = new_owner_id
+    if on_default_team:
+        ticket.support_assignee_id = new_owner_id
     db.add(
         TicketAssignment(
             ticket_id=ticket.id,
             previous_owner_id=previous_owner_id,
-            new_owner_id=new_owner.id,
+            new_owner_id=new_owner_id,
             changed_by_id=changed_by.id,
         )
     )
@@ -143,8 +167,55 @@ def assign_ticket(db: Session, ticket: Ticket, new_owner: User, changed_by: User
         ticket_id=ticket.id,
         actor_id=changed_by.id,
         source=source,
-        event_type="reassigned" if previous_owner_id else "assigned",
-        payload={"previous_owner_id": previous_owner_id, "new_owner_id": new_owner.id},
+        event_type="unassigned" if new_owner_id is None else ("reassigned" if previous_owner_id else "assigned"),
+        payload={"previous_owner_id": previous_owner_id, "new_owner_id": new_owner_id},
+    )
+    db.commit()
+    db.refresh(ticket)
+    return ticket
+
+
+def change_team(db: Session, ticket: Ticket, new_team: Team, changed_by: User, source: EventSource) -> Ticket:
+    """Moves the ticket to a different team's queue. Unrestricted — anyone
+    can hand a ticket to any team. The assignee resets for the new leg:
+    auto-restored to the locked support_assignee when returning to the
+    default team, cleared otherwise so the receiving team picks their own.
+    """
+    if ticket.team_id == new_team.id:
+        return ticket
+
+    previous_team_id = ticket.team_id
+    ticket.team_id = new_team.id
+    db.add(
+        TicketTeamHistory(
+            ticket_id=ticket.id,
+            previous_team_id=previous_team_id,
+            new_team_id=new_team.id,
+            changed_by_id=changed_by.id,
+        )
+    )
+
+    default_team = team_service.get_default_team(db)
+    new_owner_id = ticket.support_assignee_id if (default_team is not None and new_team.id == default_team.id) else None
+    if ticket.owner_id != new_owner_id:
+        previous_owner_id = ticket.owner_id
+        ticket.owner_id = new_owner_id
+        db.add(
+            TicketAssignment(
+                ticket_id=ticket.id,
+                previous_owner_id=previous_owner_id,
+                new_owner_id=new_owner_id,
+                changed_by_id=changed_by.id,
+            )
+        )
+
+    audit_service.record_event(
+        db,
+        ticket_id=ticket.id,
+        actor_id=changed_by.id,
+        source=source,
+        event_type="team_changed",
+        payload={"previous_team_id": previous_team_id, "new_team_id": new_team.id},
     )
     db.commit()
     db.refresh(ticket)
@@ -339,14 +410,43 @@ def get_timeline(db: Session, ticket: Ticket) -> list[TimelineEvent]:
         select(TicketAssignment).where(TicketAssignment.ticket_id == ticket.id)
     ).scalars().all()
     for row in assignment_rows:
-        actor_ids.add(row.new_owner_id)
+        if row.new_owner_id:
+            actor_ids.add(row.new_owner_id)
         actor_ids.add(row.changed_by_id)
         if row.previous_owner_id:
             actor_ids.add(row.previous_owner_id)
+        if row.new_owner_id is None:
+            desc = lambda names, r=row: f"Unassigned (was {names.get(r.previous_owner_id, '—')})"
+        elif row.previous_owner_id:
             desc = lambda names, r=row: f"Reassigned to {names.get(r.new_owner_id, '—')} (from {names.get(r.previous_owner_id, '—')})"
         else:
             desc = lambda names, r=row: f"Assigned to {names.get(r.new_owner_id, '—')}"
         raw_events.append((row.created_at, "assigned", desc, row.changed_by_id))
+
+    team_rows = db.execute(
+        select(TicketTeamHistory).where(TicketTeamHistory.ticket_id == ticket.id)
+    ).scalars().all()
+    team_ids: set[int] = set()
+    for row in team_rows:
+        actor_ids.add(row.changed_by_id)
+        team_ids.add(row.new_team_id)
+        if row.previous_team_id:
+            team_ids.add(row.previous_team_id)
+    team_names: dict[int, str] = {}
+    if team_ids:
+        for team in db.execute(select(Team).where(Team.id.in_(team_ids))).scalars().all():
+            team_names[team.id] = team.name
+    for row in team_rows:
+        if row.previous_team_id is None:
+            continue  # already represented by the "created" event
+        raw_events.append(
+            (
+                row.created_at,
+                "team_changed",
+                lambda _, r=row: f"Team changed to {team_names.get(r.new_team_id, '—')} (from {team_names.get(r.previous_team_id, '—')})",
+                row.changed_by_id,
+            )
+        )
 
     comment_rows = db.execute(
         select(TicketComment).where(TicketComment.ticket_id == ticket.id)

@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, String, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -12,6 +12,10 @@ class Team(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    # The team new tickets route to by default, and the only team whose
+    # membership is allowed to reassign a ticket's locked support_assignee
+    # (see Ticket.support_assignee_id). At most one team has this set.
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
 
 class TeamMember(Base, TimestampMixin):

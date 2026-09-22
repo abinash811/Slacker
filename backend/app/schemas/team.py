@@ -25,6 +25,7 @@ class TeamDetailOut(BaseModel):
 
     id: int
     name: str
+    is_default: bool = False
     members: list[TeamMemberOut]
 
 

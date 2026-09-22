@@ -30,7 +30,7 @@ class TicketCreateRequest(BaseModel):
 
 
 class AssignRequest(BaseModel):
-    owner_id: int
+    owner_id: int | None
 
 
 class StatusChangeRequest(BaseModel):
@@ -39,6 +39,10 @@ class StatusChangeRequest(BaseModel):
 
 class PriorityChangeRequest(BaseModel):
     priority: TicketPriority
+
+
+class TeamChangeRequest(BaseModel):
+    team_id: int
 
 
 class TagsUpdateRequest(BaseModel):
@@ -63,6 +67,7 @@ class TicketOut(BaseModel):
     sla_policy: SLAPolicyOut
     sla_due_at: datetime
     owner: UserOut | None
+    support_assignee: UserOut | None
     created_by: UserOut
     slack_channel_id: str | None
     slack_message_ts: str | None

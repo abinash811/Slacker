@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/input'
@@ -36,9 +36,17 @@ export function CreateTicketDialog() {
   const [customValues, setCustomValues] = useState<Record<number, string>>({})
   const [tagIds, setTagIds] = useState<number[]>([])
 
+  useEffect(() => {
+    if (form.team_id) return
+    const defaultTeam = (teams ?? []).find((t) => t.is_default)
+    if (defaultTeam) setForm((f) => ({ ...f, team_id: String(defaultTeam.id) }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teams])
+
   const canSubmit = form.title && form.description && form.customer && form.category_id && form.team_id && form.sla_policy_id
 
   function reset() {
+    const defaultTeam = (teams ?? []).find((t) => t.is_default)
     setForm({
       title: '',
       description: '',
@@ -47,7 +55,7 @@ export function CreateTicketDialog() {
       mobile_number: '',
       doctor_name: '',
       category_id: '',
-      team_id: '',
+      team_id: defaultTeam ? String(defaultTeam.id) : '',
       priority: 'medium',
       sla_policy_id: '',
       owner_id: '',

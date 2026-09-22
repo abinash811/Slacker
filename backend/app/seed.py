@@ -21,7 +21,7 @@ def run() -> None:
             print("Seed data already present, skipping.")
             return
 
-        teams = {name: Team(name=name) for name in ["Product", "Sales", "Support"]}
+        teams = {name: Team(name=name, is_default=name == "Support") for name in ["Product", "Sales", "Support"]}
         db.add_all(teams.values())
 
         categories = {name: Category(name=name) for name in ["Product", "Billing", "Technical", "General"]}

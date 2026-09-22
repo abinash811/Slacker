@@ -63,6 +63,7 @@ def _clean_tables(db_session):
         "ticket_comments",
         "ticket_priority_history",
         "ticket_status_history",
+        "ticket_team_history",
         "ticket_assignments",
         "tickets",
         "slack_event_dedup",

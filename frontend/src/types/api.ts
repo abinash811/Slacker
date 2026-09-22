@@ -4,6 +4,7 @@ export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent'
 export interface Team {
   id: number
   name: string
+  is_default: boolean
 }
 
 export interface Role {
@@ -24,6 +25,7 @@ export interface TeamMemberEntry {
 export interface TeamDetail {
   id: number
   name: string
+  is_default: boolean
   members: TeamMemberEntry[]
 }
 
@@ -87,6 +89,7 @@ export interface Ticket {
   sla_policy: SLAPolicy
   sla_due_at: string
   owner: User | null
+  support_assignee: User | null
   created_by: User
   slack_channel_id: string | null
   slack_message_ts: string | null

@@ -9,15 +9,27 @@ import {
   useAssignTicket,
   useChangePriority,
   useChangeStatus,
+  useChangeTeam,
   useResolveTicket,
   useTags,
+  useTeams,
   useTicket,
   useTicketTimeline,
   useUpdateTicketTags,
   useUsers,
 } from '@/hooks/useApi'
+import { ApiError } from '@/lib/api'
 import { formatDateTime, formatDuration } from '@/lib/format'
 import type { TicketPriority, TicketStatus } from '@/types/api'
+
+function errorMessage(error: unknown): string | null {
+  if (!(error instanceof ApiError)) return null
+  try {
+    return JSON.parse(error.message).detail ?? error.message
+  } catch {
+    return error.message
+  }
+}
 
 const STATUSES: TicketStatus[] = ['open', 'in_progress', 'pending', 'resolved', 'closed']
 const PRIORITIES: TicketPriority[] = ['low', 'medium', 'high', 'urgent']
@@ -28,9 +40,11 @@ export function TicketDetail() {
   const { data: ticket } = useTicket(ticketId)
   const { data: timeline } = useTicketTimeline(ticketId)
   const { data: users } = useUsers()
+  const { data: teams } = useTeams()
   const { data: activeTags } = useTags(false)
 
   const assign = useAssignTicket(ticketId)
+  const changeTeam = useChangeTeam(ticketId)
   const changeStatus = useChangeStatus(ticketId)
   const changePriority = useChangePriority(ticketId)
   const resolve = useResolveTicket(ticketId)
@@ -77,7 +91,8 @@ export function TicketDetail() {
                 <Info label="Doctor Name" value={ticket.doctor_name ?? '—'} />
                 <Info label="Category" value={ticket.category.name} />
                 <Info label="Team" value={ticket.team.name} />
-                <Info label="Owner" value={ticket.owner?.name ?? 'Unassigned'} />
+                <Info label="Assignee" value={ticket.owner?.name ?? 'Unassigned'} />
+                <Info label="Support Owner" value={ticket.support_assignee?.name ?? '—'} />
                 <Info label="SLA" value={`${ticket.sla_policy.duration_hours}h — due ${formatDateTime(ticket.sla_due_at)}`} />
                 <Info
                   label="SLA remaining"
@@ -119,15 +134,34 @@ export function TicketDetail() {
             <CardTitle>Actions</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <ActionField label="Assign">
-              <Select value={ticket.owner?.id?.toString()} onValueChange={(v) => assign.mutate(Number(v))}>
+            <ActionField label="Assign" error={errorMessage(assign.error)}>
+              <Select
+                value={ticket.owner?.id?.toString() ?? '__unassigned'}
+                onValueChange={(v) => assign.mutate(v === '__unassigned' ? null : Number(v))}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Unassigned" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__unassigned">Unassigned</SelectItem>
                   {(users ?? []).map((u) => (
                     <SelectItem key={u.id} value={u.id.toString()}>
                       {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </ActionField>
+
+            <ActionField label="Team" error={errorMessage(changeTeam.error)}>
+              <Select value={ticket.team.id.toString()} onValueChange={(v) => changeTeam.mutate(Number(v))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(teams ?? []).map((t) => (
+                    <SelectItem key={t.id} value={t.id.toString()}>
+                      {t.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -194,11 +228,20 @@ function Info({ label, value }: { label: string; value: string }) {
   )
 }
 
-function ActionField({ label, children }: { label: string; children: React.ReactNode }) {
+function ActionField({
+  label,
+  error,
+  children,
+}: {
+  label: string
+  error?: string | null
+  children: React.ReactNode
+}) {
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-xs text-muted-foreground">{label}</span>
       {children}
+      {error && <span className="text-xs text-danger">{error}</span>}
     </div>
   )
 }

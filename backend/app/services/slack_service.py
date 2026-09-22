@@ -90,6 +90,13 @@ def build_ticket_blocks(ticket: Ticket) -> list[dict]:
         {"type": "mrkdwn", "text": f"*SLA:*\n{ticket.sla_policy.duration_hours} hours"},
         {"type": "mrkdwn", "text": f"*Owner:*\n{owner_line}"},
     ]
+    if ticket.support_assignee:
+        support_line = (
+            f"<@{ticket.support_assignee.slack_user_id}>"
+            if ticket.support_assignee.slack_user_id
+            else ticket.support_assignee.name
+        )
+        fields.append({"type": "mrkdwn", "text": f"*Support Owner:*\n{support_line}"})
     if ticket.business_id:
         fields.append({"type": "mrkdwn", "text": f"*Business ID:*\n{ticket.business_id}"})
     if ticket.mobile_number:
@@ -122,6 +129,12 @@ def build_ticket_blocks(ticket: Ticket) -> list[dict]:
                     "type": "button",
                     "text": {"type": "plain_text", "text": "Assign"},
                     "action_id": "ticket_assign",
+                    "value": str(ticket.id),
+                },
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "Team"},
+                    "action_id": "ticket_team",
                     "value": str(ticket.id),
                 },
                 {
@@ -188,9 +201,21 @@ def update_ticket_message(ticket: Ticket) -> None:
     )
 
 
+def _team_select_element(teams: list[Team], *, initial: Team | None) -> dict:
+    element = {
+        "type": "static_select",
+        "action_id": "value",
+        "options": [{"text": {"type": "plain_text", "text": t.name}, "value": str(t.id)} for t in teams],
+    }
+    if initial is not None:
+        element["initial_option"] = {"text": {"type": "plain_text", "text": initial.name}, "value": str(initial.id)}
+    return element
+
+
 def build_create_ticket_modal(db: Session) -> dict:
     """Workflow B (spec section 5): Slack -> dashboard ticket creation."""
     teams = db.execute(select(Team).order_by(Team.name)).scalars().all()
+    default_team = next((t for t in teams if t.is_default), None)
     categories = db.execute(
         select(Category).where(Category.is_archived.is_(False)).order_by(Category.name)
     ).scalars().all()
@@ -264,11 +289,7 @@ def build_create_ticket_modal(db: Session) -> dict:
                 "type": "input",
                 "block_id": "team",
                 "label": {"type": "plain_text", "text": "Team"},
-                "element": {
-                    "type": "static_select",
-                    "action_id": "value",
-                    "options": [option(t.name, str(t.id)) for t in teams],
-                },
+                "element": _team_select_element(teams, initial=default_team),
             },
             {
                 "type": "input",
@@ -318,6 +339,26 @@ def _build_custom_field_block(field: CustomFieldDefinition) -> dict:
         "label": {"type": "plain_text", "text": field.label[:75]},  # Slack label limit
         "element": element,
         "optional": True,
+    }
+
+
+def build_team_modal(db: Session, ticket: Ticket) -> dict:
+    teams = db.execute(select(Team).order_by(Team.name)).scalars().all()
+    return {
+        "type": "modal",
+        "callback_id": "team_modal",
+        "private_metadata": str(ticket.id),
+        "title": {"type": "plain_text", "text": f"Team #{ticket.ticket_number}"},
+        "submit": {"type": "plain_text", "text": "Update"},
+        "close": {"type": "plain_text", "text": "Cancel"},
+        "blocks": [
+            {
+                "type": "input",
+                "block_id": "team",
+                "label": {"type": "plain_text", "text": "Team"},
+                "element": _team_select_element(teams, initial=ticket.team),
+            }
+        ],
     }
 
 

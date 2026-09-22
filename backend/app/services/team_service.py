@@ -38,6 +38,29 @@ def rename_team(db: Session, team: Team, name: str) -> Team:
     return team
 
 
+def get_default_team(db: Session) -> Team | None:
+    return db.execute(select(Team).where(Team.is_default.is_(True))).scalar_one_or_none()
+
+
+def set_default_team(db: Session, team: Team) -> Team:
+    """At most one team is default — unset any previous holder first."""
+    for other in db.execute(select(Team).where(Team.is_default.is_(True))).scalars().all():
+        other.is_default = False
+    team.is_default = True
+    db.commit()
+    db.refresh(team)
+    return team
+
+
+def is_team_member(db: Session, team_id: int, user_id: int) -> bool:
+    return (
+        db.execute(
+            select(TeamMember).where(TeamMember.team_id == team_id, TeamMember.user_id == user_id)
+        ).scalar_one_or_none()
+        is not None
+    )
+
+
 def list_members(db: Session, team_id: int) -> list[TeamMember]:
     stmt = select(TeamMember).options(*_MEMBER_LOAD_OPTIONS).where(TeamMember.team_id == team_id)
     return list(db.execute(stmt).unique().scalars().all())
