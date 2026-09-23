@@ -12,6 +12,7 @@ export function useTicketFilters(): [TicketFiltersState, (next: Partial<TicketFi
   const filters: TicketFiltersState = {
     team_id: params.get('team_id') ? Number(params.get('team_id')) : undefined,
     owner_id: params.get('owner_id') ? Number(params.get('owner_id')) : undefined,
+    support_assignee_id: params.get('support_assignee_id') ? Number(params.get('support_assignee_id')) : undefined,
     category_id: params.get('category_id') ? Number(params.get('category_id')) : undefined,
     priority: (params.get('priority') as TicketPriority) || undefined,
     status: (params.get('status') as TicketStatus) || undefined,

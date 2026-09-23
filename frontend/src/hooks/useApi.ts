@@ -27,6 +27,7 @@ function filtersToQuery(filters: TicketFiltersState) {
   return buildQuery({
     team_id: filters.team_id,
     owner_id: filters.owner_id,
+    support_assignee_id: filters.support_assignee_id,
     category_id: filters.category_id,
     priority: filters.priority,
     status: filters.status,
@@ -68,6 +69,7 @@ export function useTickets(
   const query = buildQuery({
     team_id: filters.team_id,
     owner_id: filters.owner_id,
+    support_assignee_id: filters.support_assignee_id,
     category_id: filters.category_id,
     priority: filters.priority,
     status: filters.status,

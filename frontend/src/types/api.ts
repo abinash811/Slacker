@@ -176,6 +176,7 @@ export interface OwnerPendingItem {
 export interface TicketFiltersState {
   team_id?: number
   owner_id?: number
+  support_assignee_id?: number
   category_id?: number
   priority?: TicketPriority
   status?: TicketStatus

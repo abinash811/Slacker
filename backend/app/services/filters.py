@@ -17,6 +17,7 @@ class TicketFilters:
 
     team_id: int | None = None
     owner_id: int | None = None
+    support_assignee_id: int | None = None
     category_id: int | None = None
     priority: TicketPriority | None = None
     status: TicketStatus | None = None
@@ -34,6 +35,8 @@ def apply(stmt: Select, filters: TicketFilters, now: datetime) -> Select:
         stmt = stmt.where(Ticket.team_id == filters.team_id)
     if filters.owner_id is not None:
         stmt = stmt.where(Ticket.owner_id == filters.owner_id)
+    if filters.support_assignee_id is not None:
+        stmt = stmt.where(Ticket.support_assignee_id == filters.support_assignee_id)
     if filters.category_id is not None:
         stmt = stmt.where(Ticket.category_id == filters.category_id)
     if filters.priority is not None:

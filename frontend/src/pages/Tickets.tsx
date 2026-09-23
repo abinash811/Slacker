@@ -18,7 +18,7 @@ const COLUMNS: { key: string; label: string }[] = [
   { key: 'doctor_name', label: 'Doctor' },
   { key: 'category_name', label: 'Category' },
   { key: 'team_name', label: 'Team' },
-  { key: 'owner_name', label: 'Owner' },
+  { key: 'owner_name', label: 'Pending on' },
   { key: 'priority', label: 'Priority' },
   { key: 'status', label: 'Status' },
   { key: 'sla_breached', label: 'SLA' },

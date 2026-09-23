@@ -127,3 +127,19 @@ def test_timeline_includes_team_change(db_session, seed, routing):
     assert len(team_events) == 1
     assert "Sales" in team_events[0].description
     assert "Support" in team_events[0].description
+
+
+def test_support_owner_filter_matches_even_after_ticket_moves_teams(db_session, seed, routing):
+    from app.services.filters import TicketFilters
+
+    owned = _create_ticket(db_session, seed, routing["support"])
+    owned = ticket_service.assign_ticket(db_session, owned, seed["alice"], seed["alice"], EventSource.DASHBOARD)
+    ticket_service.change_team(db_session, owned, routing["sales"], seed["alice"], EventSource.DASHBOARD)
+
+    other = _create_ticket(db_session, seed, routing["sales"])
+    ticket_service.assign_ticket(db_session, other, seed["bob"], seed["creator"], EventSource.DASHBOARD)
+
+    items, total = ticket_service.list_tickets(db_session, TicketFilters(support_assignee_id=seed["alice"].id))
+
+    assert total == 1
+    assert items[0].id == owned.id  # found even though Sales — not Alice — is the current assignee

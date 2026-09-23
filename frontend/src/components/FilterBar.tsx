@@ -34,9 +34,17 @@ export function FilterBar({ filters, onChange }: Props) {
         options={(teams ?? []).map((t) => ({ value: t.id.toString(), label: t.name }))}
       />
       <FilterSelect
-        label="Owner"
+        label="Pending on"
+        allLabel="Pending on: Anyone"
         value={filters.owner_id?.toString()}
         onChange={(v) => onChange({ owner_id: v ? Number(v) : undefined })}
+        options={(users ?? []).map((u) => ({ value: u.id.toString(), label: u.name }))}
+      />
+      <FilterSelect
+        label="Support owner"
+        allLabel="Support owner: Anyone"
+        value={filters.support_assignee_id?.toString()}
+        onChange={(v) => onChange({ support_assignee_id: v ? Number(v) : undefined })}
         options={(users ?? []).map((u) => ({ value: u.id.toString(), label: u.name }))}
       />
       <FilterSelect
@@ -78,6 +86,7 @@ export function FilterBar({ filters, onChange }: Props) {
             onChange({
               team_id: undefined,
               owner_id: undefined,
+              support_assignee_id: undefined,
               category_id: undefined,
               priority: undefined,
               status: undefined,

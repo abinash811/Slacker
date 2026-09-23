@@ -9,6 +9,7 @@ from app.services.filters import TicketFilters
 def get_ticket_filters(
     team_id: int | None = Query(default=None),
     owner_id: int | None = Query(default=None),
+    support_assignee_id: int | None = Query(default=None),
     category_id: int | None = Query(default=None),
     priority: TicketPriority | None = Query(default=None),
     status: TicketStatus | None = Query(default=None),
@@ -20,6 +21,7 @@ def get_ticket_filters(
     return TicketFilters(
         team_id=team_id,
         owner_id=owner_id,
+        support_assignee_id=support_assignee_id,
         category_id=category_id,
         priority=priority,
         status=status,
