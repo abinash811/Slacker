@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,6 +18,18 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     database_url: str = "postgresql+psycopg://slacker:slacker@localhost:5432/slacker"
+
+    @model_validator(mode="after")
+    def _use_psycopg3_driver(self) -> "Settings":
+        # Managed Postgres providers (Render, Heroku, ...) hand out a bare
+        # postgresql:// or postgres:// URL, which SQLAlchemy defaults to
+        # psycopg2 — not installed here (see requirements.txt: psycopg3
+        # only). Normalize so any provider's connection string works.
+        for prefix in ("postgresql://", "postgres://"):
+            if self.database_url.startswith(prefix):
+                self.database_url = "postgresql+psycopg://" + self.database_url[len(prefix):]
+                break
+        return self
 
     backend_cors_origins: str = "http://localhost:5173"
 
