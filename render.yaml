@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: slacker-backend
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false # paste your free Neon/Supabase Postgres connection string
+      - key: BACKEND_CORS_ORIGINS
+        sync: false # your frontend's onrender.com URL, once known
+      - key: DEV_DEFAULT_USER_EMAIL
+        value: admin@example.com
+      - key: SLACK_BOT_TOKEN
+        sync: false
+      - key: SLACK_SIGNING_SECRET
+        sync: false
+      - key: SLACK_DEFAULT_CHANNEL_ID
+        sync: false
+      - key: SLACK_USE_SOCKET_MODE
+        value: "false"
+      - key: SLACK_WORKSPACE_DOMAIN
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+
+  - type: web
+    name: slacker-frontend
+    runtime: static
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false # https://slacker-backend.onrender.com/api, once known
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
