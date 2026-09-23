@@ -14,17 +14,17 @@ export default function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/tickets" element={<Tickets />} />
         <Route path="/tickets/:id" element={<TicketDetail />} />
+        <Route path="/teams" element={<TeamsSection />} />
         <Route path="/settings" element={<SettingsShell />}>
           <Route index element={<Navigate to="roles" replace />} />
           <Route path="roles" element={<RolesSection />} />
-          <Route path="teams" element={<TeamsSection />} />
           <Route path="categories" element={<CategoriesSection />} />
           <Route path="sla" element={<SlaPoliciesSection />} />
           <Route path="tags" element={<TagsSection />} />
           <Route path="custom-fields" element={<CustomFieldsSection />} />
         </Route>
         {/* Old bookmarked paths */}
-        <Route path="/teams" element={<Navigate to="/settings/teams" replace />} />
+        <Route path="/settings/teams" element={<Navigate to="/teams" replace />} />
         <Route path="/settings/fields" element={<Navigate to="/settings/custom-fields" replace />} />
       </Route>
     </Routes>

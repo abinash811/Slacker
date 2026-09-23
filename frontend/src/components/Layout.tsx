@@ -12,6 +12,7 @@ export function Layout() {
             <nav className="flex items-center gap-1">
               <NavItem to="/">Dashboard</NavItem>
               <NavItem to="/tickets">Tickets</NavItem>
+              <NavItem to="/teams">Teams</NavItem>
               <NavItem to="/settings">Settings</NavItem>
             </nav>
           </div>
