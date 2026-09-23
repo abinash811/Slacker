@@ -1,10 +1,11 @@
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
+import { SettingsShell } from '@/components/SettingsShell'
 import { Dashboard } from '@/pages/Dashboard'
 import { Tickets } from '@/pages/Tickets'
 import { TicketDetail } from '@/pages/TicketDetail'
-import { TeamsPermissions } from '@/pages/TeamsPermissions'
-import { FormFields } from '@/pages/FormFields'
+import { RolesSection, TeamsSection } from '@/pages/TeamsPermissions'
+import { CategoriesSection, CustomFieldsSection, SlaPoliciesSection, TagsSection } from '@/pages/FormFields'
 
 export default function App() {
   return (
@@ -13,8 +14,18 @@ export default function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/tickets" element={<Tickets />} />
         <Route path="/tickets/:id" element={<TicketDetail />} />
-        <Route path="/teams" element={<TeamsPermissions />} />
-        <Route path="/settings/fields" element={<FormFields />} />
+        <Route path="/settings" element={<SettingsShell />}>
+          <Route index element={<Navigate to="roles" replace />} />
+          <Route path="roles" element={<RolesSection />} />
+          <Route path="teams" element={<TeamsSection />} />
+          <Route path="categories" element={<CategoriesSection />} />
+          <Route path="sla" element={<SlaPoliciesSection />} />
+          <Route path="tags" element={<TagsSection />} />
+          <Route path="custom-fields" element={<CustomFieldsSection />} />
+        </Route>
+        {/* Old bookmarked paths */}
+        <Route path="/teams" element={<Navigate to="/settings/teams" replace />} />
+        <Route path="/settings/fields" element={<Navigate to="/settings/custom-fields" replace />} />
       </Route>
     </Routes>
   )

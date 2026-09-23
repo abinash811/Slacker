@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { Folder, SlidersHorizontal, Tags, Timer } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SettingsPageHeader as PageHeader } from '@/components/SettingsPageHeader'
+import { cn } from '@/lib/utils'
 import {
   useCategoriesAdmin,
   useCreateCategory,
@@ -22,98 +24,104 @@ import {
 } from '@/hooks/useApi'
 import type { CustomFieldType } from '@/types/api'
 
-export function FormFields() {
+function AddDialog({
+  trigger,
+  title,
+  disabled,
+  onSubmit,
+  children,
+}: {
+  trigger: React.ReactNode
+  title: string
+  disabled: boolean
+  onSubmit: () => void
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-lg font-semibold">Form Fields &amp; Dropdowns</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage the values people pick from when creating a ticket, and define custom fields.
-        </p>
-      </div>
-
-      <CategoriesSection />
-      <TagsSection />
-      <SlaPoliciesSection />
-      <CustomFieldsSection />
-    </div>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-3">
+          {children}
+          <Button
+            disabled={disabled}
+            onClick={() => {
+              onSubmit()
+              setOpen(false)
+            }}
+          >
+            Add
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
-function TagsSection() {
+function NewButton(props: React.ComponentProps<typeof Button>) {
+  return (
+    <Button size="sm" {...props}>
+      <Plus className="h-4 w-4" /> New
+    </Button>
+  )
+}
+
+export function TagsSection() {
   const { data: tags } = useTags()
   const createTag = useCreateTag()
   const updateTag = useUpdateTag()
   const [name, setName] = useState('')
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-          <Tags className="h-4 w-4 text-muted-foreground" /> Tags
-        </CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Multi-select labels for a ticket — e.g. Appointment, Prescription — so one ticket can carry several at once.
-        </p>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <ArchivableList
-          items={(tags ?? []).map((t) => ({ id: t.id, label: t.name, is_archived: t.is_archived }))}
-          onArchiveToggle={(id, is_archived) => updateTag.mutate({ id, is_archived })}
+    <div>
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <PageHeader
+          title="Tags"
+          description="Multi-select labels for a ticket — e.g. Appointment, Prescription — so one ticket can carry several at once."
         />
-        <div className="flex gap-2 border-t border-border pt-3">
-          <Input placeholder="New tag name" value={name} onChange={(e) => setName(e.target.value)} />
-          <Button
-            disabled={!name}
-            onClick={() => {
-              createTag.mutate(name)
-              setName('')
-            }}
-          >
-            Add
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+        <AddDialog trigger={<NewButton />} title="New tag" disabled={!name} onSubmit={() => { createTag.mutate(name); setName('') }}>
+          <Field label="Name" htmlFor="new-tag-name">
+            <Input id="new-tag-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Appointment" />
+          </Field>
+        </AddDialog>
+      </div>
+      <ArchivableList
+        items={(tags ?? []).map((t) => ({ id: t.id, label: t.name, is_archived: t.is_archived }))}
+        onArchiveToggle={(id, is_archived) => updateTag.mutate({ id, is_archived })}
+      />
+    </div>
   )
 }
 
-function CategoriesSection() {
+export function CategoriesSection() {
   const { data: categories } = useCategoriesAdmin()
   const createCategory = useCreateCategory()
   const updateCategory = useUpdateCategory()
   const [name, setName] = useState('')
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-          <Folder className="h-4 w-4 text-muted-foreground" /> Categories
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <ArchivableList
-          items={(categories ?? []).map((c) => ({ id: c.id, label: c.name, is_archived: c.is_archived }))}
-          onArchiveToggle={(id, is_archived) => updateCategory.mutate({ id, is_archived })}
-        />
-        <div className="flex gap-2 border-t border-border pt-3">
-          <Input placeholder="New category name" value={name} onChange={(e) => setName(e.target.value)} />
-          <Button
-            disabled={!name}
-            onClick={() => {
-              createCategory.mutate(name)
-              setName('')
-            }}
-          >
-            Add
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <div>
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <PageHeader title="Categories" description="The category dropdown shown on every ticket creation form." />
+        <AddDialog trigger={<NewButton />} title="New category" disabled={!name} onSubmit={() => { createCategory.mutate(name); setName('') }}>
+          <Field label="Name" htmlFor="new-category-name">
+            <Input id="new-category-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Billing" />
+          </Field>
+        </AddDialog>
+      </div>
+      <ArchivableList
+        items={(categories ?? []).map((c) => ({ id: c.id, label: c.name, is_archived: c.is_archived }))}
+        onArchiveToggle={(id, is_archived) => updateCategory.mutate({ id, is_archived })}
+      />
+    </div>
   )
 }
 
-function SlaPoliciesSection() {
+export function SlaPoliciesSection() {
   const { data: policies } = useSlaPoliciesAdmin()
   const createPolicy = useCreateSlaPolicy()
   const updatePolicy = useUpdateSlaPolicy()
@@ -121,47 +129,40 @@ function SlaPoliciesSection() {
   const [hours, setHours] = useState('')
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-          <Timer className="h-4 w-4 text-muted-foreground" /> SLA Policies
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <ArchivableList
-          items={(policies ?? []).map((p) => ({
-            id: p.id,
-            label: `${p.name} (${p.duration_hours}h)${p.is_default ? ' — default' : ''}`,
-            is_archived: p.is_archived,
-          }))}
-          onArchiveToggle={(id, is_archived) => updatePolicy.mutate({ id, is_archived })}
-        />
-        <div className="flex gap-2 border-t border-border pt-3">
-          <Input placeholder="Name (e.g. 12 hours)" value={name} onChange={(e) => setName(e.target.value)} />
-          <Input
-            placeholder="Duration (hours)"
-            type="number"
-            className="w-40"
-            value={hours}
-            onChange={(e) => setHours(e.target.value)}
-          />
-          <Button
-            disabled={!name || !hours}
-            onClick={() => {
-              createPolicy.mutate({ name, duration_hours: Number(hours), is_default: false })
-              setName('')
-              setHours('')
-            }}
-          >
-            Add
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <div>
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <PageHeader title="SLA Policies" description="Resolution-time targets tickets are measured against." />
+        <AddDialog
+          trigger={<NewButton />}
+          title="New SLA policy"
+          disabled={!name || !hours}
+          onSubmit={() => {
+            createPolicy.mutate({ name, duration_hours: Number(hours), is_default: false })
+            setName('')
+            setHours('')
+          }}
+        >
+          <Field label="Name" htmlFor="new-sla-name">
+            <Input id="new-sla-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. 12 hours" />
+          </Field>
+          <Field label="Duration (hours)" htmlFor="new-sla-hours">
+            <Input id="new-sla-hours" type="number" value={hours} onChange={(e) => setHours(e.target.value)} />
+          </Field>
+        </AddDialog>
+      </div>
+      <ArchivableList
+        items={(policies ?? []).map((p) => ({
+          id: p.id,
+          label: `${p.name} (${p.duration_hours}h)${p.is_default ? ' — default' : ''}`,
+          is_archived: p.is_archived,
+        }))}
+        onArchiveToggle={(id, is_archived) => updatePolicy.mutate({ id, is_archived })}
+      />
+    </div>
   )
 }
 
-function CustomFieldsSection() {
+export function CustomFieldsSection() {
   const { data: fields } = useCustomFields()
   const createField = useCreateCustomField()
   const updateField = useUpdateCustomField()
@@ -170,57 +171,59 @@ function CustomFieldsSection() {
   const [optionsText, setOptionsText] = useState('')
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-          <SlidersHorizontal className="h-4 w-4 text-muted-foreground" /> Custom Fields
-        </CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Extra fields shown on the ticket creation form — e.g. Business ID, Doctor ID, Mobile Number.
-        </p>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <ArchivableList
-          items={(fields ?? []).map((f) => ({
-            id: f.id,
-            label: `${f.label} — ${f.field_type}${f.options ? ` (${f.options.join(', ')})` : ''}`,
-            is_archived: f.is_archived,
-          }))}
-          onArchiveToggle={(id, is_archived) => updateField.mutate({ id, is_archived })}
-        />
-        <div className="flex flex-wrap items-end gap-2 border-t border-border pt-3">
-          <Input placeholder="Field label (e.g. Business ID)" value={label} onChange={(e) => setLabel(e.target.value)} className="flex-1" />
-          <Select value={type} onValueChange={(v) => setType(v as CustomFieldType)}>
-            <SelectTrigger className="w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="text">Text</SelectItem>
-              <SelectItem value="dropdown">Dropdown</SelectItem>
-            </SelectContent>
-          </Select>
+    <div>
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <PageHeader title="Custom Fields" description="Extra fields shown on the ticket creation form — e.g. Business ID, Doctor ID." />
+        <AddDialog
+          trigger={<NewButton />}
+          title="New custom field"
+          disabled={!label || (type === 'dropdown' && !optionsText)}
+          onSubmit={() => {
+            const options = type === 'dropdown' ? optionsText.split(',').map((o) => o.trim()).filter(Boolean) : null
+            createField.mutate({ label, field_type: type, options })
+            setLabel('')
+            setOptionsText('')
+          }}
+        >
+          <Field label="Field label" htmlFor="new-field-label">
+            <Input id="new-field-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Business ID" />
+          </Field>
+          <Field label="Type">
+            <Select value={type} onValueChange={(v) => setType(v as CustomFieldType)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="text">Text</SelectItem>
+                <SelectItem value="dropdown">Dropdown</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
           {type === 'dropdown' && (
-            <Input
-              placeholder="Options, comma-separated"
-              value={optionsText}
-              onChange={(e) => setOptionsText(e.target.value)}
-              className="flex-1"
-            />
+            <Field label="Options (comma-separated)" htmlFor="new-field-options">
+              <Input id="new-field-options" value={optionsText} onChange={(e) => setOptionsText(e.target.value)} placeholder="North, South, East, West" />
+            </Field>
           )}
-          <Button
-            disabled={!label || (type === 'dropdown' && !optionsText)}
-            onClick={() => {
-              const options = type === 'dropdown' ? optionsText.split(',').map((o) => o.trim()).filter(Boolean) : null
-              createField.mutate({ label, field_type: type, options })
-              setLabel('')
-              setOptionsText('')
-            }}
-          >
-            Add field
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+        </AddDialog>
+      </div>
+      <ArchivableList
+        items={(fields ?? []).map((f) => ({
+          id: f.id,
+          label: `${f.label} — ${f.field_type}${f.options ? ` (${f.options.join(', ')})` : ''}`,
+          is_archived: f.is_archived,
+        }))}
+        onArchiveToggle={(id, is_archived) => updateField.mutate({ id, is_archived })}
+      />
+    </div>
+  )
+}
+
+function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={htmlFor}>{label}</Label>
+      {children}
+    </div>
   )
 }
 
@@ -232,15 +235,15 @@ function ArchivableList({
   onArchiveToggle: (id: number, is_archived: boolean) => void
 }) {
   if (items.length === 0) {
-    return <p className="rounded-md bg-muted/30 px-3 py-4 text-center text-sm text-muted-foreground">None yet — add one below.</p>
+    return <p className="rounded-lg border border-border bg-muted/20 px-3 py-8 text-center text-sm text-muted-foreground">None yet.</p>
   }
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 rounded-lg border border-border p-1">
       {items.map((item) => (
         <div
           key={item.id}
           className={cn(
-            'flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted',
+            'flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted',
             item.is_archived && 'bg-muted/30',
           )}
         >

@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { FilterBar } from '@/components/FilterBar'
 import { CreateTicketDialog } from '@/components/CreateTicketDialog'
 import { PriorityBadge, StatusBadge } from '@/components/StatusPriorityBadges'
 import { useTickets } from '@/hooks/useApi'
 import { useTicketFilters } from '@/hooks/useTicketFilters'
 import { formatDateTime, formatDuration } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 const COLUMNS: { key: string; label: string }[] = [
   { key: 'ticket_number', label: 'Ticket' },
@@ -74,7 +76,10 @@ export function Tickets() {
             {(data?.items ?? []).map((t) => (
               <tr
                 key={t.id}
-                className="cursor-pointer border-b border-border last:border-0 hover:bg-muted/50"
+                className={cn(
+                  'cursor-pointer border-b border-border border-l-2 border-l-transparent last:border-0 hover:bg-muted/50',
+                  t.sla_breached && 'border-l-danger bg-danger-bg/30 hover:bg-danger-bg/50',
+                )}
                 onClick={() => navigate(`/tickets/${t.id}`)}
               >
                 <td className="whitespace-nowrap px-3 py-2 font-medium">#{t.ticket_number}</td>
@@ -93,7 +98,15 @@ export function Tickets() {
                   <StatusBadge status={t.status} />
                 </td>
                 <td className="whitespace-nowrap px-3 py-2">
-                  {t.sla_breached ? <span className="font-medium text-danger">Breached</span> : <span className="text-success">On track</span>}
+                  {t.sla_breached ? (
+                    <span className="inline-flex items-center gap-1 font-medium text-danger">
+                      <AlertTriangle className="h-3.5 w-3.5" /> Breached
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-success">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> On track
+                    </span>
+                  )}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{formatDuration(t.age_seconds)}</td>
                 <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{formatDateTime(t.updated_at)}</td>

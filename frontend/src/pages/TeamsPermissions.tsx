@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { ShieldCheck, UserPlus, UsersRound } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Plus, UserPlus, UsersRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SettingsPageHeader as PageHeader } from '@/components/SettingsPageHeader'
 import { cn } from '@/lib/utils'
 import {
   useAddTeamMember,
@@ -23,77 +23,85 @@ import {
 } from '@/hooks/useApi'
 import type { Role, Team } from '@/types/api'
 
-export function TeamsPermissions() {
-  return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-lg font-semibold">Teams &amp; Permissions</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage teams, membership, and the roles that will gate Settings access.
-        </p>
-      </div>
-
-      <RolesSection />
-      <TeamsSection />
-    </div>
-  )
-}
-
-function RolesSection() {
+export function RolesSection() {
   const { data: roles } = useRoles(true)
   const createRole = useCreateRole()
   const updateRole = useUpdateRole()
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-            <ShieldCheck className="h-4 w-4 text-muted-foreground" /> Roles
-          </CardTitle>
-          <RoleFormDialog onSubmit={(payload) => createRole.mutate(payload)} trigger={<Button size="sm">New Role</Button>} />
-        </div>
-      </CardHeader>
-      <CardContent>
+    <div>
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <PageHeader
+          title="Roles"
+          description="Control who can create, edit, or delete inside Settings — not tickets elsewhere in the dashboard."
+        />
+        <RoleFormDialog
+          onSubmit={(payload) => createRole.mutate(payload)}
+          trigger={
+            <Button size="sm">
+              <Plus className="h-4 w-4" /> New Role
+            </Button>
+          }
+        />
+      </div>
+      <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-xs text-muted-foreground">
-              <th className="py-2">Name</th>
-              <th className="py-2">Create</th>
-              <th className="py-2">Edit</th>
-              <th className="py-2">Delete</th>
-              <th className="py-2">Status</th>
-              <th className="py-2" />
+            <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
+              <th className="px-4 py-2 font-medium">Name</th>
+              <th className="px-4 py-2 font-medium">Settings permissions</th>
+              <th className="px-4 py-2 font-medium">Status</th>
+              <th className="px-4 py-2" />
             </tr>
           </thead>
           <tbody>
-            {(roles ?? []).map((role) => (
-              <tr
-                key={role.id}
-                className={cn('border-b border-border last:border-0 hover:bg-muted/60', role.is_archived && 'bg-muted/30 text-muted-foreground')}
-              >
-                <td className="py-2 font-medium">{role.name}</td>
-                <td className="py-2">{role.can_create_settings ? '✓' : '—'}</td>
-                <td className="py-2">{role.can_edit_settings ? '✓' : '—'}</td>
-                <td className="py-2">{role.can_delete_settings ? '✓' : '—'}</td>
-                <td className="py-2">
-                  {role.is_archived ? <Badge variant="neutral">Archived</Badge> : <Badge variant="success">Active</Badge>}
-                </td>
-                <td className="py-2 text-right">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => updateRole.mutate({ id: role.id, is_archived: !role.is_archived })}
-                  >
-                    {role.is_archived ? 'Unarchive' : 'Archive'}
-                  </Button>
+            {(roles ?? []).map((role) => {
+              const perms = [
+                role.can_create_settings && 'Create',
+                role.can_edit_settings && 'Edit',
+                role.can_delete_settings && 'Delete',
+              ].filter(Boolean) as string[]
+              return (
+                <tr
+                  key={role.id}
+                  className={cn('border-b border-border last:border-0 hover:bg-muted/40', role.is_archived && 'bg-muted/20')}
+                >
+                  <td className={cn('px-4 py-3 font-medium', role.is_archived && 'text-muted-foreground')}>{role.name}</td>
+                  <td className="px-4 py-3">
+                    {perms.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {perms.map((p) => (
+                          <Badge key={p} variant="accent">
+                            {p}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No access</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {role.is_archived ? <Badge variant="neutral">Archived</Badge> : <Badge variant="success">Active</Badge>}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Button variant="ghost" size="sm" onClick={() => updateRole.mutate({ id: role.id, is_archived: !role.is_archived })}>
+                      {role.is_archived ? 'Unarchive' : 'Archive'}
+                    </Button>
+                  </td>
+                </tr>
+              )
+            })}
+            {(roles ?? []).length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  No roles yet.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 
@@ -130,8 +138,8 @@ function RoleFormDialog({
             <Input id="role-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sales Lead" />
           </div>
           <p className="text-xs text-muted-foreground">
-            These control access to the Settings panel only (Teams &amp; Permissions, Form Fields &amp; Dropdowns) —
-            not tickets elsewhere in the dashboard.
+            These control access to the Settings panel only (Roles, Teams, Categories, SLA, Tags, Custom Fields) — not
+            tickets elsewhere in the dashboard.
           </p>
           <div className="flex flex-col gap-2">
             <PermissionCheckbox label="Can create in Settings" checked={canCreate} onChange={setCanCreate} />
@@ -172,28 +180,56 @@ function PermissionCheckbox({
   )
 }
 
-function TeamsSection() {
+export function TeamsSection() {
   const { data: teams } = useTeamsList()
   const createTeam = useCreateTeam()
   const setDefaultTeam = useSetDefaultTeam()
   const [selectedTeamId, setSelectedTeamId] = useState<number | undefined>(undefined)
+  const [addTeamOpen, setAddTeamOpen] = useState(false)
   const [newTeamName, setNewTeamName] = useState('')
 
   const selectedTeam = (teams ?? []).find((t) => t.id === selectedTeamId)
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-      <Card className="lg:col-span-1">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-            <UsersRound className="h-4 w-4 text-muted-foreground" /> Teams
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            New tickets route to the default team automatically; only its members can reassign its locked support owner.
-          </p>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
+    <div>
+      <PageHeader
+        title="Teams"
+        description="New tickets route to the default team automatically; only its members can reassign its locked support owner."
+      />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-1">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">All teams</span>
+            <Dialog open={addTeamOpen} onOpenChange={setAddTeamOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="ghost">
+                  <Plus className="h-4 w-4" /> New
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>New team</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="new-team-name">Name</Label>
+                    <Input id="new-team-name" value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} placeholder="e.g. Product" />
+                  </div>
+                  <Button
+                    disabled={!newTeamName}
+                    onClick={() => {
+                      createTeam.mutate(newTeamName, { onSuccess: (team) => setSelectedTeamId(team.id) })
+                      setNewTeamName('')
+                      setAddTeamOpen(false)
+                    }}
+                  >
+                    Create team
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+          <div className="flex flex-col gap-1 rounded-lg border border-border p-1">
             {(teams ?? []).map((team: Team) => (
               <div
                 key={team.id}
@@ -208,53 +244,34 @@ function TeamsSection() {
                 {team.is_default ? (
                   <Badge variant="accent">Default</Badge>
                 ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setDefaultTeam.mutate(team.id)}
-                    disabled={setDefaultTeam.isPending}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => setDefaultTeam.mutate(team.id)} disabled={setDefaultTeam.isPending}>
                     Set default
                   </Button>
                 )}
               </div>
             ))}
             {(teams ?? []).length === 0 && (
-              <p className="px-3 py-4 text-center text-sm text-muted-foreground">No teams yet — add one below.</p>
+              <p className="px-3 py-4 text-center text-sm text-muted-foreground">No teams yet.</p>
             )}
           </div>
-          <div className="flex gap-2 border-t border-border pt-3">
-            <Input placeholder="New team name" value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} />
-            <Button
-              disabled={!newTeamName}
-              onClick={() => {
-                createTeam.mutate(newTeamName, { onSuccess: (team) => setSelectedTeamId(team.id) })
-                setNewTeamName('')
-              }}
-            >
-              Add
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-            <UserPlus className="h-4 w-4 text-muted-foreground" />
-            {selectedTeam ? `${selectedTeam.name} — Members` : 'Select a team'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {selectedTeamId ? (
-            <TeamMembers teamId={selectedTeamId} />
-          ) : (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              Pick a team on the left to view and manage its members.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        <div className="lg:col-span-2">
+          <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <UserPlus className="h-3.5 w-3.5" />
+            {selectedTeam ? `${selectedTeam.name} members` : 'Members'}
+          </div>
+          <div className="rounded-lg border border-border p-4">
+            {selectedTeamId ? (
+              <TeamMembers teamId={selectedTeamId} />
+            ) : (
+              <p className="flex items-center justify-center gap-2 py-8 text-center text-sm text-muted-foreground">
+                <UsersRound className="h-4 w-4" /> Pick a team on the left to view and manage its members.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

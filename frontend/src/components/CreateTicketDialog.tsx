@@ -93,98 +93,121 @@ export function CreateTicketDialog() {
       <DialogTrigger asChild>
         <Button>Create Ticket</Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create ticket</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col gap-3">
-          <Field label="Title" htmlFor="ticket-title">
-            <Input id="ticket-title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          </Field>
-          <Field label="Description" htmlFor="ticket-description">
-            <Textarea
-              id="ticket-description"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
-          </Field>
-          <Field label="Customer / Account" htmlFor="ticket-customer">
-            <Input id="ticket-customer" value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })} />
-          </Field>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Business ID" htmlFor="ticket-business-id">
-              <Input id="ticket-business-id" value={form.business_id} onChange={(e) => setForm({ ...form, business_id: e.target.value })} />
+        <div className="flex flex-col gap-5">
+          <Section title="Basics">
+            <Field label="Title" htmlFor="ticket-title">
+              <Input id="ticket-title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             </Field>
-            <Field label="Mobile Number" htmlFor="ticket-mobile-number">
-              <Input id="ticket-mobile-number" value={form.mobile_number} onChange={(e) => setForm({ ...form, mobile_number: e.target.value })} />
-            </Field>
-            <Field label="Doctor Name" htmlFor="ticket-doctor-name">
-              <Input id="ticket-doctor-name" value={form.doctor_name} onChange={(e) => setForm({ ...form, doctor_name: e.target.value })} />
-            </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Category">
-              <SimpleSelect
-                value={form.category_id}
-                onChange={(v) => setForm({ ...form, category_id: v })}
-                options={(categories ?? []).map((c) => ({ value: String(c.id), label: c.name }))}
+            <Field label="Description" htmlFor="ticket-description">
+              <Textarea
+                id="ticket-description"
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
             </Field>
-            <Field label="Team">
-              <SimpleSelect
-                value={form.team_id}
-                onChange={(v) => setForm({ ...form, team_id: v })}
-                options={(teams ?? []).map((t) => ({ value: String(t.id), label: t.name }))}
-              />
+          </Section>
+
+          <Section title="Contact">
+            <Field label="Customer / Account" htmlFor="ticket-customer">
+              <Input id="ticket-customer" value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })} />
             </Field>
-            <Field label="Priority">
-              <SimpleSelect
-                value={form.priority}
-                onChange={(v) => setForm({ ...form, priority: v as TicketPriority })}
-                options={PRIORITIES.map((p) => ({ value: p, label: p[0].toUpperCase() + p.slice(1) }))}
-              />
-            </Field>
-            <Field label="SLA">
-              <SimpleSelect
-                value={form.sla_policy_id}
-                onChange={(v) => setForm({ ...form, sla_policy_id: v })}
-                options={(slaPolicies ?? []).map((s) => ({ value: String(s.id), label: s.name }))}
-              />
-            </Field>
-          </div>
-          <Field label="Owner (optional)">
-            <SimpleSelect
-              value={form.owner_id}
-              onChange={(v) => setForm({ ...form, owner_id: v })}
-              options={(users ?? []).map((u) => ({ value: String(u.id), label: u.name }))}
-              allowEmpty
-            />
-          </Field>
-          {(customFields ?? []).map((field) => (
-            <Field key={field.id} label={field.label}>
-              {field.field_type === 'dropdown' ? (
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="Business ID" htmlFor="ticket-business-id">
+                <Input id="ticket-business-id" value={form.business_id} onChange={(e) => setForm({ ...form, business_id: e.target.value })} />
+              </Field>
+              <Field label="Mobile Number" htmlFor="ticket-mobile-number">
+                <Input id="ticket-mobile-number" value={form.mobile_number} onChange={(e) => setForm({ ...form, mobile_number: e.target.value })} />
+              </Field>
+              <Field label="Doctor Name" htmlFor="ticket-doctor-name">
+                <Input id="ticket-doctor-name" value={form.doctor_name} onChange={(e) => setForm({ ...form, doctor_name: e.target.value })} />
+              </Field>
+            </div>
+          </Section>
+
+          <Section title="Routing">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Category">
                 <SimpleSelect
-                  value={customValues[field.id] ?? ''}
-                  onChange={(v) => setCustomValues({ ...customValues, [field.id]: v })}
-                  options={(field.options ?? []).map((o) => ({ value: o, label: o }))}
+                  value={form.category_id}
+                  onChange={(v) => setForm({ ...form, category_id: v })}
+                  options={(categories ?? []).map((c) => ({ value: String(c.id), label: c.name }))}
                 />
-              ) : (
-                <Input
-                  value={customValues[field.id] ?? ''}
-                  onChange={(e) => setCustomValues({ ...customValues, [field.id]: e.target.value })}
+              </Field>
+              <Field label="Team">
+                <SimpleSelect
+                  value={form.team_id}
+                  onChange={(v) => setForm({ ...form, team_id: v })}
+                  options={(teams ?? []).map((t) => ({ value: String(t.id), label: t.name }))}
                 />
-              )}
+              </Field>
+              <Field label="Priority">
+                <SimpleSelect
+                  value={form.priority}
+                  onChange={(v) => setForm({ ...form, priority: v as TicketPriority })}
+                  options={PRIORITIES.map((p) => ({ value: p, label: p[0].toUpperCase() + p.slice(1) }))}
+                />
+              </Field>
+              <Field label="SLA">
+                <SimpleSelect
+                  value={form.sla_policy_id}
+                  onChange={(v) => setForm({ ...form, sla_policy_id: v })}
+                  options={(slaPolicies ?? []).map((s) => ({ value: String(s.id), label: s.name }))}
+                />
+              </Field>
+            </div>
+            <Field label="Owner (optional)">
+              <SimpleSelect
+                value={form.owner_id}
+                onChange={(v) => setForm({ ...form, owner_id: v })}
+                options={(users ?? []).map((u) => ({ value: String(u.id), label: u.name }))}
+                allowEmpty
+              />
             </Field>
-          ))}
-          <Field label="Tags (optional)">
-            <TagPicker tags={tags ?? []} selectedIds={tagIds} onChange={setTagIds} />
-          </Field>
-          <Button className="mt-2" disabled={!canSubmit || createTicket.isPending} onClick={handleSubmit}>
+          </Section>
+
+          {((customFields ?? []).length > 0 || (tags ?? []).length > 0) && (
+            <Section title="Additional details">
+              {(customFields ?? []).map((field) => (
+                <Field key={field.id} label={field.label}>
+                  {field.field_type === 'dropdown' ? (
+                    <SimpleSelect
+                      value={customValues[field.id] ?? ''}
+                      onChange={(v) => setCustomValues({ ...customValues, [field.id]: v })}
+                      options={(field.options ?? []).map((o) => ({ value: o, label: o }))}
+                    />
+                  ) : (
+                    <Input
+                      value={customValues[field.id] ?? ''}
+                      onChange={(e) => setCustomValues({ ...customValues, [field.id]: e.target.value })}
+                    />
+                  )}
+                </Field>
+              ))}
+              <Field label="Tags (optional)">
+                <TagPicker tags={tags ?? []} selectedIds={tagIds} onChange={setTagIds} />
+              </Field>
+            </Section>
+          )}
+
+          <Button disabled={!canSubmit || createTicket.isPending} onClick={handleSubmit}>
             {createTicket.isPending ? 'Creating…' : 'Create & push to Slack'}
           </Button>
         </div>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-3 border-t border-border pt-4 first:border-0 first:pt-0">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
+      {children}
+    </div>
   )
 }
 
