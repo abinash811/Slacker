@@ -13,7 +13,6 @@ def _create_ticket(db, seed, **overrides):
         category_id=seed["category"].id,
         team_id=seed["team"].id,
         priority=TicketPriority.MEDIUM,
-        sla_policy_id=seed["sla_48h"].id,
         owner_id=None,
         created_by=seed["creator"],
         source=EventSource.DASHBOARD,
@@ -27,7 +26,7 @@ def test_summary_counts_open_pending_and_breached(db_session, seed):
     pending_ticket = _create_ticket(db_session, seed)
     ticket_service.change_status(db_session, pending_ticket, TicketStatus.PENDING, seed["creator"], EventSource.DASHBOARD)
 
-    breached_ticket = _create_ticket(db_session, seed, sla_policy_id=seed["sla_24h"].id)
+    breached_ticket = _create_ticket(db_session, seed)
     breached_ticket.sla_due_at = datetime.now(timezone.utc) - timedelta(hours=1)
     db_session.commit()
 

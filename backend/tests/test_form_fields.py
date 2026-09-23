@@ -3,7 +3,7 @@ from fastapi import HTTPException
 
 from app.models.custom_field import CustomFieldType
 from app.models.enums import EventSource, TicketPriority
-from app.services import custom_field_service, lookup_service, ticket_service
+from app.services import custom_field_service, lookup_service, sla_service, ticket_service
 
 
 def test_category_archive_hides_from_default_listing(db_session, seed):
@@ -13,10 +13,44 @@ def test_category_archive_hides_from_default_listing(db_session, seed):
     assert seed["category"].id in [c.id for c in lookup_service.list_categories(db_session, include_archived=True)]
 
 
-def test_sla_policy_archive_hides_from_default_listing(db_session, seed):
-    lookup_service.update_sla_policy(db_session, seed["sla_48h"].id, is_archived=True)
+def test_updating_default_sla_hours_applies_to_new_tickets(db_session, seed):
+    sla_service.set_default_hours(db_session, 24)
+    assert sla_service.get_default_hours(db_session) == 24
 
-    assert seed["sla_48h"].id not in [p.id for p in lookup_service.list_sla_policies(db_session)]
+    ticket = ticket_service.create_ticket(
+        db_session,
+        title="Issue",
+        description="desc",
+        customer="Acme",
+        category_id=seed["category"].id,
+        team_id=seed["team"].id,
+        priority=TicketPriority.MEDIUM,
+        owner_id=None,
+        created_by=seed["creator"],
+        source=EventSource.DASHBOARD,
+    )
+    assert ticket.sla_hours == 24
+
+
+def test_existing_ticket_keeps_its_sla_hours_after_default_changes(db_session, seed):
+    ticket = ticket_service.create_ticket(
+        db_session,
+        title="Issue",
+        description="desc",
+        customer="Acme",
+        category_id=seed["category"].id,
+        team_id=seed["team"].id,
+        priority=TicketPriority.MEDIUM,
+        owner_id=None,
+        created_by=seed["creator"],
+        source=EventSource.DASHBOARD,
+    )
+    assert ticket.sla_hours == 48
+
+    sla_service.set_default_hours(db_session, 24)
+
+    ticket = ticket_service.get_ticket_or_404(db_session, ticket.id)
+    assert ticket.sla_hours == 48  # unchanged — snapshot at creation time
 
 
 def test_dropdown_custom_field_requires_options(db_session):
@@ -43,7 +77,6 @@ def test_ticket_stores_and_returns_custom_field_values(db_session, seed):
         category_id=seed["category"].id,
         team_id=seed["team"].id,
         priority=TicketPriority.MEDIUM,
-        sla_policy_id=seed["sla_48h"].id,
         owner_id=None,
         created_by=seed["creator"],
         source=EventSource.DASHBOARD,

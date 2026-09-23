@@ -8,7 +8,7 @@ import type {
   DashboardSummary,
   OwnerPendingItem,
   Role,
-  SLAPolicy,
+  SLASettings,
   Tag,
   Team,
   TeamDetail,
@@ -45,8 +45,16 @@ export function useCategories() {
   return useQuery({ queryKey: ['categories'], queryFn: () => api.get<Category[]>('/categories') })
 }
 
-export function useSlaPolicies() {
-  return useQuery({ queryKey: ['sla-policies'], queryFn: () => api.get<SLAPolicy[]>('/sla-policies') })
+export function useSlaSettings() {
+  return useQuery({ queryKey: ['sla-settings'], queryFn: () => api.get<SLASettings>('/sla-settings') })
+}
+
+export function useUpdateSlaSettings() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (default_hours: number) => api.patch<SLASettings>('/sla-settings', { default_hours }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sla-settings'] }),
+  })
 }
 
 export function useUsers() {
@@ -297,32 +305,6 @@ export function useUpdateCategory() {
   return useMutation({
     mutationFn: ({ id, ...payload }: { id: number; name?: string; is_archived?: boolean }) =>
       api.patch<Category>(`/categories/${id}`, payload),
-    onSuccess: invalidate,
-  })
-}
-
-export function useSlaPoliciesAdmin(includeArchived = true) {
-  return useQuery({
-    queryKey: ['sla-policies-admin', includeArchived],
-    queryFn: () =>
-      api.get<SLAPolicy[]>(`/sla-policies${buildQuery({ include_archived: includeArchived ? 'true' : undefined })}`),
-  })
-}
-
-export function useCreateSlaPolicy() {
-  const invalidate = useLookupMutation(['sla-policies', 'sla-policies-admin'])
-  return useMutation({
-    mutationFn: (payload: { name: string; duration_hours: number; is_default: boolean }) =>
-      api.post<SLAPolicy>('/sla-policies', payload),
-    onSuccess: invalidate,
-  })
-}
-
-export function useUpdateSlaPolicy() {
-  const invalidate = useLookupMutation(['sla-policies', 'sla-policies-admin'])
-  return useMutation({
-    mutationFn: ({ id, ...payload }: { id: number; name?: string; duration_hours?: number; is_default?: boolean; is_archived?: boolean }) =>
-      api.patch<SLAPolicy>(`/sla-policies/${id}`, payload),
     onSuccess: invalidate,
   })
 }

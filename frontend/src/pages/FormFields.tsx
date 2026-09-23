@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,14 +12,13 @@ import {
   useCategoriesAdmin,
   useCreateCategory,
   useCreateCustomField,
-  useCreateSlaPolicy,
   useCreateTag,
   useCustomFields,
-  useSlaPoliciesAdmin,
+  useSlaSettings,
   useTags,
   useUpdateCategory,
   useUpdateCustomField,
-  useUpdateSlaPolicy,
+  useUpdateSlaSettings,
   useUpdateTag,
 } from '@/hooks/useApi'
 import type { CustomFieldType } from '@/types/api'
@@ -121,43 +120,41 @@ export function CategoriesSection() {
   )
 }
 
-export function SlaPoliciesSection() {
-  const { data: policies } = useSlaPoliciesAdmin()
-  const createPolicy = useCreateSlaPolicy()
-  const updatePolicy = useUpdateSlaPolicy()
-  const [name, setName] = useState('')
+export function SlaSection() {
+  const { data: settings } = useSlaSettings()
+  const updateSettings = useUpdateSlaSettings()
   const [hours, setHours] = useState('')
+
+  useEffect(() => {
+    if (settings) setHours(String(settings.default_hours))
+  }, [settings])
+
+  const dirty = settings != null && hours !== '' && Number(hours) !== settings.default_hours
 
   return (
     <div>
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <PageHeader title="SLA Policies" description="Resolution-time targets tickets are measured against." />
-        <AddDialog
-          trigger={<NewButton />}
-          title="New SLA policy"
-          disabled={!name || !hours}
-          onSubmit={() => {
-            createPolicy.mutate({ name, duration_hours: Number(hours), is_default: false })
-            setName('')
-            setHours('')
-          }}
-        >
-          <Field label="Name" htmlFor="new-sla-name">
-            <Input id="new-sla-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. 12 hours" />
-          </Field>
-          <Field label="Duration (hours)" htmlFor="new-sla-hours">
-            <Input id="new-sla-hours" type="number" value={hours} onChange={(e) => setHours(e.target.value)} />
-          </Field>
-        </AddDialog>
-      </div>
-      <ArchivableList
-        items={(policies ?? []).map((p) => ({
-          id: p.id,
-          label: `${p.name} (${p.duration_hours}h)${p.is_default ? ' — default' : ''}`,
-          is_archived: p.is_archived,
-        }))}
-        onArchiveToggle={(id, is_archived) => updatePolicy.mutate({ id, is_archived })}
+      <PageHeader
+        title="SLA"
+        description="The resolution-time target applied to every new ticket. Changing it never affects tickets already created."
       />
+      <div className="flex items-end gap-3 rounded-lg border border-border p-4">
+        <Field label="Default SLA (hours)" htmlFor="sla-default-hours">
+          <Input
+            id="sla-default-hours"
+            type="number"
+            min={1}
+            className="w-40"
+            value={hours}
+            onChange={(e) => setHours(e.target.value)}
+          />
+        </Field>
+        <Button
+          disabled={!dirty || updateSettings.isPending}
+          onClick={() => updateSettings.mutate(Number(hours))}
+        >
+          {updateSettings.isPending ? 'Saving…' : 'Save'}
+        </Button>
+      </div>
     </div>
   )
 }

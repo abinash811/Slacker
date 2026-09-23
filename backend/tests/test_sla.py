@@ -3,9 +3,9 @@ from datetime import datetime, timedelta, timezone
 from app.services import sla_service
 
 
-def test_compute_due_at_is_calendar_hours(seed):
+def test_compute_due_at_is_calendar_hours():
     created_at = datetime(2026, 9, 10, 10, 0, tzinfo=timezone.utc)
-    due_at = sla_service.compute_due_at(created_at, seed["sla_48h"])
+    due_at = sla_service.compute_due_at(created_at, 48)
     assert due_at == datetime(2026, 9, 12, 10, 0, tzinfo=timezone.utc)
 
 

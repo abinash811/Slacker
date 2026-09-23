@@ -35,12 +35,8 @@ export interface Category {
   is_archived: boolean
 }
 
-export interface SLAPolicy {
-  id: number
-  name: string
-  duration_hours: number
-  is_default: boolean
-  is_archived: boolean
+export interface SLASettings {
+  default_hours: number
 }
 
 export interface Tag {
@@ -86,7 +82,7 @@ export interface Ticket {
   team: Team
   priority: TicketPriority
   status: TicketStatus
-  sla_policy: SLAPolicy
+  sla_hours: number
   sla_due_at: string
   owner: User | null
   support_assignee: User | null
@@ -119,6 +115,7 @@ export interface TicketListItem {
   priority: TicketPriority
   status: TicketStatus
   sla_breached: boolean
+  sla_remaining_seconds: number | null
   created_at: string
   age_seconds: number
   updated_at: string
@@ -198,7 +195,6 @@ export interface TicketCreateRequest {
   category_id: number
   team_id: number
   priority: TicketPriority
-  sla_policy_id: number
   owner_id?: number | null
   push_to_slack: boolean
   custom_field_values?: { field_definition_id: number; value: string }[]

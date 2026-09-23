@@ -37,7 +37,6 @@ def _create_ticket(db, seed, team, **overrides):
         category_id=seed["category"].id,
         team_id=team.id,
         priority=TicketPriority.HIGH,
-        sla_policy_id=seed["sla_48h"].id,
         owner_id=None,
         created_by=seed["creator"],
         source=EventSource.DASHBOARD,

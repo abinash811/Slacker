@@ -128,7 +128,6 @@ def handle_create_ticket_submission(ack, body, client, view):
             category_id=int(values["category"]["value"]["selected_option"]["value"]),
             team_id=int(values["team"]["value"]["selected_option"]["value"]),
             priority=TicketPriority(values["priority"]["value"]["selected_option"]["value"]),
-            sla_policy_id=int(values["sla_policy"]["value"]["selected_option"]["value"]),
             owner_id=None,
             created_by=creator,
             source=EventSource.SLACK,

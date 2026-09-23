@@ -19,7 +19,6 @@ from app.core.config import get_settings
 from app.models.category import Category
 from app.models.custom_field import CustomFieldDefinition, CustomFieldType
 from app.models.enums import TicketPriority
-from app.models.sla import SLAPolicy
 from app.models.slack import SlackChannel
 from app.models.team import Team
 from app.models.ticket import Ticket
@@ -87,7 +86,7 @@ def build_ticket_blocks(ticket: Ticket) -> list[dict]:
         {"type": "mrkdwn", "text": f"*Category:*\n{ticket.category.name}"},
         {"type": "mrkdwn", "text": f"*Team:*\n{ticket.team.name}"},
         {"type": "mrkdwn", "text": f"*Priority:*\n{priority_emoji} {ticket.priority.value.title()}"},
-        {"type": "mrkdwn", "text": f"*SLA:*\n{ticket.sla_policy.duration_hours} hours"},
+        {"type": "mrkdwn", "text": f"*SLA:*\n{ticket.sla_hours} hours"},
         {"type": "mrkdwn", "text": f"*Owner:*\n{owner_line}"},
     ]
     if ticket.support_assignee:
@@ -219,9 +218,6 @@ def build_create_ticket_modal(db: Session) -> dict:
     categories = db.execute(
         select(Category).where(Category.is_archived.is_(False)).order_by(Category.name)
     ).scalars().all()
-    sla_policies = db.execute(
-        select(SLAPolicy).where(SLAPolicy.is_archived.is_(False)).order_by(SLAPolicy.duration_hours)
-    ).scalars().all()
     custom_fields = db.execute(
         select(CustomFieldDefinition).where(CustomFieldDefinition.is_archived.is_(False)).order_by(CustomFieldDefinition.label)
     ).scalars().all()
@@ -300,16 +296,6 @@ def build_create_ticket_modal(db: Session) -> dict:
                     "action_id": "value",
                     "initial_option": option("Medium", "medium"),
                     "options": [option(p.value.title(), p.value) for p in TicketPriority],
-                },
-            },
-            {
-                "type": "input",
-                "block_id": "sla_policy",
-                "label": {"type": "plain_text", "text": "SLA"},
-                "element": {
-                    "type": "static_select",
-                    "action_id": "value",
-                    "options": [option(f"{s.name}", str(s.id)) for s in sla_policies],
                 },
             },
         ]

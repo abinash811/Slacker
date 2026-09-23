@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import TicketPriority, TicketStatus
 from app.schemas.custom_field import CustomFieldValueInput, CustomFieldValueOut
-from app.schemas.lookup import CategoryOut, SLAPolicyOut, TeamOut
+from app.schemas.lookup import CategoryOut, TeamOut
 from app.schemas.tag import TagOut
 from app.schemas.user import UserOut
 
@@ -19,7 +19,6 @@ class TicketCreateRequest(BaseModel):
     category_id: int
     team_id: int
     priority: TicketPriority = TicketPriority.MEDIUM
-    sla_policy_id: int
     owner_id: int | None = None
     # Only meaningful for Workflow A (dashboard -> Slack). Workflow B
     # (Slack -> dashboard) always posts, since the ticket originates there.
@@ -64,7 +63,7 @@ class TicketOut(BaseModel):
     team: TeamOut
     priority: TicketPriority
     status: TicketStatus
-    sla_policy: SLAPolicyOut
+    sla_hours: int
     sla_due_at: datetime
     owner: UserOut | None
     support_assignee: UserOut | None
@@ -100,6 +99,7 @@ class TicketListItem(BaseModel):
     priority: TicketPriority
     status: TicketStatus
     sla_breached: bool
+    sla_remaining_seconds: int | None
     created_at: datetime
     age_seconds: int
     updated_at: datetime

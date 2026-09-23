@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 const NAV = [
   { to: '/settings/roles', label: 'Roles', icon: ShieldCheck },
   { to: '/settings/categories', label: 'Categories', icon: Folder },
-  { to: '/settings/sla', label: 'SLA Policies', icon: Timer },
+  { to: '/settings/sla', label: 'SLA', icon: Timer },
   { to: '/settings/tags', label: 'Tags', icon: Tags },
   { to: '/settings/custom-fields', label: 'Custom Fields', icon: SlidersHorizontal },
 ]

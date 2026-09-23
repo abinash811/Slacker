@@ -8,7 +8,6 @@ from app.models.category import Category
 from app.models.custom_field import TicketCustomFieldValue
 from app.models.enums import TicketPriority, TicketStatus
 from app.models.mixins import TimestampMixin, utcnow
-from app.models.sla import SLAPolicy
 from app.models.tag import Tag
 from app.models.team import Team
 from app.models.user import User
@@ -60,7 +59,10 @@ class Ticket(Base, TimestampMixin):
         Enum(TicketStatus, name="ticket_status"), default=TicketStatus.OPEN, nullable=False
     )
 
-    sla_policy_id: Mapped[int] = mapped_column(ForeignKey("sla_policies.id"), nullable=False)
+    # Snapshot of SLASettings.default_hours at creation time — immutable,
+    # so changing the global default later never rewrites an existing
+    # ticket's SLA.
+    sla_hours: Mapped[int] = mapped_column(Integer, nullable=False)
     sla_due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
@@ -86,7 +88,6 @@ class Ticket(Base, TimestampMixin):
 
     category: Mapped[Category] = relationship(Category)
     team: Mapped[Team] = relationship(Team)
-    sla_policy: Mapped[SLAPolicy] = relationship(SLAPolicy)
     owner: Mapped[User | None] = relationship(User, foreign_keys=[owner_id])
     created_by: Mapped[User] = relationship(User, foreign_keys=[created_by_id])
     support_assignee: Mapped[User | None] = relationship(User, foreign_keys=[support_assignee_id])

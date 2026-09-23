@@ -5,15 +5,40 @@
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import ColumnElement, and_, or_
+from sqlalchemy.orm import Session
 
-from app.models.sla import SLAPolicy
+from app.models.sla import SLASettings
+
+_SETTINGS_ID = 1  # single row — see SLASettings docstring
 
 
-def compute_due_at(created_at: datetime, policy: SLAPolicy) -> datetime:
+def get_settings(db: Session) -> SLASettings:
+    settings = db.get(SLASettings, _SETTINGS_ID)
+    if settings is None:
+        settings = SLASettings(id=_SETTINGS_ID, default_hours=48)
+        db.add(settings)
+        db.commit()
+        db.refresh(settings)
+    return settings
+
+
+def get_default_hours(db: Session) -> int:
+    return get_settings(db).default_hours
+
+
+def set_default_hours(db: Session, hours: int) -> SLASettings:
+    settings = get_settings(db)
+    settings.default_hours = hours
+    db.commit()
+    db.refresh(settings)
+    return settings
+
+
+def compute_due_at(created_at: datetime, hours: int) -> datetime:
     """Calendar-hour SLA (product decision for V1) — see docs/ARCHITECTURE.md
     for the business-hours alternative deferred to V2.
     """
-    return created_at + timedelta(hours=policy.duration_hours)
+    return created_at + timedelta(hours=hours)
 
 
 def sla_status(

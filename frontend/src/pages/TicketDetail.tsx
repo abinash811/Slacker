@@ -69,7 +69,7 @@ export function TicketDetail() {
                 <div className="flex items-center gap-2">
                   <PriorityBadge priority={ticket.priority} />
                   <StatusBadge status={ticket.status} />
-                  <SlaBadge breached={ticket.sla_breached} />
+                  <SlaBadge breached={ticket.sla_breached} remainingSeconds={ticket.sla_remaining_seconds} />
                 </div>
               </div>
             </CardHeader>
@@ -93,10 +93,10 @@ export function TicketDetail() {
                 <Info label="Team" value={ticket.team.name} />
                 <Info label="Assignee" value={ticket.owner?.name ?? 'Unassigned'} />
                 <Info label="Support Owner" value={ticket.support_assignee?.name ?? '—'} />
-                <Info label="SLA" value={`${ticket.sla_policy.duration_hours}h — due ${formatDateTime(ticket.sla_due_at)}`} />
+                <Info label="SLA" value={`${ticket.sla_hours}h — due ${formatDateTime(ticket.sla_due_at)}`} />
                 <Info
-                  label="SLA remaining"
-                  value={ticket.sla_remaining_seconds !== null ? formatDuration(ticket.sla_remaining_seconds) : '—'}
+                  label={ticket.sla_breached ? 'SLA breached by' : 'SLA remaining'}
+                  value={ticket.sla_remaining_seconds !== null ? formatDuration(Math.abs(ticket.sla_remaining_seconds)) : '—'}
                 />
                 <Info label="Created" value={formatDateTime(ticket.created_at)} />
                 <Info label="Created by" value={ticket.created_by.name} />

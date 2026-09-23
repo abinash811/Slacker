@@ -65,7 +65,6 @@ def create_ticket(
         category_id=payload.category_id,
         team_id=payload.team_id,
         priority=payload.priority,
-        sla_policy_id=payload.sla_policy_id,
         owner_id=payload.owner_id,
         created_by=current_user,
         source=EventSource.DASHBOARD,

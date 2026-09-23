@@ -1,6 +1,6 @@
-"""Seed data for local development: a couple of teams, categories, SLA
-policies, and users so the dashboard/Slack flows have something to work
-against immediately after `docker compose up`.
+"""Seed data for local development: a couple of teams, categories, the
+default SLA setting, and users so the dashboard/Slack flows have something
+to work against immediately after `docker compose up`.
 
 Run with: python -m app.seed
 """
@@ -8,7 +8,7 @@ Run with: python -m app.seed
 from app.core.database import SessionLocal
 from app.models.category import Category
 from app.models.role import Role
-from app.models.sla import SLAPolicy
+from app.models.sla import SLASettings
 from app.models.tag import Tag
 from app.models.team import Team
 from app.models.user import User
@@ -31,13 +31,7 @@ def run() -> None:
 
         db.flush()
 
-        db.add_all(
-            [
-                SLAPolicy(name="24 hours", duration_hours=24, is_default=False),
-                SLAPolicy(name="48 hours", duration_hours=48, is_default=True),
-                SLAPolicy(name="72 hours", duration_hours=72, is_default=False),
-            ]
-        )
+        db.add(SLASettings(id=1, default_hours=48))
 
         db.add_all(
             [

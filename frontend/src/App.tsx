@@ -5,7 +5,7 @@ import { Dashboard } from '@/pages/Dashboard'
 import { Tickets } from '@/pages/Tickets'
 import { TicketDetail } from '@/pages/TicketDetail'
 import { RolesSection, TeamsSection } from '@/pages/TeamsPermissions'
-import { CategoriesSection, CustomFieldsSection, SlaPoliciesSection, TagsSection } from '@/pages/FormFields'
+import { CategoriesSection, CustomFieldsSection, SlaSection, TagsSection } from '@/pages/FormFields'
 
 export default function App() {
   return (
@@ -19,7 +19,7 @@ export default function App() {
           <Route index element={<Navigate to="roles" replace />} />
           <Route path="roles" element={<RolesSection />} />
           <Route path="categories" element={<CategoriesSection />} />
-          <Route path="sla" element={<SlaPoliciesSection />} />
+          <Route path="sla" element={<SlaSection />} />
           <Route path="tags" element={<TagsSection />} />
           <Route path="custom-fields" element={<CustomFieldsSection />} />
         </Route>

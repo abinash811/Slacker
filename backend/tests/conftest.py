@@ -68,7 +68,7 @@ def _clean_tables(db_session):
         "tickets",
         "slack_event_dedup",
         "slack_channels",
-        "sla_policies",
+        "sla_settings",
         "team_members",
         "roles",
         "users",
@@ -83,26 +83,23 @@ def _clean_tables(db_session):
 @pytest.fixture
 def seed(db_session):
     from app.models.category import Category
-    from app.models.sla import SLAPolicy
+    from app.models.sla import SLASettings
     from app.models.team import Team
     from app.models.user import User
 
     team = Team(name="Product")
     category = Category(name="Product")
-    sla_48h = SLAPolicy(name="48 hours", duration_hours=48, is_default=True)
-    sla_24h = SLAPolicy(name="24 hours", duration_hours=24)
+    sla_settings = SLASettings(id=1, default_hours=48)
     creator = User(email="creator@example.com", name="Creator")
     alice = User(email="alice@example.com", name="Alice")
     bob = User(email="bob@example.com", name="Bob")
 
-    db_session.add_all([team, category, sla_48h, sla_24h, creator, alice, bob])
+    db_session.add_all([team, category, sla_settings, creator, alice, bob])
     db_session.commit()
 
     return {
         "team": team,
         "category": category,
-        "sla_48h": sla_48h,
-        "sla_24h": sla_24h,
         "creator": creator,
         "alice": alice,
         "bob": bob,

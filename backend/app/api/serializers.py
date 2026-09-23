@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from app.models.ticket import Ticket
 from app.schemas.custom_field import CustomFieldValueOut
-from app.schemas.lookup import CategoryOut, SLAPolicyOut, TeamOut
+from app.schemas.lookup import CategoryOut, TeamOut
 from app.schemas.tag import TagOut
 from app.schemas.ticket import TicketListItem, TicketOut
 from app.schemas.user import UserOut
@@ -25,7 +25,7 @@ def to_ticket_out(ticket: Ticket) -> TicketOut:
         team=TeamOut.model_validate(ticket.team),
         priority=ticket.priority,
         status=ticket.status,
-        sla_policy=SLAPolicyOut.model_validate(ticket.sla_policy),
+        sla_hours=ticket.sla_hours,
         sla_due_at=ticket.sla_due_at,
         owner=UserOut.model_validate(ticket.owner) if ticket.owner else None,
         support_assignee=UserOut.model_validate(ticket.support_assignee) if ticket.support_assignee else None,
@@ -50,7 +50,7 @@ def to_ticket_out(ticket: Ticket) -> TicketOut:
 
 def to_list_item(ticket: Ticket) -> TicketListItem:
     now = datetime.now(timezone.utc)
-    breached, _ = sla_service.sla_status(ticket.sla_due_at, ticket.resolved_at, now)
+    breached, remaining = sla_service.sla_status(ticket.sla_due_at, ticket.resolved_at, now)
     return TicketListItem(
         id=ticket.id,
         ticket_number=ticket.ticket_number,
@@ -65,6 +65,7 @@ def to_list_item(ticket: Ticket) -> TicketListItem:
         priority=ticket.priority,
         status=ticket.status,
         sla_breached=breached,
+        sla_remaining_seconds=remaining,
         created_at=ticket.created_at,
         age_seconds=int((now - ticket.created_at).total_seconds()),
         updated_at=ticket.updated_at,

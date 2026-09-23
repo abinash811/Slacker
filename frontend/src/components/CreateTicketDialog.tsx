@@ -5,7 +5,7 @@ import { Input, Textarea } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TagPicker } from '@/components/TagPicker'
-import { useCategories, useCreateTicket, useCustomFields, useSlaPolicies, useTags, useTeams, useUsers } from '@/hooks/useApi'
+import { useCategories, useCreateTicket, useCustomFields, useTags, useTeams, useUsers } from '@/hooks/useApi'
 import type { TicketPriority } from '@/types/api'
 
 const PRIORITIES: TicketPriority[] = ['low', 'medium', 'high', 'urgent']
@@ -14,7 +14,6 @@ export function CreateTicketDialog() {
   const [open, setOpen] = useState(false)
   const { data: teams } = useTeams()
   const { data: categories } = useCategories()
-  const { data: slaPolicies } = useSlaPolicies()
   const { data: users } = useUsers()
   const { data: customFields } = useCustomFields(false)
   const { data: tags } = useTags(false)
@@ -30,7 +29,6 @@ export function CreateTicketDialog() {
     category_id: '',
     team_id: '',
     priority: 'medium' as TicketPriority,
-    sla_policy_id: '',
     owner_id: '',
   })
   const [customValues, setCustomValues] = useState<Record<number, string>>({})
@@ -43,7 +41,7 @@ export function CreateTicketDialog() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teams])
 
-  const canSubmit = form.title && form.description && form.customer && form.category_id && form.team_id && form.sla_policy_id
+  const canSubmit = form.title && form.description && form.customer && form.category_id && form.team_id
 
   function reset() {
     const defaultTeam = (teams ?? []).find((t) => t.is_default)
@@ -57,7 +55,6 @@ export function CreateTicketDialog() {
       category_id: '',
       team_id: defaultTeam ? String(defaultTeam.id) : '',
       priority: 'medium',
-      sla_policy_id: '',
       owner_id: '',
     })
     setCustomValues({})
@@ -76,7 +73,6 @@ export function CreateTicketDialog() {
       category_id: Number(form.category_id),
       team_id: Number(form.team_id),
       priority: form.priority,
-      sla_policy_id: Number(form.sla_policy_id),
       owner_id: form.owner_id ? Number(form.owner_id) : null,
       push_to_slack: true,
       custom_field_values: Object.entries(customValues)
@@ -149,13 +145,6 @@ export function CreateTicketDialog() {
                   value={form.priority}
                   onChange={(v) => setForm({ ...form, priority: v as TicketPriority })}
                   options={PRIORITIES.map((p) => ({ value: p, label: p[0].toUpperCase() + p.slice(1) }))}
-                />
-              </Field>
-              <Field label="SLA">
-                <SimpleSelect
-                  value={form.sla_policy_id}
-                  onChange={(v) => setForm({ ...form, sla_policy_id: v })}
-                  options={(slaPolicies ?? []).map((s) => ({ value: String(s.id), label: s.name }))}
                 />
               </Field>
             </div>

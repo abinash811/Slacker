@@ -100,7 +100,8 @@ export function Tickets() {
                 <td className="whitespace-nowrap px-3 py-2">
                   {t.sla_breached ? (
                     <span className="inline-flex items-center gap-1 font-medium text-danger">
-                      <AlertTriangle className="h-3.5 w-3.5" /> Breached
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      Breached{t.sla_remaining_seconds != null ? ` by ${formatDuration(Math.abs(t.sla_remaining_seconds))}` : ''}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 text-success">

@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { formatDuration } from '@/lib/format'
 import type { TicketPriority, TicketStatus } from '@/types/api'
 
 const STATUS_LABEL: Record<TicketStatus, string> = {
@@ -32,6 +33,8 @@ export function PriorityBadge({ priority }: { priority: TicketPriority }) {
   return <Badge variant={PRIORITY_VARIANT[priority]}>{priority[0].toUpperCase() + priority.slice(1)}</Badge>
 }
 
-export function SlaBadge({ breached }: { breached: boolean }) {
-  return breached ? <Badge variant="danger">SLA breached</Badge> : <Badge variant="success">On track</Badge>
+export function SlaBadge({ breached, remainingSeconds }: { breached: boolean; remainingSeconds?: number | null }) {
+  if (!breached) return <Badge variant="success">On track</Badge>
+  const suffix = remainingSeconds != null ? ` by ${formatDuration(Math.abs(remainingSeconds))}` : ''
+  return <Badge variant="danger">Breached{suffix}</Badge>
 }

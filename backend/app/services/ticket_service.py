@@ -14,7 +14,6 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models.custom_field import TicketCustomFieldValue
 from app.models.enums import EventSource, TicketPriority, TicketStatus
-from app.models.sla import SLAPolicy
 from app.models.team import Team
 from app.models.ticket import (
     Ticket,
@@ -34,7 +33,6 @@ RESOLVED_STATUSES = {TicketStatus.RESOLVED, TicketStatus.CLOSED}
 TICKET_LOAD_OPTIONS = (
     joinedload(Ticket.category),
     joinedload(Ticket.team),
-    joinedload(Ticket.sla_policy),
     joinedload(Ticket.owner),
     joinedload(Ticket.created_by),
     joinedload(Ticket.support_assignee),
@@ -66,16 +64,13 @@ def create_ticket(
     category_id: int,
     team_id: int,
     priority: TicketPriority,
-    sla_policy_id: int,
     owner_id: int | None,
     created_by: User,
     source: EventSource,
     custom_field_values: list[tuple[int, str]] | None = None,
     tag_ids: list[int] | None = None,
 ) -> Ticket:
-    policy = db.get(SLAPolicy, sla_policy_id)
-    if policy is None:
-        raise HTTPException(status_code=400, detail="Unknown SLA policy")
+    sla_hours = sla_service.get_default_hours(db)
 
     now = datetime.now(timezone.utc)
     ticket = Ticket(
@@ -89,13 +84,13 @@ def create_ticket(
         team_id=team_id,
         priority=priority,
         status=TicketStatus.OPEN,
-        sla_policy_id=sla_policy_id,
+        sla_hours=sla_hours,
         # `created_at` is set explicitly (rather than left to its column
         # default) so it is guaranteed to be the exact same instant
         # `sla_due_at` was computed from — the SLA clock must start at
         # ticket creation, not a few microseconds later at flush time.
         created_at=now,
-        sla_due_at=sla_service.compute_due_at(now, policy),
+        sla_due_at=sla_service.compute_due_at(now, sla_hours),
         owner_id=owner_id,
         created_by_id=created_by.id,
     )

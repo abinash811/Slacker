@@ -9,13 +9,12 @@ from app.schemas.lookup import (
     CategoryCreateRequest,
     CategoryOut,
     CategoryUpdateRequest,
-    SLAPolicyCreateRequest,
-    SLAPolicyOut,
-    SLAPolicyUpdateRequest,
+    SLASettingsOut,
+    SLASettingsUpdateRequest,
     TeamOut,
 )
 from app.schemas.user import UserOut
-from app.services import lookup_service
+from app.services import lookup_service, sla_service
 
 router = APIRouter(tags=["lookups"])
 
@@ -40,19 +39,14 @@ def update_category(category_id: int, payload: CategoryUpdateRequest, db: Sessio
     return lookup_service.update_category(db, category_id, **payload.model_dump(exclude_unset=True))
 
 
-@router.get("/sla-policies", response_model=list[SLAPolicyOut])
-def list_sla_policies(include_archived: bool = Query(default=False), db: Session = Depends(get_db)) -> list[SLAPolicyOut]:
-    return lookup_service.list_sla_policies(db, include_archived=include_archived)
+@router.get("/sla-settings", response_model=SLASettingsOut)
+def get_sla_settings(db: Session = Depends(get_db)) -> SLASettingsOut:
+    return sla_service.get_settings(db)
 
 
-@router.post("/sla-policies", response_model=SLAPolicyOut, status_code=201)
-def create_sla_policy(payload: SLAPolicyCreateRequest, db: Session = Depends(get_db)) -> SLAPolicyOut:
-    return lookup_service.create_sla_policy(db, payload.name, payload.duration_hours, payload.is_default)
-
-
-@router.patch("/sla-policies/{policy_id}", response_model=SLAPolicyOut)
-def update_sla_policy(policy_id: int, payload: SLAPolicyUpdateRequest, db: Session = Depends(get_db)) -> SLAPolicyOut:
-    return lookup_service.update_sla_policy(db, policy_id, **payload.model_dump(exclude_unset=True))
+@router.patch("/sla-settings", response_model=SLASettingsOut)
+def update_sla_settings(payload: SLASettingsUpdateRequest, db: Session = Depends(get_db)) -> SLASettingsOut:
+    return sla_service.set_default_hours(db, payload.default_hours)
 
 
 @router.get("/users", response_model=list[UserOut])
