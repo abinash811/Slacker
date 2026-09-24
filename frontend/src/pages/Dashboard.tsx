@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, Clock, Hourglass, Inbox, TimerReset, Users } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Caption, EmptyState, PageHeader } from '@/components/ui/typography'
 import { ShareBar } from '@/components/ui/share-bar'
 import { FilterBar } from '@/components/FilterBar'
 import { StatTile } from '@/components/StatTile'
@@ -24,13 +25,11 @@ export function Dashboard() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">What's happening, what's overdue, who's overloaded.</p>
-        </div>
-        <CreateTicketDialog />
-      </div>
+      <PageHeader
+        title="Dashboard"
+        description="What's happening, what's overdue, who's overloaded."
+        actions={<CreateTicketDialog />}
+      />
 
       <FilterBar filters={filters} onChange={setFilters} />
 
@@ -84,7 +83,7 @@ export function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
-            {(ownerPending ?? []).length === 0 && <EmptyState text="Nothing pending." />}
+            {(ownerPending ?? []).length === 0 && <EmptyState>Nothing pending.</EmptyState>}
             {(ownerPending ?? []).map((o) => (
               <div key={o.owner_id ?? 'unassigned'} className="flex items-center justify-between text-sm">
                 <span>{o.owner_name}</span>
@@ -117,11 +116,11 @@ function AttentionNeeded({ tickets }: { tickets?: TicketListItem[] }) {
             <span className="flex items-center gap-2">
               <span className="font-medium">#{t.ticket_number}</span>
               <span className="text-foreground">{t.title}</span>
-              <span className="text-xs text-muted-foreground">· {t.team_name}</span>
+              <Caption>· {t.team_name}</Caption>
             </span>
             <span className="flex items-center gap-2">
               <PriorityBadge priority={t.priority} />
-              <span className="text-xs text-muted-foreground">open {formatDuration(t.age_seconds)}</span>
+              <Caption>open {formatDuration(t.age_seconds)}</Caption>
             </span>
           </Link>
         ))}
@@ -146,16 +145,16 @@ function BreakdownCard({ title, items }: { title: string; items?: BreakdownItemD
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        {(items ?? []).length === 0 && <EmptyState text="No tickets yet." />}
+        {(items ?? []).length === 0 && <EmptyState>No tickets yet.</EmptyState>}
         {(items ?? []).map((item) => (
           <div key={item.label} className="flex flex-col gap-1">
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium">{item.label}</span>
-              <span className="flex items-center gap-3 text-xs text-muted-foreground">
+              <Caption className="flex items-center gap-3">
                 <span>{item.total} total</span>
                 <span>{item.pending} pending</span>
                 {item.sla_breached > 0 && <span className="font-medium text-danger">{item.sla_breached} breached</span>}
-              </span>
+              </Caption>
             </div>
             <ShareBar percent={(item.total / maxTotal) * 100} tone={item.sla_breached > 0 ? 'danger' : 'default'} />
           </div>
@@ -163,8 +162,4 @@ function BreakdownCard({ title, items }: { title: string; items?: BreakdownItemD
       </CardContent>
     </Card>
   )
-}
-
-function EmptyState({ text }: { text: string }) {
-  return <p className="rounded-md bg-muted px-3 py-4 text-center text-sm text-muted-foreground">{text}</p>
 }

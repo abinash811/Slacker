@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { FilterBar } from '@/components/FilterBar'
 import { CreateTicketDialog } from '@/components/CreateTicketDialog'
 import { PriorityBadge, StatusBadge } from '@/components/StatusPriorityBadges'
+import { PageHeader } from '@/components/ui/typography'
 import { useTickets } from '@/hooks/useApi'
 import { useTicketFilters } from '@/hooks/useTicketFilters'
 import { formatDateTime, formatDuration } from '@/lib/format'
@@ -44,15 +45,11 @@ export function Tickets() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold">Tickets</h1>
-          <p className="text-sm text-muted-foreground">
-            {data?.total ?? 0} {data?.total === 1 ? 'ticket' : 'tickets'}
-          </p>
-        </div>
-        <CreateTicketDialog />
-      </div>
+      <PageHeader
+        title="Tickets"
+        description={`${data?.total ?? 0} ${data?.total === 1 ? 'ticket' : 'tickets'}`}
+        actions={<CreateTicketDialog />}
+      />
 
       <FilterBar filters={filters} onChange={setFilters} />
 

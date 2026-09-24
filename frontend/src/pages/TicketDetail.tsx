@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { PriorityBadge, StatusBadge, SlaBadge } from '@/components/StatusPriorityBadges'
 import { TagPicker } from '@/components/TagPicker'
+import { Caption } from '@/components/ui/typography'
 import {
   useAssignTicket,
   useChangePriority,
@@ -222,7 +223,7 @@ export function TicketDetail() {
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <Caption as="dt">{label}</Caption>
       <dd className="font-medium">{value}</dd>
     </div>
   )
@@ -239,7 +240,7 @@ function ActionField({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <Caption>{label}</Caption>
       {children}
       {error && <span className="text-xs text-danger">{error}</span>}
     </div>

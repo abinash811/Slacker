@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { Folder, ShieldCheck, SlidersHorizontal, Tags, Timer } from 'lucide-react'
+import { PageHeader } from '@/components/ui/typography'
 import { cn } from '@/lib/utils'
 
 const NAV = [
@@ -13,10 +14,7 @@ const NAV = [
 export function SettingsShell() {
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-lg font-semibold">Settings</h1>
-        <p className="text-sm text-muted-foreground">Roles and the values people pick from when creating a ticket.</p>
-      </div>
+      <PageHeader title="Settings" description="Roles and the values people pick from when creating a ticket." />
       <div className="flex flex-col gap-6 sm:flex-row">
         <aside className="flex shrink-0 flex-row gap-1 overflow-x-auto sm:w-44 sm:flex-col sm:overflow-visible">
           {NAV.map(({ to, label, icon: Icon }) => (

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SettingsPageHeader as PageHeader } from '@/components/SettingsPageHeader'
+import { EmptyState } from '@/components/ui/typography'
 import { cn } from '@/lib/utils'
 import {
   useCategoriesAdmin,
@@ -232,7 +233,7 @@ function ArchivableList({
   onArchiveToggle: (id: number, is_archived: boolean) => void
 }) {
   if (items.length === 0) {
-    return <p className="rounded-lg border border-border bg-muted/20 px-3 py-8 text-center text-sm text-muted-foreground">None yet.</p>
+    return <EmptyState variant="bordered">None yet.</EmptyState>
   }
   return (
     <div className="flex flex-col gap-1 rounded-lg border border-border p-1">
