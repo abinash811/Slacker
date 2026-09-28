@@ -1,159 +1,166 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 /*
- * Design tokens — the only place raw color, shadow, or motion values may
- * appear. Components reach these through Tailwind classes (`bg-card`,
- * `shadow-popover`, `ease-standard`, `focus-ring`…). See docs/DESIGN_SYSTEM.md.
+ * Theme — shadcn/ui's token set (https://ui.shadcn.com/docs/theming) with
+ * Slacker's brand values. The only place raw colors may appear.
+ * Components in components/ui/ are unmodified shadcn; everything else
+ * reaches these through Tailwind classes (bg-primary, text-destructive…).
+ *
+ * Additions beyond shadcn's set: `success` and `warning` (status colors
+ * shadcn doesn't ship). Use them as text-success / bg-success/10.
  */
 :root {
-  --background: #ffffff;
-  --foreground: #0d0d12;
-  --muted: #f4f4f6;
-  --muted-foreground: #6b7280;
-  --border: #e5e7eb;
-  --input: #d9dce1;
-  --card: #ffffff;
-  --card-foreground: #0d0d12;
-  --popover: #ffffff;
-  --popover-foreground: #0d0d12;
-
-  --primary: #4f46e5;
-  --primary-foreground: #ffffff;
-  --accent: #eef2ff;
-  --accent-foreground: #4338ca;
-  --ring: #6366f1;
-
-  --success: #059669;
-  --success-bg: #ecfdf5;
-  --warning: #b45309;
-  --warning-bg: #fffbeb;
-  --danger: #dc2626;
-  --danger-bg: #fef2f2;
-  --danger-foreground: #ffffff;
-
-  /* Scrim behind dialogs. */
-  --overlay: rgb(13 13 18 / 0.4);
-
-  /* Elevation: flat surfaces → floating menus → modal dialogs → toasts. */
-  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04);
-  --shadow-popover: 0 4px 12px rgb(16 24 40 / 0.08), 0 1px 3px rgb(16 24 40 / 0.06);
-  --shadow-dialog: 0 20px 40px rgb(16 24 40 / 0.16), 0 2px 6px rgb(16 24 40 / 0.06);
-  --shadow-toast: 0 8px 24px rgb(16 24 40 / 0.12), 0 1px 3px rgb(16 24 40 / 0.06);
-
-  --radius: 0.5rem;
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.511 0.262 276.966); /* indigo-600 */
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.585 0.233 277.117); /* indigo-500 */
+  --success: oklch(0.596 0.145 163.225); /* emerald-600 */
+  --warning: oklch(0.555 0.163 48.998); /* amber-700: AA contrast on white */
+  --chart-1: oklch(0.585 0.233 277.117);
+  --chart-2: oklch(0.596 0.145 163.225);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.577 0.245 27.325);
+  --chart-5: oklch(0.556 0 0);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.511 0.262 276.966);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.585 0.233 277.117);
 }
 
-/* Light is the only theme applied automatically — this internal tool
-   should look the same for everyone regardless of OS setting. The dark
-   palette is kept here, gated behind an explicit `data-theme="dark"` on
-   <html>, so a manual theme toggle can be added later without redoing
-   the token set. Every token above must have a dark counterpart. */
-:root[data-theme="dark"] {
-  --background: #0b0b0f;
-  --foreground: #f3f4f6;
-  --muted: #16161d;
-  --muted-foreground: #9ca3af;
-  --border: #262631;
-  --input: #33333f;
-  --card: #121218;
-  --card-foreground: #f3f4f6;
-  --popover: #17171f;
-  --popover-foreground: #f3f4f6;
-
-  --primary: #818cf8;
-  --primary-foreground: #0b0b0f;
-  --accent: #1e1b4b;
-  --accent-foreground: #c7d2fe;
-  --ring: #818cf8;
-
-  --success: #34d399;
-  --success-bg: #052e21;
-  --warning: #fbbf24;
-  --warning-bg: #3a2a05;
-  --danger: #f87171;
-  --danger-bg: #3a0d0d;
-  --danger-foreground: #0b0b0f;
-
-  --overlay: rgb(0 0 0 / 0.6);
-
-  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.02);
-  --shadow-popover: 0 4px 12px rgb(0 0 0 / 0.5);
-  --shadow-dialog: 0 20px 40px rgb(0 0 0 / 0.6);
-  --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
+/* Dark theme, ready for a toggle (next-themes sets `class="dark"` on <html>).
+   The app is forced to light for now — see main.tsx. */
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.673 0.182 276.935); /* indigo-400 */
+  --primary-foreground: oklch(0.145 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.673 0.182 276.935);
+  --success: oklch(0.765 0.177 163.223);
+  --warning: oklch(0.828 0.189 84.429);
+  --chart-1: oklch(0.673 0.182 276.935);
+  --chart-2: oklch(0.765 0.177 163.223);
+  --chart-3: oklch(0.828 0.189 84.429);
+  --chart-4: oklch(0.704 0.191 22.216);
+  --chart-5: oklch(0.708 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.673 0.182 276.935);
+  --sidebar-primary-foreground: oklch(0.145 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.673 0.182 276.935);
 }
 
 @theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
   --color-ring: var(--ring);
   --color-success: var(--success);
-  --color-success-bg: var(--success-bg);
   --color-warning: var(--warning);
-  --color-warning-bg: var(--warning-bg);
-  --color-danger: var(--danger);
-  --color-danger-bg: var(--danger-bg);
-  --color-danger-foreground: var(--danger-foreground);
-  --color-overlay: var(--overlay);
-
-  --shadow-card: var(--shadow-card);
-  --shadow-popover: var(--shadow-popover);
-  --shadow-dialog: var(--shadow-dialog);
-  --shadow-toast: var(--shadow-toast);
-
-  --radius-md: var(--radius);
-
-  /* Motion: one easing curve for everything that moves. */
-  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* The one keyboard-focus treatment. Every interactive element gets it,
-   either through a ui/ primitive or by adding `focus-ring` directly. */
+/* shadcn's focus treatment, for app-level interactive elements that aren't
+   a ui/ component (plain links, row links). ui/ components include it. */
 @utility focus-ring {
   outline: none;
   &:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+    border-radius: calc(var(--radius) * 0.6);
   }
 }
 
-/* Base styles live in the base layer so Tailwind utilities (border-danger,
-   bg-card…) always win over them. Unlayered rules would beat every utility. */
 @layer base {
-  *,
-  ::before,
-  ::after {
-    border-color: var(--border);
+  * {
+    @apply border-border outline-ring/50;
   }
-}
-
-body {
-  margin: 0;
-  background: var(--background);
-  color: var(--foreground);
-  font: 14px/1.5 "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-optical-sizing: auto;
-  -webkit-font-smoothing: antialiased;
-  /* Base UI popups position against the body. */
-  position: relative;
-}
-
-#root {
-  min-height: 100vh;
-  /* Keeps app z-indexes below Base UI portals (dialogs, menus, toasts). */
-  isolation: isolate;
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-optical-sizing: auto;
+    /* Base UI popups position against the body. */
+    position: relative;
+  }
+  html {
+    @apply font-sans;
+  }
+  #root {
+    min-height: 100vh;
+    /* Keeps app z-indexes below Base UI portals (dialogs, menus, toasts). */
+    isolation: isolate;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

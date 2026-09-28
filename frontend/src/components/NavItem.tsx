@@ -1,8 +1,9 @@
 import { NavLink } from 'react-router-dom'
 import type { LucideIcon } from 'lucide-react'
+import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-/** Navigation link used by the top bar and the Settings sidebar. Active = muted fill + foreground text. */
+/** Navigation link for the top bar and the Settings sidebar: a shadcn ghost button that stays filled while active. */
 export function NavItem({
   to,
   end,
@@ -22,14 +23,14 @@ export function NavItem({
       end={end}
       className={({ isActive }) =>
         cn(
-          'focus-ring flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground',
-          'transition-colors duration-150 ease-standard hover:bg-muted/60 hover:text-foreground',
+          buttonVariants({ variant: 'ghost' }),
+          'justify-start text-muted-foreground',
           isActive && 'bg-muted text-foreground',
           className,
         )
       }
     >
-      {Icon && <Icon className="size-4" aria-hidden />}
+      {Icon && <Icon data-icon="inline-start" aria-hidden />}
       {children}
     </NavLink>
   )

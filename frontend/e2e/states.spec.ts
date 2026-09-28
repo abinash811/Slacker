@@ -44,3 +44,18 @@ test('design gallery renders every section', async ({ page }) => {
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible()
   }
 })
+
+test('main pages render without console errors', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', (m) => {
+    // Network failures are expected in some tests; anything else is a bug.
+    if (m.type() === 'error' && !m.text().startsWith('Failed to load resource')) errors.push(m.text())
+  })
+  page.on('pageerror', (e) => errors.push(e.message))
+  await mockApi(page)
+  for (const path of ['/', '/tickets', '/tickets/1', '/teams', '/settings/roles', '/settings/tags', '/settings/sla', '/design']) {
+    await page.goto(path)
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
+  }
+  expect(errors).toEqual([])
+})

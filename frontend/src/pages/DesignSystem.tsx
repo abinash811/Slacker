@@ -1,11 +1,8 @@
 import { useState } from 'react'
-import { AlertTriangle, Inbox, Plus, Trash2 } from 'lucide-react'
-import { Alert } from '@/components/ui/alert'
-import { ConfirmDialog } from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
-import { Button, ButtonLink } from '@/components/ui/button'
+import { AlertCircle, AlertTriangle, Inbox, Plus, Trash2 } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogClose,
@@ -16,54 +13,68 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { EmptyState } from '@/components/ui/empty-state'
-import { ErrorState } from '@/components/ui/error-state'
-import { Field, FieldSection } from '@/components/ui/field'
-import { Input, Textarea } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
-import { Pagination } from '@/components/ui/pagination'
-import { ShareBar } from '@/components/ui/share-bar'
+import { Input } from '@/components/ui/input'
+import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableSkeleton,
-  type SortDirection,
-} from '@/components/ui/table'
-import { Tooltip } from '@/components/ui/tooltip'
-import { Caption, Muted, PageHeader, SectionHeader, SectionLabel } from '@/components/ui/typography'
+import { Textarea } from '@/components/ui/textarea'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { ButtonLink, LoadingButton } from '@/components/patterns/buttons'
+import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
+import { DataTable, TablePager, type SortingState } from '@/components/patterns/data-table'
+import { CheckboxField, FormField, FormSection } from '@/components/patterns/form-field'
+import { OptionSelect } from '@/components/patterns/option-select'
+import { EmptyState, ErrorState } from '@/components/patterns/states'
+import { ToneBadge } from '@/components/patterns/tone-badge'
+import { Caption, Muted, PageHeader, SectionHeader, SectionLabel } from '@/components/patterns/typography'
 import { PriorityBadge, SlaBadge, StatusBadge } from '@/components/StatusPriorityBadges'
 import { StatTile, StatTileSkeleton } from '@/components/StatTile'
 import { TagPicker } from '@/components/TagPicker'
 import { ApiError } from '@/lib/api'
+import { columnHelper } from '@/lib/data-table'
 import { toast } from '@/lib/toast'
 
+interface Row {
+  id: number
+  name: string
+  team: string
+  breached: boolean
+}
+const ROWS: Row[] = [
+  { id: 1, name: 'Interactive row', team: 'Support', breached: false },
+  { id: 2, name: 'Needs attention', team: 'Billing', breached: true },
+]
+const col = columnHelper<Row>()
+const COLUMNS = col.columns([
+  col.accessor('name', { header: 'Sortable', meta: { className: 'font-medium' } }),
+  col.accessor('team', { header: 'Muted', enableSorting: false, meta: { muted: true } }),
+  col.accessor('breached', {
+    header: 'Status',
+    enableSorting: false,
+    cell: (i) => <SlaBadge breached={i.getValue()} remainingSeconds={i.getValue() ? -3600 : 7200} />,
+  }),
+])
+
 /**
- * Living reference for docs/DESIGN_SYSTEM.md — every primitive in every
- * state. Not linked from the nav; open /design. When you add or change a
- * ui/ component, add it here in the same change.
+ * Living reference for docs/DESIGN_SYSTEM.md: every shadcn component and
+ * app pattern we use, in its states. Not linked from the nav — open /design.
+ * Add anything new here in the same change.
  */
 export function DesignSystem() {
   const [checked, setChecked] = useState(true)
   const [select, setSelect] = useState<string | null>(null)
   const [tags, setTags] = useState([1])
-  const [sort, setSort] = useState<SortDirection>('desc')
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: true }])
   const [pageIndex, setPageIndex] = useState(0)
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader title="Design system" description="Every shared component, in every state. Source of truth: docs/DESIGN_SYSTEM.md." />
+      <PageHeader title="Design system" description="shadcn/ui components (Base UI) and the app patterns built from them." />
 
       <Section title="Typography">
         <div className="flex flex-col gap-3">
           <PageHeader title="PageHeader — h1, one per page" description="Optional description" actions={<Button size="sm">Action</Button>} />
           <SectionHeader title="SectionHeader — h2" description="Settings tabs and page sections" actions={<Button size="sm" variant="outline">Action</Button>} />
-          <CardTitle>CardTitle — h3</CardTitle>
           <SectionLabel>SectionLabel</SectionLabel>
           <Muted>Muted — secondary paragraph text.</Muted>
           <Caption>Caption — meta, timestamps.</Caption>
@@ -71,30 +82,22 @@ export function DesignSystem() {
       </Section>
 
       <Section title="Color">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           {[
-            ['bg-background border', 'background'],
+            ['bg-background ring-1 ring-foreground/10', 'background'],
             ['bg-muted', 'muted'],
-            ['bg-card border', 'card'],
+            ['bg-secondary', 'secondary'],
             ['bg-primary', 'primary'],
-            ['bg-accent', 'accent'],
+            ['bg-ring', 'ring'],
             ['bg-success', 'success'],
             ['bg-warning', 'warning'],
-            ['bg-danger', 'danger'],
+            ['bg-destructive', 'destructive'],
+            ['bg-border', 'border'],
+            ['bg-foreground', 'foreground'],
           ].map(([cls, name]) => (
             <div key={name} className="flex items-center gap-2">
-              <span className={`size-8 rounded-md border-border ${cls}`} />
+              <span className={`size-8 rounded-md ${cls}`} />
               <Caption>{name}</Caption>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Elevation">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {['shadow-card', 'shadow-popover', 'shadow-dialog', 'shadow-toast'].map((s) => (
-            <div key={s} className={`flex h-16 items-center justify-center rounded-lg border border-border bg-card ${s}`}>
-              <Caption>{s}</Caption>
             </div>
           ))}
         </div>
@@ -107,20 +110,22 @@ export function DesignSystem() {
           <Button variant="secondary">Secondary</Button>
           <Button variant="ghost">Ghost</Button>
           <Button variant="destructive">Destructive</Button>
-          <Button variant="destructive-ghost">Destructive ghost</Button>
           <Button variant="link">Link</Button>
-          <ButtonLink variant="outline" to="/design">ButtonLink (navigates)</ButtonLink>
+          <ButtonLink variant="outline" to="/design">
+            ButtonLink (navigates)
+          </ButtonLink>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm">
-            <Plus /> Small with icon
+            <Plus data-icon="inline-start" /> Small with icon
           </Button>
-          <Button loading>Saving…</Button>
+          <LoadingButton loading>Saving…</LoadingButton>
           <Button disabled>Disabled</Button>
-          <Tooltip content="Delete (icon buttons always get a tooltip)">
-            <Button variant="ghost" size="icon" aria-label="Delete">
+          <Tooltip>
+            <TooltipTrigger render={<Button variant="ghost" size="icon" aria-label="Delete" />}>
               <Trash2 />
-            </Button>
+            </TooltipTrigger>
+            <TooltipContent>Delete (icon buttons always get a tooltip)</TooltipContent>
           </Tooltip>
           <Spinner />
         </div>
@@ -128,11 +133,11 @@ export function DesignSystem() {
 
       <Section title="Badges">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge>Neutral</Badge>
-          <Badge variant="accent">Accent</Badge>
-          <Badge variant="success">Success</Badge>
-          <Badge variant="warning">Warning</Badge>
-          <Badge variant="danger">Danger</Badge>
+          <ToneBadge tone="neutral">Neutral</ToneBadge>
+          <ToneBadge tone="info">Info</ToneBadge>
+          <ToneBadge tone="success">Success</ToneBadge>
+          <ToneBadge tone="warning">Warning</ToneBadge>
+          <ToneBadge tone="danger">Danger</ToneBadge>
           <StatusBadge status="in_progress" />
           <PriorityBadge priority="urgent" />
           <SlaBadge breached={false} />
@@ -142,20 +147,20 @@ export function DesignSystem() {
 
       <Section title="Form controls">
         <div className="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Default" htmlFor="ds-default" hint="Hint text explains the format.">
+          <FormField label="Default" htmlFor="ds-default" hint="Hint text explains the format.">
             <Input id="ds-default" placeholder="Placeholder" />
-          </Field>
-          <Field label="Invalid" htmlFor="ds-invalid" error="Enter a customer name.">
-            <Input id="ds-invalid" aria-invalid defaultValue="" />
-          </Field>
-          <Field label="Disabled" htmlFor="ds-disabled">
+          </FormField>
+          <FormField label="Invalid" htmlFor="ds-invalid" error="Enter a customer name.">
+            <Input id="ds-invalid" aria-invalid />
+          </FormField>
+          <FormField label="Disabled" htmlFor="ds-disabled">
             <Input id="ds-disabled" disabled defaultValue="Can't edit" />
-          </Field>
-          <Field label="Optional" htmlFor="ds-optional" required={false}>
+          </FormField>
+          <FormField label="Optional" htmlFor="ds-optional" required={false}>
             <Input id="ds-optional" />
-          </Field>
-          <Field label="Select" htmlFor="ds-select">
-            <Select
+          </FormField>
+          <FormField label="Select" htmlFor="ds-select">
+            <OptionSelect
               id="ds-select"
               value={select}
               onValueChange={setSelect}
@@ -166,16 +171,16 @@ export function DesignSystem() {
                 { value: '2', label: 'Arjun' },
               ]}
             />
-          </Field>
-          <Field label="Select (invalid)" htmlFor="ds-select-invalid" error="Choose a team.">
-            <Select id="ds-select-invalid" invalid value={null} onValueChange={() => {}} options={[]} />
-          </Field>
-          <Field label="Textarea" htmlFor="ds-textarea" className="sm:col-span-2">
+          </FormField>
+          <FormField label="Select (invalid)" htmlFor="ds-select-invalid" error="Choose a team.">
+            <OptionSelect id="ds-select-invalid" invalid value={null} onValueChange={() => {}} options={[]} />
+          </FormField>
+          <FormField label="Textarea" htmlFor="ds-textarea" className="sm:col-span-2">
             <Textarea id="ds-textarea" />
-          </Field>
-          <Checkbox label="Checkbox" description="With a description line" checked={checked} onCheckedChange={setChecked} />
-          <Checkbox label="Disabled checkbox" checked={false} onCheckedChange={() => {}} disabled />
-          <Field label="Tag picker" className="sm:col-span-2">
+          </FormField>
+          <CheckboxField id="ds-check" label="Checkbox" description="With a description line" checked={checked} onCheckedChange={setChecked} />
+          <CheckboxField id="ds-check-off" label="Disabled checkbox" checked={false} onCheckedChange={() => {}} disabled />
+          <FormField label="Tag picker (Toggle)" className="sm:col-span-2">
             <TagPicker
               tags={[
                 { id: 1, name: 'Appointment', is_archived: false },
@@ -185,28 +190,37 @@ export function DesignSystem() {
               selectedIds={tags}
               onChange={setTags}
             />
-          </Field>
+          </FormField>
         </div>
         <div className="max-w-md">
-          <FieldSection title="FieldSection">
+          <FormSection title="FormSection">
             <Muted>Groups related fields in long forms.</Muted>
-          </FieldSection>
+          </FormSection>
         </div>
       </Section>
 
       <Section title="Feedback">
         <div className="flex max-w-xl flex-col gap-2">
-          <Alert title="Info alert">Persistent, inline context.</Alert>
-          <Alert tone="success" title="Success alert" />
-          <Alert tone="warning" title="Warning alert">Something needs a look.</Alert>
-          <Alert tone="danger" title="Couldn't create ticket">A ticket with this title already exists.</Alert>
+          <Alert>
+            <AlertTitle>Default alert</AlertTitle>
+            <AlertDescription>Persistent, inline context.</AlertDescription>
+          </Alert>
+          <Alert variant="destructive">
+            <AlertCircle />
+            <AlertTitle>Couldn't create ticket</AlertTitle>
+            <AlertDescription>A ticket with this title already exists.</AlertDescription>
+          </Alert>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => toast.success('Tag created')}>Success toast</Button>
+          <Button variant="outline" onClick={() => toast.success('Tag created')}>
+            Success toast
+          </Button>
           <Button variant="outline" onClick={() => toast.error("Couldn't save tag", 'The server ran into a problem.')}>
             Error toast
           </Button>
-          <Button variant="outline" onClick={() => toast.info('Filters cleared')}>Info toast</Button>
+          <Button variant="outline" onClick={() => toast.info('Filters cleared')}>
+            Info toast
+          </Button>
         </div>
       </Section>
 
@@ -214,14 +228,14 @@ export function DesignSystem() {
         <div className="flex flex-wrap gap-2">
           <Dialog>
             <DialogTrigger render={<Button variant="outline" />}>Open dialog</DialogTrigger>
-            <DialogContent size="sm">
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>New tag</DialogTitle>
                 <DialogDescription>Tags appear as chips on the ticket form.</DialogDescription>
               </DialogHeader>
-              <Field label="Name" htmlFor="ds-dialog-name">
+              <FormField label="Name" htmlFor="ds-dialog-name">
                 <Input id="ds-dialog-name" />
-              </Field>
+              </FormField>
               <DialogFooter>
                 <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
                 <Button>Create tag</Button>
@@ -229,7 +243,7 @@ export function DesignSystem() {
             </DialogContent>
           </Dialog>
           <ConfirmDialog
-            trigger={<Button variant="destructive-ghost" />}
+            trigger={<Button variant="destructive" />}
             triggerLabel="Remove member"
             title="Remove Priya?"
             description="She'll no longer be a member of Billing. You can add her back later."
@@ -242,24 +256,28 @@ export function DesignSystem() {
       <Section title="States: empty, loading, error">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Card>
-            <CardContent className="pt-4">
+            <CardContent>
               <EmptyState
                 icon={Inbox}
                 title="No tickets match these filters"
                 description="Try removing a filter."
-                action={<Button size="sm" variant="outline">Clear filters</Button>}
+                action={
+                  <Button size="sm" variant="outline">
+                    Clear filters
+                  </Button>
+                }
               />
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="flex flex-col gap-3 pt-4">
+            <CardContent className="flex flex-col gap-3">
               <Skeleton className="h-5 w-1/2" />
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-4/5" />
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-4">
+            <CardContent>
               <ErrorState title="Couldn't load tickets" error={new ApiError(500, '')} onRetry={() => {}} />
             </CardContent>
           </Card>
@@ -269,47 +287,40 @@ export function DesignSystem() {
       <Section title="Cards & stats">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <StatTile label="Open tickets" value="42" icon={Inbox} />
-          <StatTile label="SLA breached" value="3" tone="danger" icon={AlertTriangle} comparison={{ current: 3, previous: 1, change_pct: 200 }} invertComparisonTone />
+          <StatTile
+            label="SLA breached"
+            value="3"
+            tone="danger"
+            icon={AlertTriangle}
+            comparison={{ current: 3, previous: 1, change_pct: 200 }}
+            invertComparisonTone
+          />
           <StatTileSkeleton />
           <Card>
             <CardHeader>
-              <CardTitle tone="strong">Card title (strong)</CardTitle>
+              <CardTitle>Card title</CardTitle>
               <CardDescription>CardDescription</CardDescription>
             </CardHeader>
             <CardContent>
-              <ShareBar percent={62} />
+              <Progress value={62} aria-label="Share" />
             </CardContent>
           </Card>
         </div>
       </Section>
 
       <Section title="Table">
-        <Table>
-          <TableHeader>
-            <tr>
-              <TableHead sort={sort} onSort={() => setSort(sort === 'asc' ? 'desc' : 'asc')}>Sortable (active)</TableHead>
-              <TableHead sort={false} onSort={() => {}}>Sortable</TableHead>
-              <TableHead>Plain</TableHead>
-              <TableHead align="right">Right</TableHead>
-            </tr>
-          </TableHeader>
-          <TableBody>
-            <TableRow interactive>
-              <TableCell className="font-medium">Interactive row</TableCell>
-              <TableCell muted>Muted cell</TableCell>
-              <TableCell><StatusBadge status="open" /></TableCell>
-              <TableCell align="right">12</TableCell>
-            </TableRow>
-            <TableRow interactive tone="danger">
-              <TableCell className="font-medium">Needs attention</TableCell>
-              <TableCell muted>Muted cell</TableCell>
-              <TableCell><SlaBadge breached remainingSeconds={-3600} /></TableCell>
-              <TableCell align="right">4</TableCell>
-            </TableRow>
-            <TableSkeleton columns={4} rows={2} />
-          </TableBody>
-        </Table>
-        <Pagination pageIndex={pageIndex} pageSize={50} rowCount={128} onPageChange={setPageIndex} />
+        <DataTable
+          columns={COLUMNS}
+          data={ROWS}
+          getRowId={(r) => String(r.id)}
+          sorting={sorting}
+          onSortingChange={setSorting}
+          isLoading={false}
+          onRowClick={() => {}}
+          rowTone={(r) => (r.breached ? 'danger' : undefined)}
+          empty={null}
+        />
+        <TablePager pageIndex={pageIndex} pageSize={50} rowCount={128} onPageChange={setPageIndex} />
       </Section>
     </div>
   )

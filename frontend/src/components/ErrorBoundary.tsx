@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from 'react'
-import { ErrorState } from '@/components/ui/error-state'
+import { ErrorState } from '@/components/patterns/states'
 
 /** Last-resort catch for render crashes, so one broken page never blanks the whole app. Give it a `key` (e.g. the route) to reset on navigation. */
 export class ErrorBoundary extends Component<{ children: ReactNode }, { error: unknown }> {
@@ -13,7 +13,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { error: u
     if (this.state.error) {
       return (
         <ErrorState
-          variant="bordered"
+          bordered
           title="This page crashed"
           error={this.state.error}
           onRetry={() => this.setState({ error: null })}

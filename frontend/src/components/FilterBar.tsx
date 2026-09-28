@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Search } from 'lucide-react'
-import { Select } from '@/components/ui/select'
+import { OptionSelect } from '@/components/patterns/option-select'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useCategories, useTeams, useUsers } from '@/hooks/useApi'
@@ -24,7 +24,7 @@ export function FilterBar({ filters, onChange }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-2" role="search">
       <SearchInput value={filters.search} onChange={(v) => onChange({ search: v })} />
-      <Select
+      <OptionSelect
         aria-label="Team"
         className="w-auto min-w-32"
         value={filters.team_id?.toString() ?? null}
@@ -32,7 +32,7 @@ export function FilterBar({ filters, onChange }: Props) {
         emptyLabel="All teams"
         options={toOptions(teams)}
       />
-      <Select
+      <OptionSelect
         aria-label="Pending on"
         className="w-auto min-w-32"
         value={filters.owner_id?.toString() ?? null}
@@ -40,7 +40,7 @@ export function FilterBar({ filters, onChange }: Props) {
         emptyLabel="Pending on: Anyone"
         options={toOptions(users)}
       />
-      <Select
+      <OptionSelect
         aria-label="Support owner"
         className="w-auto min-w-32"
         value={filters.support_assignee_id?.toString() ?? null}
@@ -48,7 +48,7 @@ export function FilterBar({ filters, onChange }: Props) {
         emptyLabel="Support owner: Anyone"
         options={toOptions(users)}
       />
-      <Select
+      <OptionSelect
         aria-label="Category"
         className="w-auto min-w-32"
         value={filters.category_id?.toString() ?? null}
@@ -56,7 +56,7 @@ export function FilterBar({ filters, onChange }: Props) {
         emptyLabel="All categories"
         options={toOptions(categories)}
       />
-      <Select
+      <OptionSelect
         aria-label="Priority"
         className="w-auto min-w-32"
         value={filters.priority ?? null}
@@ -64,7 +64,7 @@ export function FilterBar({ filters, onChange }: Props) {
         emptyLabel="All priorities"
         options={PRIORITY_OPTIONS}
       />
-      <Select
+      <OptionSelect
         aria-label="Status"
         className="w-auto min-w-32"
         value={filters.status ?? null}
@@ -72,7 +72,7 @@ export function FilterBar({ filters, onChange }: Props) {
         emptyLabel="All statuses"
         options={STATUS_OPTIONS}
       />
-      <Select
+      <OptionSelect
         aria-label="SLA"
         className="w-auto min-w-32"
         value={filters.sla_status ?? null}

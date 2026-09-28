@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, Clock, Hourglass, Inbox, TimerReset, Users } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Caption, PageHeader } from '@/components/ui/typography'
-import { EmptyState } from '@/components/ui/empty-state'
-import { ErrorState } from '@/components/ui/error-state'
-import { ShareBar } from '@/components/ui/share-bar'
+import { Caption, PageHeader } from '@/components/patterns/typography'
+import { EmptyState } from '@/components/patterns/states'
+import { ErrorState } from '@/components/patterns/states'
+import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FilterBar } from '@/components/FilterBar'
 import { StatTile, StatTileSkeleton } from '@/components/StatTile'
@@ -41,7 +41,7 @@ export function Dashboard() {
 
       {summary.isError ? (
         <ErrorState
-          variant="bordered"
+          bordered
           title="Couldn't load dashboard numbers"
           error={summary.error}
           onRetry={() => summary.refetch()}
@@ -94,8 +94,8 @@ export function Dashboard() {
         <BreakdownCard title="By category" query={categoryBreakdown} />
         <Card>
           <CardHeader>
-            <CardTitle>
-              <Users aria-hidden /> Pending by owner
+            <CardTitle className="flex items-center gap-2 text-muted-foreground">
+              <Users className="size-4" aria-hidden /> Pending by owner
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
@@ -133,10 +133,10 @@ function ListSkeleton() {
 function AttentionNeeded({ tickets }: { tickets?: TicketListItem[] }) {
   if (!tickets || tickets.length === 0) return null
   return (
-    <Card className="border-danger/30 bg-danger-bg/40">
+    <Card className="bg-destructive/5 ring-destructive/20">
       <CardHeader>
-        <CardTitle tone="danger">
-          <AlertTriangle aria-hidden /> Needs attention — SLA breached
+        <CardTitle className="flex items-center gap-2 text-destructive">
+          <AlertTriangle className="size-4" aria-hidden /> Needs attention — SLA breached
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-1">
@@ -144,7 +144,7 @@ function AttentionNeeded({ tickets }: { tickets?: TicketListItem[] }) {
           <Link
             key={t.id}
             to={`/tickets/${t.id}`}
-            className="focus-ring flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-sm transition-colors duration-150 ease-standard hover:bg-card"
+            className="focus-ring flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-background"
           >
             <span className="flex min-w-0 items-center gap-2">
               <span className="font-medium">#{t.ticket_number}</span>
@@ -182,7 +182,7 @@ function BreakdownCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="text-muted-foreground">{title}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {query.isPending ? (
@@ -199,10 +199,14 @@ function BreakdownCard({
                 <Caption className="flex items-center gap-3 tabular-nums">
                   <span>{item.total} total</span>
                   <span>{item.pending} pending</span>
-                  {item.sla_breached > 0 && <span className="font-medium text-danger">{item.sla_breached} breached</span>}
+                  {item.sla_breached > 0 && <span className="font-medium text-destructive">{item.sla_breached} breached</span>}
                 </Caption>
               </div>
-              <ShareBar percent={(item.total / maxTotal) * 100} tone={item.sla_breached > 0 ? 'danger' : 'default'} />
+              <Progress
+                value={(item.total / maxTotal) * 100}
+                aria-label={`${item.label}: ${item.total} tickets`}
+                className={item.sla_breached > 0 ? '**:data-[slot=progress-indicator]:bg-destructive' : undefined}
+              />
             </div>
           ))
         )}

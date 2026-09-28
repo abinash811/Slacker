@@ -2,14 +2,15 @@ import { Controller } from 'react-hook-form'
 import { Folder, SlidersHorizontal, Tags } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { LoadingButton } from '@/components/patterns/buttons'
+import { ToneBadge } from '@/components/patterns/tone-badge'
 import { Input } from '@/components/ui/input'
-import { Field } from '@/components/ui/field'
-import { Select } from '@/components/ui/select'
+import { FormField } from '@/components/patterns/form-field'
+import { OptionSelect } from '@/components/patterns/option-select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { EmptyState } from '@/components/ui/empty-state'
-import { ErrorState } from '@/components/ui/error-state'
-import { SectionHeader } from '@/components/ui/typography'
+import { EmptyState } from '@/components/patterns/states'
+import { ErrorState } from '@/components/patterns/states'
+import { SectionHeader } from '@/components/patterns/typography'
 import { CreateItemDialog } from '@/components/CreateItemDialog'
 import { cn } from '@/lib/utils'
 import {
@@ -46,7 +47,7 @@ export function TagsSection() {
             form={form}
             onSubmit={(v) => createTag.mutateAsync(v.name)}
           >
-            <Field label="Name" htmlFor="new-tag-name" error={form.formState.errors.name?.message}>
+            <FormField label="Name" htmlFor="new-tag-name" error={form.formState.errors.name?.message}>
               <Input
                 id="new-tag-name"
                 autoFocus
@@ -54,7 +55,7 @@ export function TagsSection() {
                 placeholder="e.g. Appointment"
                 {...form.register('name')}
               />
-            </Field>
+            </FormField>
           </CreateItemDialog>
         }
       />
@@ -86,7 +87,7 @@ export function CategoriesSection() {
             form={form}
             onSubmit={(v) => createCategory.mutateAsync(v.name)}
           >
-            <Field label="Name" htmlFor="new-category-name" error={form.formState.errors.name?.message}>
+            <FormField label="Name" htmlFor="new-category-name" error={form.formState.errors.name?.message}>
               <Input
                 id="new-category-name"
                 autoFocus
@@ -94,7 +95,7 @@ export function CategoriesSection() {
                 placeholder="e.g. Billing"
                 {...form.register('name')}
               />
-            </Field>
+            </FormField>
           </CreateItemDialog>
         }
       />
@@ -118,7 +119,7 @@ export function SlaSection() {
         description="The resolution-time target applied to every new ticket. Changing it never affects tickets already created."
       />
       {settings.isError ? (
-        <ErrorState variant="bordered" error={settings.error} onRetry={() => settings.refetch()} retrying={settings.isFetching} />
+        <ErrorState bordered error={settings.error} onRetry={() => settings.refetch()} retrying={settings.isFetching} />
       ) : settings.isPending ? (
         <Skeleton className="h-28 w-full" />
       ) : (
@@ -137,10 +138,10 @@ function SlaForm({ savedHours }: { savedHours: number }) {
   return (
     <form
       noValidate
-      className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 shadow-card"
+      className="flex items-start gap-3 rounded-xl p-4 ring-1 ring-foreground/10"
       onSubmit={form.handleSubmit((v) => updateSettings.mutateAsync(v.default_hours).catch(() => {}))}
     >
-      <Field label="Default SLA (hours)" htmlFor="sla-default-hours" hint="Whole hours, 1 or more." error={error}>
+      <FormField label="Default SLA (hours)" htmlFor="sla-default-hours" hint="Whole hours, 1 or more." error={error}>
         <Input
           id="sla-default-hours"
           type="number"
@@ -150,10 +151,10 @@ function SlaForm({ savedHours }: { savedHours: number }) {
           aria-invalid={!!error}
           {...form.register('default_hours')}
         />
-      </Field>
-      <Button type="submit" className="mt-5.5" disabled={!form.formState.isDirty} loading={form.formState.isSubmitting}>
+      </FormField>
+      <LoadingButton type="submit" className="mt-6" disabled={!form.formState.isDirty} loading={form.formState.isSubmitting}>
         Save
-      </Button>
+      </LoadingButton>
     </form>
   )
 }
@@ -178,15 +179,15 @@ export function CustomFieldsSection() {
             form={form}
             onSubmit={(v) => createField.mutateAsync(v)}
           >
-            <Field label="Field label" htmlFor="new-field-label" error={errors.label?.message}>
+            <FormField label="Field label" htmlFor="new-field-label" error={errors.label?.message}>
               <Input id="new-field-label" autoFocus aria-invalid={!!errors.label} placeholder="e.g. Clinic ID" {...form.register('label')} />
-            </Field>
-            <Field label="Type" htmlFor="new-field-type">
+            </FormField>
+            <FormField label="Type" htmlFor="new-field-type">
               <Controller
                 control={form.control}
                 name="field_type"
                 render={({ field }) => (
-                  <Select
+                  <OptionSelect
                     id="new-field-type"
                     value={field.value}
                     onValueChange={(v) => v && field.onChange(v)}
@@ -197,16 +198,16 @@ export function CustomFieldsSection() {
                   />
                 )}
               />
-            </Field>
+            </FormField>
             {type === 'dropdown' && (
-              <Field label="Options" htmlFor="new-field-options" hint="Separate options with commas." error={errors.options?.message}>
+              <FormField label="Options" htmlFor="new-field-options" hint="Separate options with commas." error={errors.options?.message}>
                 <Input
                   id="new-field-options"
                   aria-invalid={!!errors.options}
                   placeholder="North, South, East, West"
                   {...form.register('options')}
                 />
-              </Field>
+              </FormField>
             )}
           </CreateItemDialog>
         }
@@ -248,7 +249,7 @@ function ArchivableList<T>({
 }) {
   if (query.isPending) {
     return (
-      <div className="flex flex-col gap-1 rounded-lg border border-border p-1">
+      <div className="flex flex-col gap-1 rounded-xl p-1 ring-1 ring-foreground/10">
         {Array.from({ length: 3 }, (_, i) => (
           <Skeleton key={i} className="m-2 h-5" />
         ))}
@@ -256,19 +257,19 @@ function ArchivableList<T>({
     )
   }
   if (query.isError) {
-    return <ErrorState variant="bordered" error={query.error} onRetry={() => query.refetch()} retrying={query.isFetching} />
+    return <ErrorState bordered error={query.error} onRetry={() => query.refetch()} retrying={query.isFetching} />
   }
   const items = toItems(query.data as T)
   if (items.length === 0) {
-    return <EmptyState variant="bordered" {...empty} />
+    return <EmptyState bordered {...empty} />
   }
   return (
-    <ul className="flex flex-col gap-1 rounded-lg border border-border bg-card p-1 shadow-card">
+    <ul className="flex flex-col gap-1 rounded-xl p-1 ring-1 ring-foreground/10">
       {items.map((item) => (
         <li
           key={item.id}
           className={cn(
-            'flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm transition-colors duration-150 ease-standard hover:bg-muted/50',
+            'flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted/50',
             item.is_archived && 'bg-muted/30',
           )}
         >
@@ -277,7 +278,7 @@ function ArchivableList<T>({
             {item.meta && <span className="truncate text-xs text-muted-foreground">{item.meta}</span>}
           </span>
           <div className="flex shrink-0 items-center gap-2">
-            {item.is_archived ? <Badge variant="neutral">Archived</Badge> : <Badge variant="success">Active</Badge>}
+            {item.is_archived ? <ToneBadge tone="neutral">Archived</ToneBadge> : <ToneBadge tone="success">Active</ToneBadge>}
             <Button variant="ghost" size="sm" onClick={() => onArchiveToggle(item.id, !item.is_archived)}>
               {item.is_archived ? 'Restore' : 'Archive'}
             </Button>

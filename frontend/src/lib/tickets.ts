@@ -1,5 +1,5 @@
 import type { TicketFiltersState, TicketPriority, TicketStatus } from '@/types/api'
-import type { SelectOption } from '@/components/ui/select'
+import type { SelectOption } from '@/components/patterns/option-select'
 
 export const STATUS_LABEL: Record<TicketStatus, string> = {
   open: 'Open',

@@ -3,28 +3,28 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { Inbox } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { EmptyState } from '@/components/ui/empty-state'
-import { ErrorState } from '@/components/ui/error-state'
-import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Pagination } from '@/components/ui/pagination'
+import { LoadingButton } from '@/components/patterns/buttons'
+import { TablePager } from '@/components/patterns/data-table'
+import { FormField } from '@/components/patterns/form-field'
+import { EmptyState, ErrorState } from '@/components/patterns/states'
 import { ApiError } from '@/lib/api'
 
-describe('Button', () => {
+describe('LoadingButton', () => {
   it('is disabled and busy while loading', () => {
-    render(<Button loading>Save</Button>)
+    render(<LoadingButton loading>Save</LoadingButton>)
     const button = screen.getByRole('button', { name: /save/i })
     expect(button).toBeDisabled()
     expect(button).toHaveAttribute('aria-busy', 'true')
   })
 })
 
-describe('Field', () => {
+describe('FormField', () => {
   it('labels the control and shows the error instead of the hint', () => {
     render(
-      <Field label="Title" htmlFor="t" hint="Short and specific." error="Add a short title.">
+      <FormField label="Title" htmlFor="t" hint="Short and specific." error="Add a short title.">
         <Input id="t" aria-invalid />
-      </Field>,
+      </FormField>,
     )
     expect(screen.getByLabelText('Title')).toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent('Add a short title.')
@@ -33,9 +33,9 @@ describe('Field', () => {
 
   it('marks optional fields', () => {
     render(
-      <Field label="Doctor name" htmlFor="d" required={false}>
+      <FormField label="Doctor name" htmlFor="d" required={false}>
         <Input id="d" />
-      </Field>,
+      </FormField>,
     )
     expect(screen.getByText('(optional)')).toBeInTheDocument()
   })
@@ -57,17 +57,17 @@ describe('EmptyState / ErrorState', () => {
   })
 })
 
-describe('Pagination', () => {
-  it('shows the range and disables buttons at the ends', async () => {
+describe('TablePager', () => {
+  it('shows the range and blocks paging past either end', async () => {
     const onPageChange = vi.fn()
-    const { rerender } = render(<Pagination pageIndex={0} pageSize={50} rowCount={120} onPageChange={onPageChange} />)
+    const { rerender } = render(<TablePager pageIndex={0} pageSize={50} rowCount={120} onPageChange={onPageChange} />)
     expect(screen.getByText('Showing 1–50 of 120')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled()
-    await userEvent.click(screen.getByRole('button', { name: 'Next page' }))
+    expect(screen.getByLabelText('Go to previous page')).toHaveAttribute('aria-disabled', 'true')
+    await userEvent.click(screen.getByLabelText('Go to next page'))
     expect(onPageChange).toHaveBeenCalledWith(1)
 
-    rerender(<Pagination pageIndex={2} pageSize={50} rowCount={120} onPageChange={onPageChange} />)
+    rerender(<TablePager pageIndex={2} pageSize={50} rowCount={120} onPageChange={onPageChange} />)
     expect(screen.getByText('Showing 101–120 of 120')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled()
+    expect(screen.getByLabelText('Go to next page')).toHaveAttribute('aria-disabled', 'true')
   })
 })

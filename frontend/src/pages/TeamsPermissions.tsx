@@ -2,29 +2,21 @@ import { useState } from 'react'
 import { Controller } from 'react-hook-form'
 import { ShieldCheck, UserPlus, UsersRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
-import { ConfirmDialog } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
-import { Field } from '@/components/ui/field'
-import { Select } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { EmptyState } from '@/components/ui/empty-state'
-import { ErrorState } from '@/components/ui/error-state'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableMessage,
-  TableRow,
-  TableSkeleton,
-} from '@/components/ui/table'
-import { Caption, PageHeader, SectionHeader, SectionLabel } from '@/components/ui/typography'
+import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
+import { DataTable } from '@/components/patterns/data-table'
+import { CheckboxField, FormField } from '@/components/patterns/form-field'
+import { LoadingButton } from '@/components/patterns/buttons'
+import { OptionSelect } from '@/components/patterns/option-select'
+import { EmptyState, ErrorState } from '@/components/patterns/states'
+import { ToneBadge } from '@/components/patterns/tone-badge'
+import { Caption, PageHeader, SectionHeader, SectionLabel } from '@/components/patterns/typography'
 import { CreateItemDialog } from '@/components/CreateItemDialog'
 import { cn } from '@/lib/utils'
 import { toOptions } from '@/lib/tickets'
+import { columnHelper } from '@/lib/data-table'
+import type { Role, TeamMemberEntry } from '@/types/api'
 import { useZodForm } from '@/lib/form'
 import { addMemberSchema, nameSchema, roleSchema } from '@/lib/schemas'
 import {
@@ -66,7 +58,7 @@ export function RolesSection() {
             form={form}
             onSubmit={(v) => createRole.mutateAsync(v)}
           >
-            <Field label="Name" htmlFor="role-name" error={form.formState.errors.name?.message}>
+            <FormField label="Name" htmlFor="role-name" error={form.formState.errors.name?.message}>
               <Input
                 id="role-name"
                 autoFocus
@@ -74,7 +66,7 @@ export function RolesSection() {
                 placeholder="e.g. Sales lead"
                 {...form.register('name')}
               />
-            </Field>
+            </FormField>
             <fieldset className="flex flex-col gap-2.5">
               <legend className="mb-2 text-sm font-medium">Settings permissions</legend>
               {(
@@ -88,74 +80,78 @@ export function RolesSection() {
                   key={name}
                   control={form.control}
                   name={name}
-                  render={({ field }) => <Checkbox label={label} checked={field.value} onCheckedChange={field.onChange} />}
+                  render={({ field }) => (
+                    <CheckboxField id={`role-${name}`} label={label} checked={field.value} onCheckedChange={field.onChange} />
+                  )}
                 />
               ))}
             </fieldset>
           </CreateItemDialog>
         }
       />
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead>Name</TableHead>
-            <TableHead>Settings permissions</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead align="right">
-              <span className="sr-only">Actions</span>
-            </TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {roles.isPending ? (
-            <TableSkeleton columns={4} rows={3} />
-          ) : roles.isError ? (
-            <TableMessage colSpan={4}>
-              <ErrorState title="Couldn't load roles" error={roles.error} onRetry={() => roles.refetch()} retrying={roles.isFetching} />
-            </TableMessage>
-          ) : roles.data.length === 0 ? (
-            <TableMessage colSpan={4}>
-              <EmptyState icon={ShieldCheck} title="No roles yet" description="Create a role to control who can change Settings." />
-            </TableMessage>
-          ) : (
-            roles.data.map((role) => {
-              const granted = [
-                role.can_create_settings && 'Create',
-                role.can_edit_settings && 'Edit',
-                role.can_delete_settings && 'Delete',
-              ].filter(Boolean) as string[]
-              return (
-                <TableRow key={role.id} className={cn(role.is_archived && 'bg-muted/20')}>
-                  <TableCell className={cn('font-medium', role.is_archived && 'text-muted-foreground')}>{role.name}</TableCell>
-                  <TableCell>
-                    {granted.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {granted.map((p) => (
-                          <Badge key={p} variant="accent">
-                            {p}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <Caption>No access</Caption>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {role.is_archived ? <Badge variant="neutral">Archived</Badge> : <Badge variant="success">Active</Badge>}
-                  </TableCell>
-                  <TableCell align="right">
-                    <Button variant="ghost" size="sm" onClick={() => updateRole.mutate({ id: role.id, is_archived: !role.is_archived })}>
-                      {role.is_archived ? 'Restore' : 'Archive'}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              )
-            })
-          )}
-        </TableBody>
-      </Table>
+      <DataTable
+        columns={roleColumns((role) => updateRole.mutate({ id: role.id, is_archived: !role.is_archived }))}
+        data={roles.data ?? NO_ROLES}
+        getRowId={(r) => String(r.id)}
+        isLoading={roles.isPending}
+        loadingRows={3}
+        error={roles.isError ? roles.error : undefined}
+        errorTitle="Couldn't load roles"
+        onRetry={() => roles.refetch()}
+        retrying={roles.isFetching}
+        empty={<EmptyState icon={ShieldCheck} title="No roles yet" description="Create a role to control who can change Settings." />}
+      />
     </div>
   )
+}
+
+const NO_ROLES: Role[] = []
+const NO_MEMBERS: TeamMemberEntry[] = []
+const roleCol = columnHelper<Role>()
+
+function roleColumns(onToggleArchive: (role: Role) => void) {
+  return roleCol.columns([
+    roleCol.accessor('name', {
+      header: 'Name',
+      cell: (i) => <span className={cn('font-medium', i.row.original.is_archived && 'text-muted-foreground')}>{i.getValue()}</span>,
+    }),
+    roleCol.display({
+      id: 'permissions',
+      header: 'Settings permissions',
+      cell: ({ row: { original: role } }) => {
+        const granted = [
+          role.can_create_settings && 'Create',
+          role.can_edit_settings && 'Edit',
+          role.can_delete_settings && 'Delete',
+        ].filter(Boolean) as string[]
+        return granted.length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {granted.map((p) => (
+              <ToneBadge key={p} tone="info">
+                {p}
+              </ToneBadge>
+            ))}
+          </div>
+        ) : (
+          <Caption>No access</Caption>
+        )
+      },
+    }),
+    roleCol.accessor('is_archived', {
+      header: 'Status',
+      cell: (i) => (i.getValue() ? <ToneBadge tone="neutral">Archived</ToneBadge> : <ToneBadge tone="success">Active</ToneBadge>),
+    }),
+    roleCol.display({
+      id: 'actions',
+      header: () => <span className="sr-only">Actions</span>,
+      meta: { align: 'right' },
+      cell: ({ row: { original: role } }) => (
+        <Button variant="ghost" size="sm" onClick={() => onToggleArchive(role)}>
+          {role.is_archived ? 'Restore' : 'Archive'}
+        </Button>
+      ),
+    }),
+  ])
 }
 
 export function TeamsSection() {
@@ -184,7 +180,7 @@ export function TeamsSection() {
               form={teamForm}
               onSubmit={(v) => createTeam.mutateAsync(v.name, { onSuccess: (team) => setSelectedTeamId(team.id) })}
             >
-              <Field label="Name" htmlFor="new-team-name" error={teamForm.formState.errors.name?.message}>
+              <FormField label="Name" htmlFor="new-team-name" error={teamForm.formState.errors.name?.message}>
                 <Input
                   id="new-team-name"
                   autoFocus
@@ -192,28 +188,28 @@ export function TeamsSection() {
                   placeholder="e.g. Product"
                   {...teamForm.register('name')}
                 />
-              </Field>
+              </FormField>
             </CreateItemDialog>
           </div>
           {teams.isPending ? (
-            <div className="flex flex-col gap-1 rounded-lg border border-border p-1">
+            <div className="flex flex-col gap-1 rounded-xl p-1 ring-1 ring-foreground/10">
               {Array.from({ length: 3 }, (_, i) => (
                 <Skeleton key={i} className="m-2 h-5" />
               ))}
             </div>
           ) : teams.isError ? (
-            <ErrorState variant="bordered" error={teams.error} onRetry={() => teams.refetch()} retrying={teams.isFetching} />
+            <ErrorState bordered error={teams.error} onRetry={() => teams.refetch()} retrying={teams.isFetching} />
           ) : teams.data.length === 0 ? (
-            <EmptyState variant="bordered" icon={UsersRound} title="No teams yet" description="Create a team to start routing tickets." />
+            <EmptyState bordered icon={UsersRound} title="No teams yet" description="Create a team to start routing tickets." />
           ) : (
-            <ul className="flex flex-col gap-1 rounded-lg border border-border bg-card p-1 shadow-card">
+            <ul className="flex flex-col gap-1 rounded-xl p-1 ring-1 ring-foreground/10">
               {teams.data.map((team) => {
                 const selected = selectedTeamId === team.id
                 return (
                   <li
                     key={team.id}
                     className={cn(
-                      'flex items-center justify-between gap-2 rounded-md pr-2 text-sm transition-colors duration-150 ease-standard hover:bg-muted/60',
+                      'flex items-center justify-between gap-2 rounded-lg pr-2 text-sm transition-colors hover:bg-muted/60',
                       selected ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground',
                     )}
                   >
@@ -221,12 +217,12 @@ export function TeamsSection() {
                       type="button"
                       aria-pressed={selected}
                       onClick={() => setSelectedTeamId(team.id)}
-                      className="focus-ring flex-1 rounded-md px-3 py-2 text-left hover:text-foreground"
+                      className="focus-ring flex-1 rounded-lg px-3 py-2 text-left hover:text-foreground"
                     >
                       {team.name}
                     </button>
                     {team.is_default ? (
-                      <Badge variant="accent">Default</Badge>
+                      <ToneBadge tone="info">Default</ToneBadge>
                     ) : (
                       <Button variant="ghost" size="sm" onClick={() => setDefaultTeam.mutate(team.id)} disabled={setDefaultTeam.isPending}>
                         Set default
@@ -246,7 +242,7 @@ export function TeamsSection() {
               {selectedTeam ? `${selectedTeam.name} members` : 'Members'}
             </SectionLabel>
           </div>
-          <div className="rounded-lg border border-border bg-card p-4 shadow-card">
+          <div className="rounded-xl p-4 ring-1 ring-foreground/10">
             {selectedTeamId ? (
               <TeamMembers teamId={selectedTeamId} />
             ) : (
@@ -267,6 +263,39 @@ function TeamMembers({ teamId }: { teamId: number }) {
   const updateMemberRole = useUpdateTeamMemberRole(teamId)
   const removeMember = useRemoveTeamMember(teamId)
 
+  const memberCol = columnHelper<TeamMemberEntry>()
+  const memberColumns = memberCol.columns([
+    memberCol.accessor((m) => m.user.name, { id: 'name', header: 'Name', meta: { className: 'font-medium' } }),
+    memberCol.display({
+      id: 'role',
+      header: 'Role',
+      cell: ({ row: { original: member } }) => (
+        <OptionSelect
+          aria-label={`Role for ${member.user.name}`}
+          className="w-40"
+          value={String(member.role.id)}
+          onValueChange={(v) => v && updateMemberRole.mutate({ memberId: member.id, roleId: Number(v) })}
+          options={toOptions(roles)}
+        />
+      ),
+    }),
+    memberCol.display({
+      id: 'actions',
+      header: () => <span className="sr-only">Actions</span>,
+      meta: { align: 'right' },
+      cell: ({ row: { original: member } }) => (
+        <ConfirmDialog
+          trigger={<Button variant="destructive" size="sm" />}
+          triggerLabel="Remove"
+          title={`Remove ${member.user.name}?`}
+          description={`They'll no longer be a member of ${team.data?.name ?? 'this team'}. You can add them back later.`}
+          confirmLabel="Remove member"
+          onConfirm={() => removeMember.mutateAsync(member.id)}
+        />
+      ),
+    }),
+  ])
+
   const memberForm = useZodForm(addMemberSchema, { user_id: '', role_id: '' })
   const memberErrors = memberForm.formState.errors
 
@@ -276,59 +305,22 @@ function TeamMembers({ teamId }: { teamId: number }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead>Name</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead align="right">
-              <span className="sr-only">Actions</span>
-            </TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {team.isPending ? (
-            <TableSkeleton columns={3} rows={3} />
-          ) : team.isError ? (
-            <TableMessage colSpan={3}>
-              <ErrorState title="Couldn't load members" error={team.error} onRetry={() => team.refetch()} retrying={team.isFetching} />
-            </TableMessage>
-          ) : members.length === 0 ? (
-            <TableMessage colSpan={3}>
-              <EmptyState title="No members yet" description="Add someone below to give them access to this team's tickets." />
-            </TableMessage>
-          ) : (
-            members.map((member) => (
-              <TableRow key={member.id}>
-                <TableCell className="font-medium">{member.user.name}</TableCell>
-                <TableCell>
-                  <Select
-                    aria-label={`Role for ${member.user.name}`}
-                    className="w-40"
-                    value={String(member.role.id)}
-                    onValueChange={(v) => v && updateMemberRole.mutate({ memberId: member.id, roleId: Number(v) })}
-                    options={toOptions(roles)}
-                  />
-                </TableCell>
-                <TableCell align="right">
-                  <ConfirmDialog
-                    trigger={<Button variant="destructive-ghost" size="sm" />}
-                    triggerLabel="Remove"
-                    title={`Remove ${member.user.name}?`}
-                    description={`They'll no longer be a member of ${team.data?.name ?? 'this team'}. You can add them back later.`}
-                    confirmLabel="Remove member"
-                    onConfirm={() => removeMember.mutateAsync(member.id)}
-                  />
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+      <DataTable
+        columns={memberColumns}
+        data={team.data?.members ?? NO_MEMBERS}
+        getRowId={(m) => String(m.id)}
+        isLoading={team.isPending}
+        loadingRows={3}
+        error={team.isError ? team.error : undefined}
+        errorTitle="Couldn't load members"
+        onRetry={() => team.refetch()}
+        retrying={team.isFetching}
+        empty={<EmptyState title="No members yet" description="Add someone below to give them access to this team's tickets." />}
+      />
 
       <form
         noValidate
-        className="flex flex-col gap-3 rounded-md border border-dashed border-border bg-muted/30 p-3 sm:flex-row sm:items-start"
+        className="flex flex-col gap-3 rounded-lg border border-dashed bg-muted/30 p-3 sm:flex-row sm:items-start"
         onSubmit={memberForm.handleSubmit((v) =>
           addMember
             .mutateAsync({ user_id: Number(v.user_id), role_id: Number(v.role_id) })
@@ -336,12 +328,12 @@ function TeamMembers({ teamId }: { teamId: number }) {
             .catch(() => {}),
         )}
       >
-        <Field label="Add member" htmlFor="add-member-user" className="flex-1" error={memberErrors.user_id?.message}>
+        <FormField label="Add member" htmlFor="add-member-user" className="flex-1" error={memberErrors.user_id?.message}>
           <Controller
             control={memberForm.control}
             name="user_id"
             render={({ field }) => (
-              <Select
+              <OptionSelect
                 id="add-member-user"
                 invalid={!!memberErrors.user_id}
                 value={field.value || null}
@@ -352,13 +344,13 @@ function TeamMembers({ teamId }: { teamId: number }) {
               />
             )}
           />
-        </Field>
-        <Field label="Role" htmlFor="add-member-role" className="flex-1" error={memberErrors.role_id?.message}>
+        </FormField>
+        <FormField label="Role" htmlFor="add-member-role" className="flex-1" error={memberErrors.role_id?.message}>
           <Controller
             control={memberForm.control}
             name="role_id"
             render={({ field }) => (
-              <Select
+              <OptionSelect
                 id="add-member-role"
                 invalid={!!memberErrors.role_id}
                 value={field.value || null}
@@ -368,10 +360,10 @@ function TeamMembers({ teamId }: { teamId: number }) {
               />
             )}
           />
-        </Field>
-        <Button type="submit" className="sm:mt-5.5" loading={memberForm.formState.isSubmitting}>
+        </FormField>
+        <LoadingButton type="submit" className="sm:mt-6" loading={memberForm.formState.isSubmitting}>
           Add
-        </Button>
+        </LoadingButton>
       </form>
     </div>
   )

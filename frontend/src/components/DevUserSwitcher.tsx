@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { Select } from '@/components/ui/select'
-import { Caption } from '@/components/ui/typography'
+import { OptionSelect } from '@/components/patterns/option-select'
+import { Caption } from '@/components/patterns/typography'
 import { useUsers } from '@/hooks/useApi'
 import { getCurrentUserEmail, setCurrentUserEmail } from '@/lib/devUser'
 
@@ -23,7 +23,7 @@ export function DevUserSwitcher() {
   return (
     <div className="flex items-center gap-2">
       <Caption>Acting as</Caption>
-      <Select
+      <OptionSelect
         aria-label="Acting as"
         className="w-auto min-w-36"
         value={email}

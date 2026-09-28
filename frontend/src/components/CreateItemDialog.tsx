@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import type { FieldValues, UseFormReturn } from 'react-hook-form'
-import { Alert } from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { LoadingButton } from '@/components/patterns/buttons'
 import {
   Dialog,
   DialogClose,
@@ -65,9 +67,9 @@ export function CreateItemDialog<TInput extends FieldValues, TOutput extends Fie
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger render={<Button size="sm" variant={triggerVariant} />}>
-        <Plus /> {triggerLabel}
+        <Plus data-icon="inline-start" /> {triggerLabel}
       </DialogTrigger>
-      <DialogContent size="sm">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>New {noun}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
@@ -75,15 +77,17 @@ export function CreateItemDialog<TInput extends FieldValues, TOutput extends Fie
         <form className="flex flex-col gap-4" onSubmit={submit} noValidate>
           {children}
           {error != null && (
-            <Alert tone="danger" title={`Couldn't create ${noun}`}>
-              {describeError(error)}
+            <Alert variant="destructive">
+              <AlertCircle />
+              <AlertTitle>Couldn't create {noun}</AlertTitle>
+              <AlertDescription>{describeError(error)}</AlertDescription>
             </Alert>
           )}
           <DialogFooter>
             <DialogClose render={<Button variant="outline" type="button" />}>Cancel</DialogClose>
-            <Button type="submit" loading={form.formState.isSubmitting}>
+            <LoadingButton type="submit" loading={form.formState.isSubmitting}>
               {submitLabel ?? `Create ${noun}`}
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>

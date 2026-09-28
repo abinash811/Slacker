@@ -1,6 +1,6 @@
 import { SearchX } from 'lucide-react'
-import { ButtonLink } from '@/components/ui/button'
-import { EmptyState } from '@/components/ui/empty-state'
+import { ButtonLink } from '@/components/patterns/buttons'
+import { EmptyState } from '@/components/patterns/states'
 
 export function NotFound({
   title = 'Page not found',
@@ -11,7 +11,7 @@ export function NotFound({
 }) {
   return (
     <EmptyState
-      variant="bordered"
+      bordered
       icon={SearchX}
       title={title}
       description={description}

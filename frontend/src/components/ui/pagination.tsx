@@ -1,55 +1,130 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import * as React from "react"
+import { cn } from "cn"
 
-/** Footer for a paged list: range summary + previous/next. `pageIndex` is 0-based. */
-export function Pagination({
-  pageIndex,
-  pageSize,
-  rowCount,
-  onPageChange,
-  disabled,
-  className,
-}: {
-  pageIndex: number
-  pageSize: number
-  rowCount: number
-  onPageChange: (pageIndex: number) => void
-  disabled?: boolean
-  className?: string
-}) {
-  const pageCount = Math.max(1, Math.ceil(rowCount / pageSize))
-  const from = rowCount === 0 ? 0 : pageIndex * pageSize + 1
-  const to = Math.min(rowCount, (pageIndex + 1) * pageSize)
+import { Button } from "@/components/ui/button"
+import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
 
+function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
   return (
-    <nav aria-label="Pagination" className={cn('flex items-center justify-between gap-4 text-sm', className)}>
-      <p className="text-muted-foreground tabular-nums" aria-live="polite">
-        Showing {from}–{to} of {rowCount}
-      </p>
-      <div className="flex items-center gap-2">
-        <span className="text-muted-foreground tabular-nums">
-          Page {pageIndex + 1} of {pageCount}
-        </span>
-        <Button
-          variant="outline"
-          size="icon-sm"
-          aria-label="Previous page"
-          disabled={disabled || pageIndex === 0}
-          onClick={() => onPageChange(pageIndex - 1)}
-        >
-          <ChevronLeft />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon-sm"
-          aria-label="Next page"
-          disabled={disabled || pageIndex >= pageCount - 1}
-          onClick={() => onPageChange(pageIndex + 1)}
-        >
-          <ChevronRight />
-        </Button>
-      </div>
-    </nav>
+    <nav
+      role="navigation"
+      aria-label="pagination"
+      data-slot="pagination"
+      className={cn("mx-auto flex w-full justify-center", className)}
+      {...props}
+    />
   )
+}
+
+function PaginationContent({
+  className,
+  ...props
+}: React.ComponentProps<"ul">) {
+  return (
+    <ul
+      data-slot="pagination-content"
+      className={cn("flex items-center gap-0.5", className)}
+      {...props}
+    />
+  )
+}
+
+function PaginationItem({ ...props }: React.ComponentProps<"li">) {
+  return <li data-slot="pagination-item" {...props} />
+}
+
+type PaginationLinkProps = {
+  isActive?: boolean
+} & Pick<React.ComponentProps<typeof Button>, "size"> &
+  React.ComponentProps<"a">
+
+function PaginationLink({
+  className,
+  isActive,
+  size = "icon",
+  ...props
+}: PaginationLinkProps) {
+  return (
+    <Button
+      variant={isActive ? "outline" : "ghost"}
+      size={size}
+      className={cn(className)}
+      nativeButton={false}
+      render={
+        <a
+          aria-current={isActive ? "page" : undefined}
+          data-slot="pagination-link"
+          data-active={isActive}
+          {...props}
+        />
+      }
+    />
+  )
+}
+
+function PaginationPrevious({
+  className,
+  text = "Previous",
+  ...props
+}: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+  return (
+    <PaginationLink
+      aria-label="Go to previous page"
+      size="default"
+      className={cn("pl-1.5!", className)}
+      {...props}
+    >
+      <ChevronLeftIcon data-icon="inline-start" />
+      <span className="hidden sm:block">{text}</span>
+    </PaginationLink>
+  )
+}
+
+function PaginationNext({
+  className,
+  text = "Next",
+  ...props
+}: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+  return (
+    <PaginationLink
+      aria-label="Go to next page"
+      size="default"
+      className={cn("pr-1.5!", className)}
+      {...props}
+    >
+      <span className="hidden sm:block">{text}</span>
+      <ChevronRightIcon data-icon="inline-end" />
+    </PaginationLink>
+  )
+}
+
+function PaginationEllipsis({
+  className,
+  ...props
+}: React.ComponentProps<"span">) {
+  return (
+    <span
+      aria-hidden
+      data-slot="pagination-ellipsis"
+      className={cn(
+        "flex size-8 items-center justify-center [&_svg:not([class*='size-'])]:size-4",
+        className
+      )}
+      {...props}
+    >
+      <MoreHorizontalIcon
+      />
+      <span className="sr-only">More pages</span>
+    </span>
+  )
+}
+
+export {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
 }

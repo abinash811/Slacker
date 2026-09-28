@@ -9,7 +9,7 @@ test('pages through tickets 50 at a time', async ({ page }) => {
   await expect(page.getByText('120 tickets')).toBeVisible()
   await expect(page.getByText('Showing 1–50 of 120')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Next page' }).click()
+  await page.getByLabel('Go to next page').click()
   await expect(page.getByText('Showing 51–100 of 120')).toBeVisible()
   await expect(page.getByRole('link', { name: '#1050' })).toBeVisible()
   expect(api.requests).toContainEqual(expect.stringMatching(/GET \/tickets\?.*page=2/))
@@ -18,7 +18,7 @@ test('pages through tickets 50 at a time', async ({ page }) => {
 test('sorts only on columns the server supports, and resets to page 1', async ({ page }) => {
   const api = await mockApi(page, { tickets: makeTickets(120) })
   await page.goto('/tickets')
-  await page.getByRole('button', { name: 'Next page' }).click()
+  await page.getByLabel('Go to next page').click()
   await expect(page.getByText('Showing 51–100 of 120')).toBeVisible()
 
   await page.getByRole('button', { name: 'Priority' }).click()

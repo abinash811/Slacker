@@ -12,11 +12,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Alert } from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Field, FieldSection } from '@/components/ui/field'
-import { Input, Textarea } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
+import { LoadingButton } from '@/components/patterns/buttons'
+import { FormField, FormSection } from '@/components/patterns/form-field'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { OptionSelect } from '@/components/patterns/option-select'
 import { TagPicker } from '@/components/TagPicker'
 import { useCategories, useCreateTicket, useCustomFields, useTags, useTeams, useUsers } from '@/hooks/useApi'
 import { describeError } from '@/lib/api'
@@ -99,48 +102,48 @@ export function CreateTicketDialog() {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger render={<Button />}>
-        <Plus /> Create ticket
+        <Plus data-icon="inline-start" /> Create ticket
       </DialogTrigger>
-      <DialogContent size="lg">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Create ticket</DialogTitle>
           <DialogDescription>It's posted to the team's Slack channel as soon as you create it.</DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-5" onSubmit={onSubmit} noValidate>
-          <FieldSection title="Basics">
-            <Field label="Title" htmlFor="ticket-title" error={errors.title?.message}>
+          <FormSection title="Basics">
+            <FormField label="Title" htmlFor="ticket-title" error={errors.title?.message}>
               <Input {...text('title')} placeholder="e.g. Prescriptions not syncing" />
-            </Field>
-            <Field label="Description" htmlFor="ticket-description" error={errors.description?.message}>
+            </FormField>
+            <FormField label="Description" htmlFor="ticket-description" error={errors.description?.message}>
               <Textarea id="ticket-description" aria-invalid={!!errors.description} {...register('description')} />
-            </Field>
-          </FieldSection>
+            </FormField>
+          </FormSection>
 
-          <FieldSection title="Contact">
-            <Field label="Customer / account" htmlFor="ticket-customer" error={errors.customer?.message}>
+          <FormSection title="Contact">
+            <FormField label="Customer / account" htmlFor="ticket-customer" error={errors.customer?.message}>
               <Input {...text('customer')} />
-            </Field>
+            </FormField>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Field label="Business ID" htmlFor="ticket-business-id" required={false} error={errors.business_id?.message}>
+              <FormField label="Business ID" htmlFor="ticket-business-id" required={false} error={errors.business_id?.message}>
                 <Input {...text('business_id')} />
-              </Field>
-              <Field label="Mobile number" htmlFor="ticket-mobile-number" required={false} error={errors.mobile_number?.message}>
+              </FormField>
+              <FormField label="Mobile number" htmlFor="ticket-mobile-number" required={false} error={errors.mobile_number?.message}>
                 <Input type="tel" {...text('mobile_number')} />
-              </Field>
-              <Field label="Doctor name" htmlFor="ticket-doctor-name" required={false} error={errors.doctor_name?.message}>
+              </FormField>
+              <FormField label="Doctor name" htmlFor="ticket-doctor-name" required={false} error={errors.doctor_name?.message}>
                 <Input {...text('doctor_name')} />
-              </Field>
+              </FormField>
             </div>
-          </FieldSection>
+          </FormSection>
 
-          <FieldSection title="Routing">
+          <FormSection title="Routing">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Field label="Category" htmlFor="ticket-category" error={errors.category_id?.message}>
+              <FormField label="Category" htmlFor="ticket-category" error={errors.category_id?.message}>
                 <Controller
                   control={control}
                   name="category_id"
                   render={({ field }) => (
-                    <Select
+                    <OptionSelect
                       id="ticket-category"
                       invalid={!!errors.category_id}
                       value={field.value || null}
@@ -149,13 +152,13 @@ export function CreateTicketDialog() {
                     />
                   )}
                 />
-              </Field>
-              <Field label="Team" htmlFor="ticket-team" error={errors.team_id?.message}>
+              </FormField>
+              <FormField label="Team" htmlFor="ticket-team" error={errors.team_id?.message}>
                 <Controller
                   control={control}
                   name="team_id"
                   render={({ field }) => (
-                    <Select
+                    <OptionSelect
                       id="ticket-team"
                       invalid={!!errors.team_id}
                       value={field.value || null}
@@ -164,13 +167,13 @@ export function CreateTicketDialog() {
                     />
                   )}
                 />
-              </Field>
-              <Field label="Priority" htmlFor="ticket-priority">
+              </FormField>
+              <FormField label="Priority" htmlFor="ticket-priority">
                 <Controller
                   control={control}
                   name="priority"
                   render={({ field }) => (
-                    <Select
+                    <OptionSelect
                       id="ticket-priority"
                       value={field.value}
                       onValueChange={(v) => v && field.onChange(v as TicketPriority)}
@@ -178,14 +181,14 @@ export function CreateTicketDialog() {
                     />
                   )}
                 />
-              </Field>
+              </FormField>
             </div>
-            <Field label="Owner" htmlFor="ticket-owner" required={false}>
+            <FormField label="Owner" htmlFor="ticket-owner" required={false}>
               <Controller
                 control={control}
                 name="owner_id"
                 render={({ field }) => (
-                  <Select
+                  <OptionSelect
                     id="ticket-owner"
                     value={field.value ?? null}
                     onValueChange={field.onChange}
@@ -195,19 +198,19 @@ export function CreateTicketDialog() {
                   />
                 )}
               />
-            </Field>
-          </FieldSection>
+            </FormField>
+          </FormSection>
 
           {((customFields ?? []).length > 0 || (tags ?? []).length > 0) && (
-            <FieldSection title="Additional details">
+            <FormSection title="Additional details">
               {(customFields ?? []).map((cf) => (
-                <Field key={cf.id} label={cf.label} htmlFor={`ticket-cf-${cf.id}`} required={false}>
+                <FormField key={cf.id} label={cf.label} htmlFor={`ticket-cf-${cf.id}`} required={false}>
                   {cf.field_type === 'dropdown' ? (
                     <Controller
                       control={control}
                       name={`custom_values.${cf.id}`}
                       render={({ field }) => (
-                        <Select
+                        <OptionSelect
                           id={`ticket-cf-${cf.id}`}
                           value={field.value || null}
                           onValueChange={(v) => field.onChange(v ?? '')}
@@ -219,29 +222,31 @@ export function CreateTicketDialog() {
                   ) : (
                     <Input id={`ticket-cf-${cf.id}`} {...register(`custom_values.${cf.id}`)} />
                   )}
-                </Field>
+                </FormField>
               ))}
-              <Field label="Tags" required={false}>
+              <FormField label="Tags" required={false}>
                 <Controller
                   control={control}
                   name="tag_ids"
                   render={({ field }) => <TagPicker tags={tags ?? []} selectedIds={field.value} onChange={field.onChange} />}
                 />
-              </Field>
-            </FieldSection>
+              </FormField>
+            </FormSection>
           )}
 
           {createTicket.isError && (
-            <Alert tone="danger" title="Couldn't create ticket">
-              {describeError(createTicket.error)}
+            <Alert variant="destructive">
+              <AlertCircle />
+              <AlertTitle>Couldn't create ticket</AlertTitle>
+              <AlertDescription>{describeError(createTicket.error)}</AlertDescription>
             </Alert>
           )}
 
           <DialogFooter>
             <DialogClose render={<Button variant="outline" type="button" />}>Cancel</DialogClose>
-            <Button type="submit" loading={isSubmitting}>
+            <LoadingButton type="submit" loading={isSubmitting}>
               {isSubmitting ? 'Creating…' : 'Create & post to Slack'}
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>

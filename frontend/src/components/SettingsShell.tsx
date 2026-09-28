@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { Folder, ShieldCheck, SlidersHorizontal, Tags, Timer } from 'lucide-react'
 import { NavItem } from '@/components/NavItem'
-import { PageHeader } from '@/components/ui/typography'
+import { PageHeader } from '@/components/patterns/typography'
 
 const NAV = [
   { to: '/settings/roles', label: 'Roles', icon: ShieldCheck },

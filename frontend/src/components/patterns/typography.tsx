@@ -1,6 +1,9 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 
+// Text roles. shadcn ships no heading components, so these are thin, fixed
+// wrappers — one per role — so pages never hand-pick sizes.
+
 /** Top-level page title (h1) + optional description + right-aligned actions. Exactly one per page. */
 export function PageHeader({
   title,
@@ -14,7 +17,7 @@ export function PageHeader({
   return (
     <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
       <div className="min-w-0">
-        <h1 className="text-lg font-semibold">{title}</h1>
+        <h1 className="font-heading text-lg font-semibold">{title}</h1>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
@@ -35,7 +38,7 @@ export function SectionHeader({
   return (
     <div className="mb-4 flex items-start justify-between gap-4">
       <div className="min-w-0">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
+        <h2 className="font-heading text-base font-semibold">{title}</h2>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
@@ -43,7 +46,7 @@ export function SectionHeader({
   )
 }
 
-/** Small uppercase label above a group: form sections, sidebar lists, panel headings. */
+/** Small uppercase label above a group: sidebar lists, panel headings. */
 export function SectionLabel({
   as: Component = 'h3',
   className,
@@ -52,7 +55,7 @@ export function SectionLabel({
   return (
     <Component
       className={cn(
-        'flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground [&_svg]:size-3.5',
+        'flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground uppercase [&_svg]:size-3.5',
         className,
       )}
       {...props}
@@ -60,12 +63,12 @@ export function SectionLabel({
   )
 }
 
-/** Secondary body text (subtitles, helper copy). */
+/** Secondary body text. */
 export function Muted({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
   return <p className={cn('text-sm text-muted-foreground', className)} {...props} />
 }
 
-/** Smallest text: meta info, timestamps, read-only field labels. Pass `as="dt"` inside a `<dl>`. */
+/** Smallest text: meta info, timestamps, read-only field labels. `as="dt"` inside a `<dl>`. */
 export function Caption({
   as: Component = 'span',
   className,

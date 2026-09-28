@@ -1,14 +1,14 @@
 import { useParams } from 'react-router-dom'
 import { ArrowLeft, History } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button, ButtonLink } from '@/components/ui/button'
-import { Select } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { Field } from '@/components/ui/field'
+import { ButtonLink, LoadingButton } from '@/components/patterns/buttons'
+import { OptionSelect } from '@/components/patterns/option-select'
+import { ToneBadge } from '@/components/patterns/tone-badge'
+import { FormField } from '@/components/patterns/form-field'
 import { Skeleton } from '@/components/ui/skeleton'
-import { EmptyState } from '@/components/ui/empty-state'
-import { ErrorState } from '@/components/ui/error-state'
-import { Caption, PageHeader } from '@/components/ui/typography'
+import { EmptyState } from '@/components/patterns/states'
+import { ErrorState } from '@/components/patterns/states'
+import { Caption, PageHeader } from '@/components/patterns/typography'
 import { PriorityBadge, StatusBadge, SlaBadge } from '@/components/StatusPriorityBadges'
 import { TagPicker } from '@/components/TagPicker'
 import { NotFound } from '@/pages/NotFound'
@@ -54,7 +54,7 @@ export function TicketDetail() {
   if (ticketQuery.isError) {
     return (
       <ErrorState
-        variant="bordered"
+        bordered
         title="Couldn't load this ticket"
         error={ticketQuery.error}
         onRetry={() => ticketQuery.refetch()}
@@ -87,20 +87,20 @@ export function TicketDetail() {
         <div className="flex flex-col gap-4 lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Details</CardTitle>
+              <CardTitle className="text-muted-foreground">Details</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3 text-sm">
               <p className="whitespace-pre-wrap text-foreground">{ticket.description}</p>
               {ticket.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {ticket.tags.map((tag) => (
-                    <Badge key={tag.id} variant="accent">
+                    <ToneBadge key={tag.id} tone="info">
                       {tag.name}
-                    </Badge>
+                    </ToneBadge>
                   ))}
                 </div>
               )}
-              <dl className="grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm">
+              <dl className="grid grid-cols-2 gap-3 border-t pt-3 text-sm">
                 <Info label="Customer" value={ticket.customer} />
                 <Info label="Business ID" value={ticket.business_id ?? '—'} />
                 <Info label="Mobile number" value={ticket.mobile_number ?? '—'} />
@@ -125,7 +125,7 @@ export function TicketDetail() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Timeline</CardTitle>
+              <CardTitle className="text-muted-foreground">Timeline</CardTitle>
             </CardHeader>
             <CardContent>
               {timeline.isPending ? (
@@ -157,11 +157,11 @@ export function TicketDetail() {
 
         <Card className="h-fit">
           <CardHeader>
-            <CardTitle>Actions</CardTitle>
+            <CardTitle className="text-muted-foreground">Actions</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <Field label="Assignee" htmlFor="ticket-assignee">
-              <Select
+            <FormField label="Assignee" htmlFor="ticket-assignee">
+              <OptionSelect
                 id="ticket-assignee"
                 value={ticket.owner?.id?.toString() ?? null}
                 onValueChange={(v) => assign.mutate(v ? Number(v) : null)}
@@ -170,50 +170,50 @@ export function TicketDetail() {
                 placeholder="Unassigned"
                 options={toOptions(users)}
               />
-            </Field>
+            </FormField>
 
-            <Field label="Team" htmlFor="ticket-team">
-              <Select
+            <FormField label="Team" htmlFor="ticket-team">
+              <OptionSelect
                 id="ticket-team"
                 value={ticket.team.id.toString()}
                 onValueChange={(v) => v && changeTeam.mutate(Number(v))}
                 disabled={changeTeam.isPending}
                 options={toOptions(teams)}
               />
-            </Field>
+            </FormField>
 
-            <Field label="Status" htmlFor="ticket-status">
-              <Select
+            <FormField label="Status" htmlFor="ticket-status">
+              <OptionSelect
                 id="ticket-status"
                 value={ticket.status}
                 onValueChange={(v) => v && changeStatus.mutate(v as TicketStatus)}
                 disabled={changeStatus.isPending}
                 options={STATUS_OPTIONS}
               />
-            </Field>
+            </FormField>
 
-            <Field label="Priority" htmlFor="ticket-priority">
-              <Select
+            <FormField label="Priority" htmlFor="ticket-priority">
+              <OptionSelect
                 id="ticket-priority"
                 value={ticket.priority}
                 onValueChange={(v) => v && changePriority.mutate(v as TicketPriority)}
                 disabled={changePriority.isPending}
                 options={PRIORITY_OPTIONS}
               />
-            </Field>
+            </FormField>
 
-            <Field label="Tags">
+            <FormField label="Tags">
               <TagPicker
                 tags={activeTags ?? []}
                 selectedIds={ticket.tags.map((t) => t.id)}
                 onChange={(ids) => updateTags.mutate(ids)}
                 disabled={updateTags.isPending}
               />
-            </Field>
+            </FormField>
 
-            <Button disabled={closed} loading={resolve.isPending} onClick={() => resolve.mutate()}>
+            <LoadingButton disabled={closed} loading={resolve.isPending} onClick={() => resolve.mutate()}>
               {closed ? 'Resolved' : 'Resolve ticket'}
-            </Button>
+            </LoadingButton>
           </CardContent>
         </Card>
       </div>
@@ -223,8 +223,8 @@ export function TicketDetail() {
 
 function BackLink() {
   return (
-    <ButtonLink variant="link" size="sm" className="w-fit text-muted-foreground hover:text-foreground" to="/tickets">
-      <ArrowLeft /> Back to tickets
+    <ButtonLink variant="link" size="sm" className="w-fit px-0 text-muted-foreground hover:text-foreground" to="/tickets">
+      <ArrowLeft data-icon="inline-start" /> Back to tickets
     </ButtonLink>
   )
 }
