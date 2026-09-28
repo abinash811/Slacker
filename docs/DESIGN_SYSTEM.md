@@ -203,6 +203,18 @@ directly only for actions that aren't mutations.
 - **Pagination:** reset to page 1 whenever filters or sort change; keep the
   current page visible while the next one loads (`keepPreviousData`).
 
+## Performance
+
+- **Every page is lazy-loaded** (`React.lazy` in `App.tsx`); `Layout` shows
+  `PageSkeleton` while a page's code arrives. Add new pages the same way.
+- **Heavy, rarely-opened UI loads on demand.** Example: the create-ticket form
+  (react-hook-form + zod) is fetched when the dialog opens (`CreateTicketDialog`).
+- **Budget, enforced in CI** (`npm run check:bundle`, after a build): the
+  first visit may download at most **190 kB of gzipped JavaScript**, and no
+  single chunk may exceed 110 kB. Over budget means lazy-load something, not
+  raise the number. Raise it only for a deliberate addition, with the reason
+  noted in `scripts/check-bundle.mjs` and the PR.
+
 ## Writing
 
 - **Sentence case everywhere:** "Create ticket", "Custom fields", "Mobile number".
@@ -235,6 +247,6 @@ directly only for actions that aren't mutations.
    `ui/` components only, then add it to `/design` and this doc.
 4. Never edit `components/ui/`, and never import `@base-ui/react` directly.
 5. New color? Add the token to `index.css` (light and `.dark`) and to the Theme section above.
-6. `npm run lint`, `npm run typecheck`, `npm test`, `npm run test:e2e` and
-   `npm run check:shadcn` must pass (CI runs all of them).
+6. `npm run lint`, `npm run typecheck`, `npm test`, `npm run test:e2e`,
+   `npm run check:shadcn` and (after a build) `npm run check:bundle` must pass (CI runs all of them).
    Add an e2e test in `frontend/e2e/` for any new user flow.

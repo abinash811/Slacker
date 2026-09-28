@@ -1,6 +1,8 @@
+import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Folder, ShieldCheck, SlidersHorizontal, Tags, Timer } from 'lucide-react'
 import { NavItem } from '@/components/NavItem'
+import { Skeleton } from '@/components/ui/skeleton'
 import { PageHeader } from '@/components/patterns/typography'
 
 const NAV = [
@@ -24,7 +26,10 @@ export function SettingsShell() {
           ))}
         </nav>
         <div className="min-w-0 flex-1">
-          <Outlet />
+          {/* Keeps the Settings header and nav on screen while a section's code loads. */}
+          <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+            <Outlet />
+          </Suspense>
         </div>
       </div>
     </div>

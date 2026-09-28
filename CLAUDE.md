@@ -17,10 +17,15 @@ edit), read `docs/DESIGN_SYSTEM.md` and build with it:
   and error (`ErrorState`) states; mutations report their outcome through
   `meta` in `hooks/useApi.ts`. Forms use `useZodForm` + schemas in `lib/schemas.ts`.
 - Follow the doc's Writing section for all UI copy.
+- Performance: new pages are lazy-loaded in `App.tsx`; heavy, rarely-used UI
+  (big dialogs, charts, editors) loads on demand. CI enforces a first-load
+  JavaScript budget (`scripts/check-bundle.mjs`). When a build warns or a
+  budget fails, fix it in the same change — don't defer it.
 
 If a change needs something the doc doesn't cover, add it to
 `docs/DESIGN_SYSTEM.md` **and** to the `/design` gallery
 (`frontend/src/pages/DesignSystem.tsx`) in the same change.
 
 In `frontend/`: `npm run lint`, `npm run typecheck`, `npm test`,
-`npm run test:e2e` and `npm run check:shadcn` must pass.
+`npm run test:e2e`, `npm run check:shadcn` and, after `npx vite build`,
+`npm run check:bundle` must pass.

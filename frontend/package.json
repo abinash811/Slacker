@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "typecheck": "tsc -b",
-    "check:shadcn": "node scripts/check-shadcn.mjs"
+    "check:shadcn": "node scripts/check-shadcn.mjs",
+    "check:bundle": "node scripts/check-bundle.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

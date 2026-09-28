@@ -29,6 +29,8 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npx vite build
+      # Fails if first-load JavaScript grows past the budget (scripts/check-bundle.mjs).
+      - run: npm run check:bundle
 
   shadcn:
     name: components/ui is unmodified shadcn

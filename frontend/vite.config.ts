@@ -5,6 +5,8 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // The manifest lets scripts/check-bundle.mjs measure what each page downloads.
+  build: { manifest: true },
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),

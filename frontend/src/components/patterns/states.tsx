@@ -2,6 +2,7 @@ import * as React from 'react'
 import { AlertCircle, RotateCw, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { describeError } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -76,5 +77,18 @@ export function ErrorState({
         </EmptyContent>
       )}
     </Empty>
+  )
+}
+
+/** Placeholder while a page's code or first data loads: a title line and a content block. */
+export function PageSkeleton() {
+  return (
+    <div className="flex flex-col gap-6" aria-busy="true" aria-label="Loading page">
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-4 w-72" />
+      </div>
+      <Skeleton className="h-64 w-full" />
+    </div>
   )
 }

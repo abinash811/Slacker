@@ -1,15 +1,23 @@
-import { lazy, Suspense } from 'react'
+import { lazy } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
 import { SettingsShell } from '@/components/SettingsShell'
-import { Dashboard } from '@/pages/Dashboard'
 import { NotFound } from '@/pages/NotFound'
-import { Tickets } from '@/pages/Tickets'
-import { TicketDetail } from '@/pages/TicketDetail'
-import { RolesSection, TeamsSection } from '@/pages/TeamsPermissions'
-import { CategoriesSection, CustomFieldsSection, SlaSection, TagsSection } from '@/pages/FormFields'
 
-// Dev reference page — kept out of the main bundle.
+// Every page is its own chunk, loaded the first time it's visited, so the
+// first screen doesn't wait for code from pages the user hasn't opened.
+// Layout shows <PageSkeleton> while a page's chunk loads. New pages must be
+// added the same way — the bundle budget in CI (scripts/check-bundle.mjs)
+// fails the build if the first-load JavaScript grows past its limit.
+const Dashboard = lazy(() => import('@/pages/Dashboard').then((m) => ({ default: m.Dashboard })))
+const Tickets = lazy(() => import('@/pages/Tickets').then((m) => ({ default: m.Tickets })))
+const TicketDetail = lazy(() => import('@/pages/TicketDetail').then((m) => ({ default: m.TicketDetail })))
+const TeamsSection = lazy(() => import('@/pages/TeamsPermissions').then((m) => ({ default: m.TeamsSection })))
+const RolesSection = lazy(() => import('@/pages/TeamsPermissions').then((m) => ({ default: m.RolesSection })))
+const CategoriesSection = lazy(() => import('@/pages/FormFields').then((m) => ({ default: m.CategoriesSection })))
+const SlaSection = lazy(() => import('@/pages/FormFields').then((m) => ({ default: m.SlaSection })))
+const TagsSection = lazy(() => import('@/pages/FormFields').then((m) => ({ default: m.TagsSection })))
+const CustomFieldsSection = lazy(() => import('@/pages/FormFields').then((m) => ({ default: m.CustomFieldsSection })))
 const DesignSystem = lazy(() => import('@/pages/DesignSystem').then((m) => ({ default: m.DesignSystem })))
 
 export default function App() {
@@ -28,14 +36,7 @@ export default function App() {
           <Route path="tags" element={<TagsSection />} />
           <Route path="custom-fields" element={<CustomFieldsSection />} />
         </Route>
-        <Route
-          path="/design"
-          element={
-            <Suspense fallback={null}>
-              <DesignSystem />
-            </Suspense>
-          }
-        />
+        <Route path="/design" element={<DesignSystem />} />
         {/* Old bookmarked paths */}
         <Route path="/settings/teams" element={<Navigate to="/teams" replace />} />
         <Route path="/settings/fields" element={<Navigate to="/settings/custom-fields" replace />} />

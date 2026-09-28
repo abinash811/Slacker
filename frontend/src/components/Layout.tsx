@@ -1,7 +1,9 @@
+import { Suspense } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { DevUserSwitcher } from '@/components/DevUserSwitcher'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { NavItem } from '@/components/NavItem'
+import { PageSkeleton } from '@/components/patterns/states'
 
 export function Layout() {
   const location = useLocation()
@@ -29,7 +31,9 @@ export function Layout() {
       </header>
       <main id="main" className="mx-auto max-w-6xl px-6 py-6">
         <ErrorBoundary key={location.pathname}>
-          <Outlet />
+          <Suspense fallback={<PageSkeleton />}>
+            <Outlet />
+          </Suspense>
         </ErrorBoundary>
       </main>
     </div>
