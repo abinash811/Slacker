@@ -22,7 +22,7 @@ test('create ticket validates on submit, then posts and confirms', async ({ page
   await dialog.getByLabel('Title').fill('Sync broken')
   await expect(dialog.getByText('Add a short title.')).toHaveCount(0) // live re-validation
   await dialog.getByLabel('Description').fill('Since this morning')
-  await dialog.getByLabel('Customer / account').fill('Sunrise Clinic')
+  await dialog.getByLabel('Business name').fill('Sunrise Clinic')
   await dialog.getByRole('combobox', { name: 'Category' }).click()
   await page.getByRole('option', { name: 'Prescriptions' }).click()
   await dialog.getByRole('button', { name: 'Create & post to Slack' }).click()

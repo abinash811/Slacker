@@ -82,7 +82,7 @@ def build_ticket_blocks(ticket: Ticket) -> list[dict]:
     status_label = _STATUS_LABELS.get(ticket.status.value, ticket.status.value)
 
     fields = [
-        {"type": "mrkdwn", "text": f"*Customer:*\n{ticket.customer}"},
+        {"type": "mrkdwn", "text": f"*Business name:*\n{ticket.customer}"},
         {"type": "mrkdwn", "text": f"*Category:*\n{ticket.category.name}"},
         {"type": "mrkdwn", "text": f"*Team:*\n{ticket.team.name}"},
         {"type": "mrkdwn", "text": f"*Priority:*\n{priority_emoji} {ticket.priority.value.title()}"},
@@ -99,9 +99,9 @@ def build_ticket_blocks(ticket: Ticket) -> list[dict]:
     if ticket.business_id:
         fields.append({"type": "mrkdwn", "text": f"*Business ID:*\n{ticket.business_id}"})
     if ticket.mobile_number:
-        fields.append({"type": "mrkdwn", "text": f"*Mobile Number:*\n{ticket.mobile_number}"})
+        fields.append({"type": "mrkdwn", "text": f"*Mobile number:*\n{ticket.mobile_number}"})
     if ticket.doctor_name:
-        fields.append({"type": "mrkdwn", "text": f"*Doctor Name:*\n{ticket.doctor_name}"})
+        fields.append({"type": "mrkdwn", "text": f"*Doctor name:*\n{ticket.doctor_name}"})
     # Slack section blocks cap out at 10 fields; fine for the fixed 6 plus
     # a handful of custom fields, but this will need pagination/overflow
     # handling if the custom field list grows much larger.
@@ -246,8 +246,9 @@ def build_create_ticket_modal(db: Session) -> dict:
             },
             {
                 "type": "input",
+                # Stored as `customer`; shown to people as "Business name".
                 "block_id": "customer",
-                "label": {"type": "plain_text", "text": "Customer"},
+                "label": {"type": "plain_text", "text": "Business name"},
                 "element": {"type": "plain_text_input", "action_id": "value"},
             },
             {
@@ -260,14 +261,14 @@ def build_create_ticket_modal(db: Session) -> dict:
             {
                 "type": "input",
                 "block_id": "mobile_number",
-                "label": {"type": "plain_text", "text": "Mobile Number"},
+                "label": {"type": "plain_text", "text": "Mobile number"},
                 "element": {"type": "plain_text_input", "action_id": "value"},
                 "optional": True,
             },
             {
                 "type": "input",
                 "block_id": "doctor_name",
-                "label": {"type": "plain_text", "text": "Doctor Name"},
+                "label": {"type": "plain_text", "text": "Doctor name"},
                 "element": {"type": "plain_text_input", "action_id": "value"},
                 "optional": True,
             },

@@ -31,5 +31,7 @@ export const EMPTY_FILTERS: Partial<TicketFiltersState> = {
   priority: undefined,
   status: undefined,
   sla_status: undefined,
+  date_from: undefined,
+  date_to: undefined,
   search: undefined,
 }

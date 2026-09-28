@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, buildQuery } from '@/lib/api'
+import { dayEndIso, dayStartIso } from '@/lib/dates'
 import type {
   BreakdownItem,
   Category,
@@ -38,8 +39,8 @@ function filtersToQuery(filters: TicketFiltersState) {
     priority: filters.priority,
     status: filters.status,
     sla_status: filters.sla_status,
-    date_from: filters.date_from,
-    date_to: filters.date_to,
+    date_from: filters.date_from ? dayStartIso(filters.date_from) : undefined,
+    date_to: filters.date_to ? dayEndIso(filters.date_to) : undefined,
     search: filters.search,
   })
 }
@@ -117,8 +118,8 @@ export function useTickets(
     priority: filters.priority,
     status: filters.status,
     sla_status: filters.sla_status,
-    date_from: filters.date_from,
-    date_to: filters.date_to,
+    date_from: filters.date_from ? dayStartIso(filters.date_from) : undefined,
+    date_to: filters.date_to ? dayEndIso(filters.date_to) : undefined,
     search: filters.search,
     sort_by: opts.sortBy,
     sort_dir: opts.sortDir,

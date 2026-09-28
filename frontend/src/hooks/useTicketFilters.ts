@@ -22,13 +22,20 @@ export function useTicketFilters(): [TicketFiltersState, (next: Partial<TicketFi
     search: params.get('search') || undefined,
   }
 
+  // Merge into the *latest* URL params (functional update), so several quick
+  // changes in a row never overwrite each other with a stale copy.
   function update(next: Partial<TicketFiltersState>) {
-    const merged = { ...filters, ...next }
-    const nextParams = new URLSearchParams()
-    for (const [key, value] of Object.entries(merged)) {
-      if (value !== undefined && value !== '') nextParams.set(key, String(value))
-    }
-    setParams(nextParams, { replace: true })
+    setParams(
+      (prev) => {
+        const merged = new URLSearchParams(prev)
+        for (const [key, value] of Object.entries(next)) {
+          if (value === undefined || value === '') merged.delete(key)
+          else merged.set(key, String(value))
+        }
+        return merged
+      },
+      { replace: true },
+    )
   }
 
   return [filters, update]

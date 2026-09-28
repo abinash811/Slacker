@@ -8,7 +8,7 @@ import { PriorityBadge, SlaBadge, StatusBadge } from '@/components/StatusPriorit
 import { Button } from '@/components/ui/button'
 import { DataTable, type PaginationState, type SortingState } from '@/components/patterns/data-table'
 import { EmptyState } from '@/components/patterns/states'
-import { PageHeader } from '@/components/patterns/typography'
+import { Caption, PageHeader } from '@/components/patterns/typography'
 import { useTickets } from '@/hooks/useApi'
 import { useTicketFilters } from '@/hooks/useTicketFilters'
 import { columnHelper } from '@/lib/data-table'
@@ -42,7 +42,7 @@ export const COLUMNS = col.columns([
     ),
   }),
   col.accessor('title', { header: 'Title', meta: { className: 'max-w-64 truncate' } }),
-  col.accessor('customer', { header: 'Customer', meta: { muted: true } }),
+  col.accessor('customer', { header: 'Business name', meta: { muted: true } }),
   col.accessor('business_id', { header: 'Business ID', meta: { muted: true }, cell: (i) => dash(i.getValue()) }),
   col.accessor('mobile_number', { header: 'Mobile', meta: { muted: true }, cell: (i) => dash(i.getValue()) }),
   col.accessor('doctor_name', { header: 'Doctor', meta: { muted: true }, cell: (i) => dash(i.getValue()) }),
@@ -56,12 +56,16 @@ export const COLUMNS = col.columns([
     header: 'SLA',
     cell: (i) => <SlaBadge breached={i.getValue()} remainingSeconds={i.row.original.sla_remaining_seconds} />,
   }),
-  col.accessor('age_seconds', {
-    id: 'created_at',
-    header: 'Age',
-    // Sorted by created_at: newest first (desc) means youngest age first.
-    meta: { muted: true, className: 'tabular-nums', invertSortIndicator: true },
-    cell: (i) => formatDuration(i.getValue()),
+  col.accessor('created_at', {
+    header: 'Created',
+    meta: { muted: true },
+    // Date it was raised, with how long it has been open underneath.
+    cell: (i) => (
+      <div className="flex flex-col">
+        <span>{formatDateTime(i.getValue())}</span>
+        <Caption className="tabular-nums">{formatDuration(i.row.original.age_seconds)} ago</Caption>
+      </div>
+    ),
   }),
   col.accessor('updated_at', { header: 'Updated', meta: { muted: true }, cell: (i) => formatDateTime(i.getValue()) }),
 ])

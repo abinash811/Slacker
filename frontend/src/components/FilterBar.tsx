@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Search } from 'lucide-react'
 import { OptionSelect } from '@/components/patterns/option-select'
+import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useCategories, useTeams, useUsers } from '@/hooks/useApi'
@@ -83,6 +84,11 @@ export function FilterBar({ filters, onChange }: Props) {
           { value: 'ok', label: 'On track' },
         ]}
       />
+      <DateRangeFilter
+        from={filters.date_from}
+        to={filters.date_to}
+        onChange={(range) => onChange(range)}
+      />
       {hasAny && (
         <Button variant="ghost" size="sm" onClick={() => onChange(EMPTY_FILTERS)}>
           Clear filters
@@ -118,7 +124,7 @@ function SearchInput({ value, onChange }: { value: string | undefined; onChange:
         aria-label="Search tickets"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
-        placeholder="Search ID, mobile, doctor…"
+        placeholder="Search ticket, business, doctor…"
         className="w-64 pl-8"
       />
     </div>

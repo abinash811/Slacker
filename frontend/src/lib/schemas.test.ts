@@ -29,7 +29,7 @@ describe('ticketSchema', () => {
     const messages = Object.fromEntries(result.error!.issues.map((i) => [i.path[0], i.message]))
     expect(messages).toEqual({
       title: 'Add a short title.',
-      customer: 'Enter the customer or account.',
+      customer: 'Enter the business name.',
       category_id: 'Choose a category.',
     })
   })

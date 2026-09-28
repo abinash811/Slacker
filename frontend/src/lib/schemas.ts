@@ -46,7 +46,7 @@ export const addMemberSchema = z.object({
 export const ticketSchema = z.object({
   title: required('Add a short title.').max(200, 'Keep the title under 200 characters.'),
   description: required('Describe the issue.'),
-  customer: required('Enter the customer or account.'),
+  customer: required('Enter the business name.'), // stored as `customer`
   business_id: optionalText,
   mobile_number: optionalText.refine((v) => !v || /^[+\d][\d\s-]{6,}$/.test(v), 'Enter a valid phone number.'),
   doctor_name: optionalText,

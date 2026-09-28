@@ -101,7 +101,7 @@ export function TicketDetail() {
                 </div>
               )}
               <dl className="grid grid-cols-2 gap-3 border-t pt-3 text-sm">
-                <Info label="Customer" value={ticket.customer} />
+                <Info label="Business name" value={ticket.customer} />
                 <Info label="Business ID" value={ticket.business_id ?? '—'} />
                 <Info label="Mobile number" value={ticket.mobile_number ?? '—'} />
                 <Info label="Doctor name" value={ticket.doctor_name ?? '—'} />

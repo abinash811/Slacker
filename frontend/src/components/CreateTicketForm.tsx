@@ -98,7 +98,7 @@ export function CreateTicketForm({ onCreated }: { onCreated: () => void }) {
       </FormSection>
 
       <FormSection title="Contact">
-        <FormField label="Customer / account" htmlFor="ticket-customer" error={errors.customer?.message}>
+        <FormField label="Business name" htmlFor="ticket-customer" error={errors.customer?.message}>
           <Input {...text('customer')} />
         </FormField>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
