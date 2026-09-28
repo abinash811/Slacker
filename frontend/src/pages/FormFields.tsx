@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Controller } from 'react-hook-form'
 import { Folder, SlidersHorizontal, Tags } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -25,13 +25,14 @@ import {
   useUpdateSlaSettings,
   useUpdateTag,
 } from '@/hooks/useApi'
-import type { CustomFieldType } from '@/types/api'
+import { useZodForm } from '@/lib/form'
+import { customFieldSchema, nameSchema, slaSchema } from '@/lib/schemas'
 
 export function TagsSection() {
   const tags = useTags()
   const createTag = useCreateTag()
   const updateTag = useUpdateTag()
-  const [name, setName] = useState('')
+  const form = useZodForm(nameSchema, { name: '' })
 
   return (
     <div>
@@ -42,12 +43,17 @@ export function TagsSection() {
           <CreateItemDialog
             noun="tag"
             description="Tags appear as chips on the ticket form."
-            canSubmit={!!name.trim()}
-            onSubmit={() => createTag.mutateAsync(name.trim())}
-            onReset={() => setName('')}
+            form={form}
+            onSubmit={(v) => createTag.mutateAsync(v.name)}
           >
-            <Field label="Name" htmlFor="new-tag-name">
-              <Input id="new-tag-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Appointment" />
+            <Field label="Name" htmlFor="new-tag-name" error={form.formState.errors.name?.message}>
+              <Input
+                id="new-tag-name"
+                autoFocus
+                aria-invalid={!!form.formState.errors.name}
+                placeholder="e.g. Appointment"
+                {...form.register('name')}
+              />
             </Field>
           </CreateItemDialog>
         }
@@ -66,7 +72,7 @@ export function CategoriesSection() {
   const categories = useCategoriesAdmin()
   const createCategory = useCreateCategory()
   const updateCategory = useUpdateCategory()
-  const [name, setName] = useState('')
+  const form = useZodForm(nameSchema, { name: '' })
 
   return (
     <div>
@@ -77,12 +83,17 @@ export function CategoriesSection() {
           <CreateItemDialog
             noun="category"
             description="Every ticket must have one category."
-            canSubmit={!!name.trim()}
-            onSubmit={() => createCategory.mutateAsync(name.trim())}
-            onReset={() => setName('')}
+            form={form}
+            onSubmit={(v) => createCategory.mutateAsync(v.name)}
           >
-            <Field label="Name" htmlFor="new-category-name">
-              <Input id="new-category-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Billing" />
+            <Field label="Name" htmlFor="new-category-name" error={form.formState.errors.name?.message}>
+              <Input
+                id="new-category-name"
+                autoFocus
+                aria-invalid={!!form.formState.errors.name}
+                placeholder="e.g. Billing"
+                {...form.register('name')}
+              />
             </Field>
           </CreateItemDialog>
         }
@@ -99,14 +110,6 @@ export function CategoriesSection() {
 
 export function SlaSection() {
   const settings = useSlaSettings()
-  const updateSettings = useUpdateSlaSettings()
-  const [draft, setDraft] = useState<string | null>(null)
-
-  const saved = settings.data?.default_hours
-  const hours = draft ?? (saved !== undefined ? String(saved) : '')
-  const parsed = Number(hours)
-  const invalid = hours !== '' && (!Number.isInteger(parsed) || parsed < 1)
-  const dirty = saved !== undefined && hours !== '' && parsed !== saved
 
   return (
     <div>
@@ -116,41 +119,42 @@ export function SlaSection() {
       />
       {settings.isError ? (
         <ErrorState variant="bordered" error={settings.error} onRetry={() => settings.refetch()} retrying={settings.isFetching} />
+      ) : settings.isPending ? (
+        <Skeleton className="h-28 w-full" />
       ) : (
-        <form
-          className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 shadow-card"
-          onSubmit={(e) => {
-            e.preventDefault()
-            if (dirty && !invalid) updateSettings.mutate(parsed, { onSuccess: () => setDraft(null) })
-          }}
-        >
-          <Field
-            label="Default SLA (hours)"
-            htmlFor="sla-default-hours"
-            hint="Whole hours, 1 or more."
-            error={invalid ? 'Enter a whole number of hours, 1 or more.' : null}
-          >
-            {settings.isPending ? (
-              <Skeleton className="h-9 w-40" />
-            ) : (
-              <Input
-                id="sla-default-hours"
-                type="number"
-                min={1}
-                step={1}
-                className="w-40"
-                aria-invalid={invalid}
-                value={hours}
-                onChange={(e) => setDraft(e.target.value)}
-              />
-            )}
-          </Field>
-          <Button type="submit" className="mt-5.5" disabled={!dirty || invalid} loading={updateSettings.isPending}>
-            Save
-          </Button>
-        </form>
+        // Keyed on the saved value so the form re-initialises after a save.
+        <SlaForm key={settings.data.default_hours} savedHours={settings.data.default_hours} />
       )}
     </div>
+  )
+}
+
+function SlaForm({ savedHours }: { savedHours: number }) {
+  const updateSettings = useUpdateSlaSettings()
+  const form = useZodForm(slaSchema, { default_hours: savedHours })
+  const error = form.formState.errors.default_hours?.message
+
+  return (
+    <form
+      noValidate
+      className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 shadow-card"
+      onSubmit={form.handleSubmit((v) => updateSettings.mutateAsync(v.default_hours).catch(() => {}))}
+    >
+      <Field label="Default SLA (hours)" htmlFor="sla-default-hours" hint="Whole hours, 1 or more." error={error}>
+        <Input
+          id="sla-default-hours"
+          type="number"
+          min={1}
+          step={1}
+          className="w-40"
+          aria-invalid={!!error}
+          {...form.register('default_hours')}
+        />
+      </Field>
+      <Button type="submit" className="mt-5.5" disabled={!form.formState.isDirty} loading={form.formState.isSubmitting}>
+        Save
+      </Button>
+    </form>
   )
 }
 
@@ -158,11 +162,9 @@ export function CustomFieldsSection() {
   const fields = useCustomFields()
   const createField = useCreateCustomField()
   const updateField = useUpdateCustomField()
-  const [label, setLabel] = useState('')
-  const [type, setType] = useState<CustomFieldType>('text')
-  const [optionsText, setOptionsText] = useState('')
-
-  const options = optionsText.split(',').map((o) => o.trim()).filter(Boolean)
+  const form = useZodForm(customFieldSchema, { label: '', field_type: 'text', options: '' })
+  const { errors } = form.formState
+  const type = form.watch('field_type')
 
   return (
     <div>
@@ -173,37 +175,36 @@ export function CustomFieldsSection() {
           <CreateItemDialog
             noun="custom field"
             description="It's added to the ticket creation form as an optional field."
-            canSubmit={!!label.trim() && (type === 'text' || options.length > 0)}
-            onSubmit={() =>
-              createField.mutateAsync({ label: label.trim(), field_type: type, options: type === 'dropdown' ? options : null })
-            }
-            onReset={() => {
-              setLabel('')
-              setType('text')
-              setOptionsText('')
-            }}
+            form={form}
+            onSubmit={(v) => createField.mutateAsync(v)}
           >
-            <Field label="Field label" htmlFor="new-field-label">
-              <Input id="new-field-label" autoFocus value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Clinic ID" />
+            <Field label="Field label" htmlFor="new-field-label" error={errors.label?.message}>
+              <Input id="new-field-label" autoFocus aria-invalid={!!errors.label} placeholder="e.g. Clinic ID" {...form.register('label')} />
             </Field>
             <Field label="Type" htmlFor="new-field-type">
-              <Select
-                id="new-field-type"
-                value={type}
-                onValueChange={(v) => v && setType(v as CustomFieldType)}
-                options={[
-                  { value: 'text', label: 'Text' },
-                  { value: 'dropdown', label: 'Dropdown' },
-                ]}
+              <Controller
+                control={form.control}
+                name="field_type"
+                render={({ field }) => (
+                  <Select
+                    id="new-field-type"
+                    value={field.value}
+                    onValueChange={(v) => v && field.onChange(v)}
+                    options={[
+                      { value: 'text', label: 'Text' },
+                      { value: 'dropdown', label: 'Dropdown' },
+                    ]}
+                  />
+                )}
               />
             </Field>
             {type === 'dropdown' && (
-              <Field label="Options" htmlFor="new-field-options" hint="Separate options with commas.">
+              <Field label="Options" htmlFor="new-field-options" hint="Separate options with commas." error={errors.options?.message}>
                 <Input
                   id="new-field-options"
-                  value={optionsText}
-                  onChange={(e) => setOptionsText(e.target.value)}
+                  aria-invalid={!!errors.options}
                   placeholder="North, South, East, West"
+                  {...form.register('options')}
                 />
               </Field>
             )}

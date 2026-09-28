@@ -59,13 +59,25 @@ npm run dev
 ## Testing
 
 ```bash
-cd backend && pytest
+cd backend && pytest                 # API + services, against a real Postgres
+cd frontend && npm run typecheck     # TypeScript (app, tests, e2e)
+cd frontend && npm run lint          # oxlint + design-system guardrail
+cd frontend && npm test              # Vitest unit tests
+cd frontend && npm run test:e2e      # Playwright, against a mocked API (no backend needed)
 ```
-20 tests covering ticket creation, assignment/reassignment history,
-status/priority transitions, SLA calculation, dashboard analytics, and
-Slack event deduplication. See `docs/DEPLOYMENT.md` for the one-time local
-Postgres setup they need (`CREATEDB` on the app's role, so tests can spin
-up an isolated `slacker_test` database).
+
+Backend tests need the one-time local Postgres setup in `docs/DEPLOYMENT.md`
+(`CREATEDB` on the app's role, so tests can spin up an isolated
+`slacker_test` database). GitHub Actions (`.github/workflows/ci.yml`) runs
+all of the above on every pull request.
+
+**API types** are generated from the backend's OpenAPI schema. After changing a
+backend request or response schema, regenerate them and commit the result; CI
+fails if they're stale:
+
+```bash
+cd backend && python -m scripts.export_openapi && cd ../frontend && npm run gen:api
+```
 
 ## What's here vs. what's deferred
 

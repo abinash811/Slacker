@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Controller } from 'react-hook-form'
 import { ShieldCheck, UserPlus, UsersRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -24,6 +25,8 @@ import { Caption, PageHeader, SectionHeader, SectionLabel } from '@/components/u
 import { CreateItemDialog } from '@/components/CreateItemDialog'
 import { cn } from '@/lib/utils'
 import { toOptions } from '@/lib/tickets'
+import { useZodForm } from '@/lib/form'
+import { addMemberSchema, nameSchema, roleSchema } from '@/lib/schemas'
 import {
   useAddTeamMember,
   useCreateRole,
@@ -43,8 +46,12 @@ export function RolesSection() {
   const createRole = useCreateRole()
   const updateRole = useUpdateRole()
 
-  const [name, setName] = useState('')
-  const [perms, setPerms] = useState({ create: false, edit: false, delete: false })
+  const form = useZodForm(roleSchema, {
+    name: '',
+    can_create_settings: false,
+    can_edit_settings: false,
+    can_delete_settings: false,
+  })
 
   return (
     <div>
@@ -56,28 +63,34 @@ export function RolesSection() {
             noun="role"
             triggerLabel="New role"
             description="Permissions apply to the Settings panel only (Roles, Teams, Categories, SLA, Tags, Custom fields)."
-            canSubmit={!!name.trim()}
-            onSubmit={() =>
-              createRole.mutateAsync({
-                name: name.trim(),
-                can_create_settings: perms.create,
-                can_edit_settings: perms.edit,
-                can_delete_settings: perms.delete,
-              })
-            }
-            onReset={() => {
-              setName('')
-              setPerms({ create: false, edit: false, delete: false })
-            }}
+            form={form}
+            onSubmit={(v) => createRole.mutateAsync(v)}
           >
-            <Field label="Name" htmlFor="role-name">
-              <Input id="role-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sales lead" />
+            <Field label="Name" htmlFor="role-name" error={form.formState.errors.name?.message}>
+              <Input
+                id="role-name"
+                autoFocus
+                aria-invalid={!!form.formState.errors.name}
+                placeholder="e.g. Sales lead"
+                {...form.register('name')}
+              />
             </Field>
             <fieldset className="flex flex-col gap-2.5">
               <legend className="mb-2 text-sm font-medium">Settings permissions</legend>
-              <Checkbox label="Can create" checked={perms.create} onCheckedChange={(v) => setPerms({ ...perms, create: v })} />
-              <Checkbox label="Can edit" checked={perms.edit} onCheckedChange={(v) => setPerms({ ...perms, edit: v })} />
-              <Checkbox label="Can delete" checked={perms.delete} onCheckedChange={(v) => setPerms({ ...perms, delete: v })} />
+              {(
+                [
+                  ['can_create_settings', 'Can create'],
+                  ['can_edit_settings', 'Can edit'],
+                  ['can_delete_settings', 'Can delete'],
+                ] as const
+              ).map(([name, label]) => (
+                <Controller
+                  key={name}
+                  control={form.control}
+                  name={name}
+                  render={({ field }) => <Checkbox label={label} checked={field.value} onCheckedChange={field.onChange} />}
+                />
+              ))}
             </fieldset>
           </CreateItemDialog>
         }
@@ -150,7 +163,7 @@ export function TeamsSection() {
   const createTeam = useCreateTeam()
   const setDefaultTeam = useSetDefaultTeam()
   const [selectedTeamId, setSelectedTeamId] = useState<number | undefined>(undefined)
-  const [newTeamName, setNewTeamName] = useState('')
+  const teamForm = useZodForm(nameSchema, { name: '' })
 
   const selectedTeam = (teams.data ?? []).find((t) => t.id === selectedTeamId)
 
@@ -168,14 +181,17 @@ export function TeamsSection() {
               noun="team"
               triggerVariant="ghost"
               description="You can add members once it's created."
-              canSubmit={!!newTeamName.trim()}
-              onSubmit={() =>
-                createTeam.mutateAsync(newTeamName.trim(), { onSuccess: (team) => setSelectedTeamId(team.id) })
-              }
-              onReset={() => setNewTeamName('')}
+              form={teamForm}
+              onSubmit={(v) => createTeam.mutateAsync(v.name, { onSuccess: (team) => setSelectedTeamId(team.id) })}
             >
-              <Field label="Name" htmlFor="new-team-name">
-                <Input id="new-team-name" autoFocus value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} placeholder="e.g. Product" />
+              <Field label="Name" htmlFor="new-team-name" error={teamForm.formState.errors.name?.message}>
+                <Input
+                  id="new-team-name"
+                  autoFocus
+                  aria-invalid={!!teamForm.formState.errors.name}
+                  placeholder="e.g. Product"
+                  {...teamForm.register('name')}
+                />
               </Field>
             </CreateItemDialog>
           </div>
@@ -251,8 +267,8 @@ function TeamMembers({ teamId }: { teamId: number }) {
   const updateMemberRole = useUpdateTeamMemberRole(teamId)
   const removeMember = useRemoveTeamMember(teamId)
 
-  const [newUserId, setNewUserId] = useState<string | null>(null)
-  const [newRoleId, setNewRoleId] = useState<string | null>(null)
+  const memberForm = useZodForm(addMemberSchema, { user_id: '', role_id: '' })
+  const memberErrors = memberForm.formState.errors
 
   const members = team.data?.members ?? []
   const existingUserIds = new Set(members.map((m) => m.user.id))
@@ -311,35 +327,49 @@ function TeamMembers({ teamId }: { teamId: number }) {
       </Table>
 
       <form
-        className="flex flex-col gap-3 rounded-md border border-dashed border-border bg-muted/30 p-3 sm:flex-row sm:items-end"
-        onSubmit={(e) => {
-          e.preventDefault()
-          if (!newUserId || !newRoleId) return
-          addMember.mutate(
-            { user_id: Number(newUserId), role_id: Number(newRoleId) },
-            {
-              onSuccess: () => {
-                setNewUserId(null)
-                setNewRoleId(null)
-              },
-            },
-          )
-        }}
+        noValidate
+        className="flex flex-col gap-3 rounded-md border border-dashed border-border bg-muted/30 p-3 sm:flex-row sm:items-start"
+        onSubmit={memberForm.handleSubmit((v) =>
+          addMember
+            .mutateAsync({ user_id: Number(v.user_id), role_id: Number(v.role_id) })
+            .then(() => memberForm.reset())
+            .catch(() => {}),
+        )}
       >
-        <Field label="Add member" htmlFor="add-member-user" className="flex-1">
-          <Select
-            id="add-member-user"
-            value={newUserId}
-            onValueChange={setNewUserId}
-            placeholder={availableUsers.length ? 'Select user…' : 'Everyone is already a member'}
-            disabled={availableUsers.length === 0}
-            options={toOptions(availableUsers)}
+        <Field label="Add member" htmlFor="add-member-user" className="flex-1" error={memberErrors.user_id?.message}>
+          <Controller
+            control={memberForm.control}
+            name="user_id"
+            render={({ field }) => (
+              <Select
+                id="add-member-user"
+                invalid={!!memberErrors.user_id}
+                value={field.value || null}
+                onValueChange={(v) => field.onChange(v ?? '')}
+                placeholder={availableUsers.length ? 'Select person…' : 'Everyone is already a member'}
+                disabled={availableUsers.length === 0}
+                options={toOptions(availableUsers)}
+              />
+            )}
           />
         </Field>
-        <Field label="Role" htmlFor="add-member-role" className="flex-1">
-          <Select id="add-member-role" value={newRoleId} onValueChange={setNewRoleId} placeholder="Select role…" options={toOptions(roles)} />
+        <Field label="Role" htmlFor="add-member-role" className="flex-1" error={memberErrors.role_id?.message}>
+          <Controller
+            control={memberForm.control}
+            name="role_id"
+            render={({ field }) => (
+              <Select
+                id="add-member-role"
+                invalid={!!memberErrors.role_id}
+                value={field.value || null}
+                onValueChange={(v) => field.onChange(v ?? '')}
+                placeholder="Select role…"
+                options={toOptions(roles)}
+              />
+            )}
+          />
         </Field>
-        <Button type="submit" disabled={!newUserId || !newRoleId} loading={addMember.isPending}>
+        <Button type="submit" className="sm:mt-5.5" loading={memberForm.formState.isSubmitting}>
           Add
         </Button>
       </form>

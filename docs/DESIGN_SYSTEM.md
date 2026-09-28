@@ -101,7 +101,8 @@ live in `frontend/src/components/`.
 
 | Need | Use |
 |---|---|
-| Button | `Button`: variants `default`, `outline`, `secondary`, `ghost`, `destructive`, `destructive-ghost`, `link`; sizes `default`, `sm`, `icon`, `icon-sm`; `loading` shows a spinner and disables it. Render as a link with `render={<Link to=… />} nativeButton={false}` |
+| Button | `Button`: variants `default`, `outline`, `secondary`, `ghost`, `destructive`, `destructive-ghost`, `link`; sizes `default`, `sm`, `icon`, `icon-sm`; `loading` shows a spinner and disables it |
+| Link that looks like a button | `ButtonLink` (same variants). Never `<Button render={<Link/>}>`: that announces a link as a button |
 | Text input / textarea | `Input`, `Textarea` |
 | Dropdown | `Select` (string values, `null` = nothing chosen, `emptyLabel` adds a clearable "Unassigned"/"All …" row) |
 | Checkbox | `Checkbox` (label included) |
@@ -110,7 +111,9 @@ live in `frontend/src/components/`.
 | Dialog | `Dialog`, `DialogTrigger render={<Button/>}`, `DialogContent size="sm/md/lg"`, `DialogHeader`, `DialogTitle`, `DialogDescription` (always include one), `DialogFooter` |
 | "+ New" item flow | `CreateItemDialog` (`components/`) |
 | Destructive confirmation | `ConfirmDialog` |
-| Data table | `Table`, `TableHeader`, `TableHead` (`sort`/`onSort`), `TableBody`, `TableRow` (`interactive`, `tone="danger"`), `TableCell` (`muted`, `align`), `TableMessage`, `TableSkeleton` |
+| List of records from the server | `DataTable` (TanStack Table): columns from `columnHelper<T>()` in `lib/data-table.ts`, server-side sorting and paging, built-in loading, error and empty states, `Pagination` footer. Per-column `meta`: `muted`, `align`, `className`, `invertSortIndicator`; `enableSorting: false` on columns the API can't sort |
+| Small static table | `Table`, `TableHeader`, `TableHead` (`sort`/`onSort`), `TableBody`, `TableRow` (`interactive`, `tone="danger"`), `TableCell` (`muted`, `align`), `TableMessage`, `TableSkeleton` |
+| Paging | `Pagination` (used by `DataTable`; 50 rows per page for tickets) |
 | Status pill | `Badge` (`neutral`, `accent`, `success`, `warning`, `danger`); tickets use `StatusBadge`, `PriorityBadge`, `SlaBadge` |
 | Card | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent` |
 | Metric | `StatTile` / `StatTileSkeleton` |
@@ -196,8 +199,16 @@ directly only for actions that aren't mutations.
   `<Link>` in the first cell for keyboard and screen-reader users.
 - **Rows needing attention:** `TableRow tone="danger"`, always paired with a
   badge or icon in a cell. Status is never shown by color alone.
-- **Forms:** `<form onSubmit>` so Enter submits; footer order is Cancel (outline) then
-  the primary action, right-aligned.
+- **Forms:** every form is `useZodForm(schema, defaults)` (`lib/form.ts`,
+  react-hook-form + zod) with its schema in `lib/schemas.ts`. Text inputs use
+  `{...form.register('x')}`; `Select`, `Checkbox` and `TagPicker` go through
+  `<Controller>`. Pass `form.formState.errors.x?.message` to `Field error` and
+  set `aria-invalid`. Validation runs on submit, then live. Submit buttons stay
+  enabled so the user can press them and see what's missing (the exception is Save
+  on an unchanged settings form). `<form onSubmit noValidate>` so Enter
+  submits; the footer order is Cancel (outline) then the primary action, right-aligned.
+- **Pagination:** reset to page 1 whenever filters or sort change; keep the
+  current page visible while the next one loads (`keepPreviousData`).
 
 ## Writing
 
@@ -231,4 +242,5 @@ directly only for actions that aren't mutations.
    it to `/design` and to this doc, then use it.
 4. New color, shadow, or motion? Add the token to `index.css` (light and dark) and
    the table above first.
-5. `npm run lint` must pass.
+5. `npm run lint`, `npm run typecheck`, `npm test` and `npm run test:e2e` must pass (CI runs all four).
+   Add an e2e test in `frontend/e2e/` for any new user flow.

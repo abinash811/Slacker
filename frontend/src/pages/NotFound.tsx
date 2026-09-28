@@ -1,6 +1,5 @@
-import { Link } from 'react-router-dom'
 import { SearchX } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { ButtonLink } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 
 export function NotFound({
@@ -16,7 +15,7 @@ export function NotFound({
       icon={SearchX}
       title={title}
       description={description}
-      action={<Button variant="outline" render={<Link to="/" />} nativeButton={false}>Go to dashboard</Button>}
+      action={<ButtonLink variant="outline" to="/">Go to dashboard</ButtonLink>}
     />
   )
 }

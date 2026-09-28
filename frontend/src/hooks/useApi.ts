@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, buildQuery } from '@/lib/api'
 import type {
   BreakdownItem,
@@ -86,6 +86,8 @@ export function useTickets(
   return useQuery({
     queryKey: ['tickets', filters, opts],
     queryFn: () => api.get<TicketListResponse>(`/tickets${query}`),
+    // Keep the current page on screen while the next page/sort loads.
+    placeholderData: keepPreviousData,
   })
 }
 

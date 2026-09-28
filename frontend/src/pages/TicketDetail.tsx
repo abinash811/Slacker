@@ -1,7 +1,7 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { ArrowLeft, History } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Button, ButtonLink } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Field } from '@/components/ui/field'
@@ -223,9 +223,9 @@ export function TicketDetail() {
 
 function BackLink() {
   return (
-    <Button variant="link" size="sm" className="w-fit text-muted-foreground hover:text-foreground" render={<Link to="/tickets" />} nativeButton={false}>
+    <ButtonLink variant="link" size="sm" className="w-fit text-muted-foreground hover:text-foreground" to="/tickets">
       <ArrowLeft /> Back to tickets
-    </Button>
+    </ButtonLink>
   )
 }
 

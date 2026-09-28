@@ -3,7 +3,7 @@ import { AlertTriangle, Inbox, Plus, Trash2 } from 'lucide-react'
 import { Alert } from '@/components/ui/alert'
 import { ConfirmDialog } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, ButtonLink } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -21,6 +21,7 @@ import { ErrorState } from '@/components/ui/error-state'
 import { Field, FieldSection } from '@/components/ui/field'
 import { Input, Textarea } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { Pagination } from '@/components/ui/pagination'
 import { ShareBar } from '@/components/ui/share-bar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
@@ -52,6 +53,7 @@ export function DesignSystem() {
   const [select, setSelect] = useState<string | null>(null)
   const [tags, setTags] = useState([1])
   const [sort, setSort] = useState<SortDirection>('desc')
+  const [pageIndex, setPageIndex] = useState(0)
 
   return (
     <div className="flex flex-col gap-10">
@@ -107,6 +109,7 @@ export function DesignSystem() {
           <Button variant="destructive">Destructive</Button>
           <Button variant="destructive-ghost">Destructive ghost</Button>
           <Button variant="link">Link</Button>
+          <ButtonLink variant="outline" to="/design">ButtonLink (navigates)</ButtonLink>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm">
@@ -306,6 +309,7 @@ export function DesignSystem() {
             <TableSkeleton columns={4} rows={2} />
           </TableBody>
         </Table>
+        <Pagination pageIndex={pageIndex} pageSize={50} rowCount={128} onPageChange={setPageIndex} />
       </Section>
     </div>
   )

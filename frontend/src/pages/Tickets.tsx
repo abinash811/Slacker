@@ -5,156 +5,131 @@ import { FilterBar } from '@/components/FilterBar'
 import { CreateTicketDialog } from '@/components/CreateTicketDialog'
 import { PriorityBadge, SlaBadge, StatusBadge } from '@/components/StatusPriorityBadges'
 import { Button } from '@/components/ui/button'
+import { DataTable, type PaginationState, type SortingState } from '@/components/ui/data-table'
 import { EmptyState } from '@/components/ui/empty-state'
-import { ErrorState } from '@/components/ui/error-state'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableMessage,
-  TableRow,
-  TableSkeleton,
-  type SortDirection,
-} from '@/components/ui/table'
 import { PageHeader } from '@/components/ui/typography'
 import { useTickets } from '@/hooks/useApi'
 import { useTicketFilters } from '@/hooks/useTicketFilters'
+import { columnHelper } from '@/lib/data-table'
 import { formatDateTime, formatDuration } from '@/lib/format'
 import { EMPTY_FILTERS } from '@/lib/tickets'
+import type { TicketListItem } from '@/types/api'
 
-// `sortable` must match the backend's _SORTABLE_COLUMNS (ticket_service.py);
-// other columns render a plain header instead of a sort control that silently does nothing.
-// `inverted`: Age sorts by created_at, so newest-first (created_at desc) is age ascending.
-const COLUMNS: { key: string; label: string; sortable?: boolean; inverted?: boolean }[] = [
-  { key: 'ticket_number', label: 'Ticket', sortable: true },
-  { key: 'title', label: 'Title' },
-  { key: 'customer', label: 'Customer' },
-  { key: 'business_id', label: 'Business ID' },
-  { key: 'mobile_number', label: 'Mobile' },
-  { key: 'doctor_name', label: 'Doctor' },
-  { key: 'category_name', label: 'Category' },
-  { key: 'team_name', label: 'Team' },
-  { key: 'owner_name', label: 'Pending on' },
-  { key: 'priority', label: 'Priority', sortable: true },
-  { key: 'status', label: 'Status', sortable: true },
-  { key: 'sla_due_at', label: 'SLA', sortable: true },
-  { key: 'created_at', label: 'Age', sortable: true, inverted: true },
-  { key: 'updated_at', label: 'Updated', sortable: true },
-]
+const PAGE_SIZE = 50
+const EMPTY_ROWS: TicketListItem[] = []
+const DEFAULT_SORT: SortingState = [{ id: 'created_at', desc: true }]
 
-const flip = (d: SortDirection): SortDirection => (d === 'asc' ? 'desc' : 'asc')
+const col = columnHelper<TicketListItem>()
+const dash = (v: string | null) => v ?? '—'
+
+// Sortable column ids must match the backend's _SORTABLE_COLUMNS
+// (ticket_service.py); every other column has sorting disabled.
+const COLUMNS = col.columns([
+  col.accessor('ticket_number', {
+    header: 'Ticket',
+    meta: { className: 'font-medium' },
+    cell: (info) => (
+      // The real link: keyboard and screen-reader path into the ticket; the row click is a mouse shortcut.
+      <Link
+        to={`/tickets/${info.row.original.id}`}
+        className="focus-ring rounded-sm hover:underline"
+        onClick={(e) => e.stopPropagation()}
+      >
+        #{info.getValue()}
+      </Link>
+    ),
+  }),
+  col.accessor('title', { header: 'Title', enableSorting: false, meta: { className: 'max-w-64 truncate' } }),
+  col.accessor('customer', { header: 'Customer', enableSorting: false, meta: { muted: true } }),
+  col.accessor('business_id', { header: 'Business ID', enableSorting: false, meta: { muted: true }, cell: (i) => dash(i.getValue()) }),
+  col.accessor('mobile_number', { header: 'Mobile', enableSorting: false, meta: { muted: true }, cell: (i) => dash(i.getValue()) }),
+  col.accessor('doctor_name', { header: 'Doctor', enableSorting: false, meta: { muted: true }, cell: (i) => dash(i.getValue()) }),
+  col.accessor('category_name', { header: 'Category', enableSorting: false, meta: { muted: true } }),
+  col.accessor('team_name', { header: 'Team', enableSorting: false, meta: { muted: true } }),
+  col.accessor('owner_name', { header: 'Pending on', enableSorting: false, meta: { muted: true }, cell: (i) => i.getValue() ?? 'Unassigned' }),
+  col.accessor('priority', { header: 'Priority', cell: (i) => <PriorityBadge priority={i.getValue()} /> }),
+  col.accessor('status', { header: 'Status', cell: (i) => <StatusBadge status={i.getValue()} /> }),
+  col.accessor('sla_breached', {
+    id: 'sla_due_at',
+    header: 'SLA',
+    cell: (i) => <SlaBadge breached={i.getValue()} remainingSeconds={i.row.original.sla_remaining_seconds} />,
+  }),
+  col.accessor('age_seconds', {
+    id: 'created_at',
+    header: 'Age',
+    // Sorted by created_at: newest first (desc) means youngest age first.
+    meta: { muted: true, className: 'tabular-nums', invertSortIndicator: true },
+    cell: (i) => formatDuration(i.getValue()),
+  }),
+  col.accessor('updated_at', { header: 'Updated', meta: { muted: true }, cell: (i) => formatDateTime(i.getValue()) }),
+])
 
 export function Tickets() {
   const [filters, setFilters] = useTicketFilters()
-  const [sortBy, setSortBy] = useState('created_at')
-  const [sortDir, setSortDir] = useState<SortDirection>('desc')
-  const tickets = useTickets(filters, { sortBy, sortDir, pageSize: 100 })
-  const navigate = useNavigate()
-  const items = tickets.data?.items ?? []
-  const hasFilters = Object.values(filters).some((v) => v !== undefined)
+  const [sorting, setSorting] = useState<SortingState>(DEFAULT_SORT)
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: PAGE_SIZE })
 
-  function toggleSort(key: string) {
-    if (sortBy === key) {
-      setSortDir(sortDir === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortBy(key)
-      setSortDir('desc')
-    }
+  // Back to page 1 whenever the result set changes shape.
+  const resultKey = JSON.stringify([filters, sorting])
+  const [lastResultKey, setLastResultKey] = useState(resultKey)
+  if (resultKey !== lastResultKey) {
+    setLastResultKey(resultKey)
+    setPagination((p) => ({ ...p, pageIndex: 0 }))
   }
+
+  const tickets = useTickets(filters, {
+    sortBy: sorting[0]?.id,
+    sortDir: sorting[0]?.desc ? 'desc' : 'asc',
+    page: pagination.pageIndex + 1,
+    pageSize: pagination.pageSize,
+  })
+  const navigate = useNavigate()
+  const hasFilters = Object.values(filters).some((v) => v !== undefined)
+  const total = tickets.data?.total
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
         title="Tickets"
-        description={tickets.data ? `${tickets.data.total} ${tickets.data.total === 1 ? 'ticket' : 'tickets'}` : ' '}
+        description={total !== undefined ? `${total} ${total === 1 ? 'ticket' : 'tickets'}` : ' '}
         actions={<CreateTicketDialog />}
       />
 
       <FilterBar filters={filters} onChange={setFilters} />
 
-      <Table>
-        <TableHeader>
-          <tr>
-            {COLUMNS.map((col) => (
-              <TableHead
-                key={col.key}
-                sort={col.sortable ? (sortBy === col.key ? (col.inverted ? flip(sortDir) : sortDir) : false) : undefined}
-                onSort={col.sortable ? () => toggleSort(col.key) : undefined}
-              >
-                {col.label}
-              </TableHead>
-            ))}
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {tickets.isPending ? (
-            <TableSkeleton columns={COLUMNS.length} rows={8} />
-          ) : tickets.isError ? (
-            <TableMessage colSpan={COLUMNS.length}>
-              <ErrorState
-                title="Couldn't load tickets"
-                error={tickets.error}
-                onRetry={() => tickets.refetch()}
-                retrying={tickets.isFetching}
-              />
-            </TableMessage>
-          ) : items.length === 0 ? (
-            <TableMessage colSpan={COLUMNS.length}>
-              {hasFilters ? (
-                <EmptyState
-                  icon={SearchX}
-                  title="No tickets match these filters"
-                  description="Try removing a filter or searching for something else."
-                  action={
-                    <Button variant="outline" size="sm" onClick={() => setFilters(EMPTY_FILTERS)}>
-                      Clear filters
-                    </Button>
-                  }
-                />
-              ) : (
-                <EmptyState icon={Inbox} title="No tickets yet" description="Tickets created here or from Slack show up in this list." />
-              )}
-            </TableMessage>
+      <DataTable
+        columns={COLUMNS}
+        data={tickets.data?.items ?? EMPTY_ROWS}
+        getRowId={(t) => String(t.id)}
+        sorting={sorting}
+        onSortingChange={setSorting}
+        pagination={pagination}
+        onPaginationChange={setPagination}
+        rowCount={total}
+        isLoading={tickets.isPending}
+        error={tickets.isError ? tickets.error : undefined}
+        onRetry={() => tickets.refetch()}
+        retrying={tickets.isFetching}
+        errorTitle="Couldn't load tickets"
+        onRowClick={(t) => navigate(`/tickets/${t.id}`)}
+        rowTone={(t) => (t.sla_breached ? 'danger' : undefined)}
+        empty={
+          hasFilters ? (
+            <EmptyState
+              icon={SearchX}
+              title="No tickets match these filters"
+              description="Try removing a filter or searching for something else."
+              action={
+                <Button variant="outline" size="sm" onClick={() => setFilters(EMPTY_FILTERS)}>
+                  Clear filters
+                </Button>
+              }
+            />
           ) : (
-            items.map((t) => (
-              <TableRow
-                key={t.id}
-                interactive
-                tone={t.sla_breached ? 'danger' : undefined}
-                onClick={() => navigate(`/tickets/${t.id}`)}
-              >
-                <TableCell className="font-medium">
-                  {/* The real link — keyboard and screen-reader path into the ticket; the row click is a mouse shortcut. */}
-                  <Link to={`/tickets/${t.id}`} className="focus-ring rounded-sm hover:underline" onClick={(e) => e.stopPropagation()}>
-                    #{t.ticket_number}
-                  </Link>
-                </TableCell>
-                <TableCell className="max-w-64 truncate">{t.title}</TableCell>
-                <TableCell muted>{t.customer}</TableCell>
-                <TableCell muted>{t.business_id ?? '—'}</TableCell>
-                <TableCell muted>{t.mobile_number ?? '—'}</TableCell>
-                <TableCell muted>{t.doctor_name ?? '—'}</TableCell>
-                <TableCell muted>{t.category_name}</TableCell>
-                <TableCell muted>{t.team_name}</TableCell>
-                <TableCell muted>{t.owner_name ?? 'Unassigned'}</TableCell>
-                <TableCell>
-                  <PriorityBadge priority={t.priority} />
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={t.status} />
-                </TableCell>
-                <TableCell>
-                  <SlaBadge breached={t.sla_breached} remainingSeconds={t.sla_remaining_seconds} />
-                </TableCell>
-                <TableCell muted className="tabular-nums">{formatDuration(t.age_seconds)}</TableCell>
-                <TableCell muted>{formatDateTime(t.updated_at)}</TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            <EmptyState icon={Inbox} title="No tickets yet" description="Tickets created here or from Slack show up in this list." />
+          )
+        }
+      />
     </div>
   )
 }
