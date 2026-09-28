@@ -190,8 +190,10 @@ def handle_resolve_click(ack, body, client):
     with SessionLocal() as db:
         actor = identity.resolve_or_create_user(db, client, body["user"]["id"])
         ticket = ticket_service.get_ticket_or_404(db, ticket_id)
+        previous_status = ticket.status
         ticket = ticket_service.resolve_ticket(db, ticket, actor, EventSource.SLACK)
-        slack_service.update_ticket_message(ticket)
+        change = "status" if ticket.status != previous_status else None
+        slack_service.notify_ticket_change(db, ticket, actor, change)
 
 
 # ---------------------------------------------------------------------------
@@ -208,12 +210,14 @@ def handle_assign_submission(ack, body, client, view):
         new_owner = identity.resolve_or_create_user(db, client, selected_slack_user_id)
         actor = identity.resolve_or_create_user(db, client, body["user"]["id"])
         ticket = ticket_service.get_ticket_or_404(db, ticket_id)
+        previous_owner_id = ticket.owner_id
         try:
             ticket = ticket_service.assign_ticket(db, ticket, new_owner, actor, EventSource.SLACK)
         except HTTPException as e:
             client.chat_postMessage(channel=body["user"]["id"], text=f"Couldn't assign ticket #{ticket.ticket_number}: {e.detail}")
             return
-        slack_service.update_ticket_message(ticket)
+        changed = ticket.owner_id != previous_owner_id
+        slack_service.notify_ticket_change(db, ticket, actor, "assigned" if changed else None)
 
 
 @bolt_app.view("team_modal")
@@ -226,7 +230,7 @@ def handle_team_submission(ack, body, client, view):
         ticket = ticket_service.get_ticket_or_404(db, ticket_id)
         new_team = db.get(Team, new_team_id)
         ticket = ticket_service.change_team(db, ticket, new_team, actor, EventSource.SLACK)
-        slack_service.update_ticket_message(ticket)
+        slack_service.notify_ticket_change(db, ticket, actor)
 
 
 @bolt_app.view("status_modal")
@@ -237,8 +241,10 @@ def handle_status_submission(ack, body, client, view):
     with SessionLocal() as db:
         actor = identity.resolve_or_create_user(db, client, body["user"]["id"])
         ticket = ticket_service.get_ticket_or_404(db, ticket_id)
+        previous_status = ticket.status
         ticket = ticket_service.change_status(db, ticket, new_status, actor, EventSource.SLACK)
-        slack_service.update_ticket_message(ticket)
+        change = "status" if ticket.status != previous_status else None
+        slack_service.notify_ticket_change(db, ticket, actor, change)
 
 
 @bolt_app.view("priority_modal")
@@ -250,7 +256,7 @@ def handle_priority_submission(ack, body, client, view):
         actor = identity.resolve_or_create_user(db, client, body["user"]["id"])
         ticket = ticket_service.get_ticket_or_404(db, ticket_id)
         ticket = ticket_service.change_priority(db, ticket, new_priority, actor, EventSource.SLACK)
-        slack_service.update_ticket_message(ticket)
+        slack_service.notify_ticket_change(db, ticket, actor)
 
 
 # ---------------------------------------------------------------------------

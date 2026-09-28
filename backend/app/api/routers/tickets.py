@@ -25,7 +25,7 @@ from app.schemas.ticket import (
 )
 from app.services import ticket_service
 from app.services.filters import TicketFilters
-from app.services.slack_service import post_ticket_message, update_ticket_message
+from app.services.slack_service import notify_ticket_change, post_ticket_message
 
 logger = logging.getLogger(__name__)
 
@@ -115,8 +115,10 @@ def assign_ticket(
         if new_owner is None:
             raise HTTPException(status_code=404, detail="User not found")
     ticket = ticket_service.get_ticket_or_404(db, ticket_id)
+    previous_owner_id = ticket.owner_id
     ticket = ticket_service.assign_ticket(db, ticket, new_owner, current_user, EventSource.DASHBOARD)
-    update_ticket_message(ticket)
+    changed = ticket.owner_id != previous_owner_id
+    notify_ticket_change(db, ticket, current_user, "assigned" if changed else None)
     return to_ticket_out(ticket_service.get_ticket_or_404(db, ticket.id))
 
 
@@ -132,7 +134,7 @@ def change_ticket_team(
         raise HTTPException(status_code=404, detail="Team not found")
     ticket = ticket_service.get_ticket_or_404(db, ticket_id)
     ticket = ticket_service.change_team(db, ticket, new_team, current_user, EventSource.DASHBOARD)
-    update_ticket_message(ticket)
+    notify_ticket_change(db, ticket, current_user)
     return to_ticket_out(ticket_service.get_ticket_or_404(db, ticket.id))
 
 
@@ -144,8 +146,9 @@ def change_ticket_status(
     current_user: User = Depends(get_current_user),
 ) -> TicketOut:
     ticket = ticket_service.get_ticket_or_404(db, ticket_id)
+    previous_status = ticket.status
     ticket = ticket_service.change_status(db, ticket, payload.status, current_user, EventSource.DASHBOARD)
-    update_ticket_message(ticket)
+    notify_ticket_change(db, ticket, current_user, "status" if ticket.status != previous_status else None)
     return to_ticket_out(ticket_service.get_ticket_or_404(db, ticket.id))
 
 
@@ -158,7 +161,7 @@ def change_ticket_priority(
 ) -> TicketOut:
     ticket = ticket_service.get_ticket_or_404(db, ticket_id)
     ticket = ticket_service.change_priority(db, ticket, payload.priority, current_user, EventSource.DASHBOARD)
-    update_ticket_message(ticket)
+    notify_ticket_change(db, ticket, current_user)
     return to_ticket_out(ticket_service.get_ticket_or_404(db, ticket.id))
 
 
@@ -169,8 +172,9 @@ def resolve_ticket(
     current_user: User = Depends(get_current_user),
 ) -> TicketOut:
     ticket = ticket_service.get_ticket_or_404(db, ticket_id)
+    previous_status = ticket.status
     ticket = ticket_service.resolve_ticket(db, ticket, current_user, EventSource.DASHBOARD)
-    update_ticket_message(ticket)
+    notify_ticket_change(db, ticket, current_user, "status" if ticket.status != previous_status else None)
     return to_ticket_out(ticket_service.get_ticket_or_404(db, ticket.id))
 
 

@@ -9,10 +9,12 @@ No ticket business rules live here — only Slack I/O and presentation.
 
 import logging
 import time
+from typing import Literal
 
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -22,8 +24,11 @@ from app.models.enums import TicketPriority
 from app.models.slack import SlackChannel
 from app.models.team import Team
 from app.models.ticket import Ticket
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
+
+TicketChange = Literal["assigned", "status"]
 
 _STATUS_LABELS = {
     "open": "Open",
@@ -171,7 +176,92 @@ def fallback_text(ticket: Ticket) -> str:
     return f"Ticket #{ticket.ticket_number} — {ticket.title} ({ticket.status.value})"
 
 
+def link_slack_user(db: Session, user: User | None) -> str | None:
+    """Returns the user's Slack id, finding it by email the first time.
+    People added in the dashboard have no Slack id until they act in
+    Slack; without one we can only print their name, and Slack notifies
+    nobody. Needs the `users:read.email` scope.
+    """
+    if user is None:
+        return None
+    if user.slack_user_id:
+        return user.slack_user_id
+    if not get_settings().slack_bot_token or user.email.endswith("@slack.local"):
+        return None
+    try:
+        slack_user_id = get_client().users_lookupByEmail(email=user.email)["user"]["id"]
+    except SlackApiError as e:
+        logger.info("No Slack account found for %s: %s", user.email, e.response.get("error") if e.response else e)
+        return None
+    user.slack_user_id = slack_user_id
+    try:
+        db.commit()
+    except IntegrityError:
+        # Another row already holds this Slack id (e.g. created from Slack
+        # under a different email) — leave the link to an admin.
+        db.rollback()
+        logger.warning("Slack id %s already linked to another user; not linking %s", slack_user_id, user.email)
+        return None
+    return slack_user_id
+
+
+def _link_ticket_people(db: Session, ticket: Ticket) -> None:
+    link_slack_user(db, ticket.owner)
+    link_slack_user(db, ticket.support_assignee)
+
+
+def _mention(user: User | None) -> str | None:
+    if user is None:
+        return None
+    return f"<@{user.slack_user_id}>" if user.slack_user_id else user.name
+
+
+def assignment_note(ticket: Ticket, actor: User) -> str:
+    if ticket.owner is None:
+        return f"Ticket unassigned by {actor.name}."
+    if ticket.owner.id == actor.id:
+        return f"{_mention(ticket.owner)} picked up this ticket."
+    return f"{_mention(ticket.owner)}, you've been assigned this ticket by {actor.name}."
+
+
+def status_note(ticket: Ticket, actor: User) -> str:
+    label = _STATUS_LABELS.get(ticket.status.value, ticket.status.value)
+    note = f"Status changed to *{label}* by {actor.name}."
+    if ticket.owner is not None and ticket.owner.id != actor.id:
+        note += f" cc {_mention(ticket.owner)}"
+    return note
+
+
+def notify_ticket_change(db: Session, ticket: Ticket, actor: User, change: TicketChange | None = None) -> None:
+    """Refreshes the ticket message and, for an assignment or status
+    change, posts a thread reply about it.
+
+    Slack never notifies anyone about an edited message, so the edit alone
+    is silent. The reply is a new message: people it @mentions get a
+    notification, and everyone following the thread sees it in Activity.
+    """
+    if not ticket.slack_channel_id or not ticket.slack_message_ts:
+        return  # ticket was never pushed to Slack
+    _link_ticket_people(db, ticket)  # before writing, so mentions resolve
+    update_ticket_message(ticket)
+    if change is None:
+        return
+    note = assignment_note(ticket, actor) if change == "assigned" else status_note(ticket, actor)
+    try:
+        _call_with_retry(
+            get_client().chat_postMessage,
+            channel=ticket.slack_channel_id,
+            thread_ts=ticket.slack_message_ts,
+            text=note,
+        )
+    except SlackApiError:
+        # The change itself is saved and the message updated; a missing
+        # thread note shouldn't fail the request.
+        logger.exception("Failed to post thread note for ticket %s", ticket.id)
+
+
 def post_ticket_message(db: Session, ticket: Ticket) -> Ticket:
+    _link_ticket_people(db, ticket)
     channel_id = ticket.slack_channel_id or resolve_channel_for_team(db, ticket.team_id)
     client = get_client()
     response = _call_with_retry(

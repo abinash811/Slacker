@@ -15,12 +15,21 @@ Under **OAuth & Permissions**, add these Bot Token Scopes:
 
 | Scope | Why |
 |---|---|
-| `chat:write` | Post and update the ticket message (`chat.postMessage` / `chat.update`) |
+| `chat:write` | Post and update the ticket message (`chat.postMessage` / `chat.update`), and post thread replies on assignment and status changes |
 | `commands` | The `/create-ticket` slash command |
 | `users:read` | Resolve a Slack user id to their name/profile (`users.info`) |
-| `users:read.email` | Match a Slack user to an internal `User` row by email |
+| `users:read.email` | Match a Slack user to an internal `User` row by email, both ways: dashboard users are linked to their Slack account (`users.lookupByEmail`) so the bot can @mention them |
 | `channels:history` | Receive `message` events for thread replies in public channels the bot is in |
 | `groups:history` | Same, for private channels (only if you'll post tickets into a private channel) |
+
+### Notifications
+
+Slack doesn't notify anyone when a message is edited, and the ticket
+message is edited on every change. So each assignment and status change
+also posts a reply in the ticket's thread that @mentions the owner. They get
+a notification, and everyone following the thread sees it in Activity.
+A dashboard user whose email has no Slack account is shown by name and
+isn't notified.
 
 ## 3. Event Subscriptions
 
