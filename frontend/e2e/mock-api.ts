@@ -121,6 +121,7 @@ export async function mockApi(
   }: { tickets?: TicketListItem[]; settings?: { create: boolean; edit: boolean; delete: boolean } } = {},
 ): Promise<MockApi> {
   const overrides: { method: string; path: string | RegExp; handler: Handler }[] = []
+  const views: { id: number; name: string; filters: Record<string, unknown>; created_at: string }[] = []
   const requests: string[] = []
 
   await page.route(/\/api\//, async (route) => {
@@ -135,6 +136,19 @@ export async function mockApi(
     if (override) return override.handler(route, url)
 
     const json = (body: unknown, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
+    // Saved views keep in-memory state so save → list → delete behaves like the real API.
+    if (path === '/me/views' && method === 'GET') return json(views)
+    if (path === '/me/views' && method === 'POST') {
+      const body = route.request().postDataJSON()
+      const view = { id: views.length + 1, name: body.name, filters: body.filters, created_at: new Date().toISOString() }
+      views.push(view)
+      return json(view, 201)
+    }
+    const viewMatch = path.match(/^\/me\/views\/(\d+)$/)
+    if (viewMatch && method === 'DELETE') {
+      views.splice(views.findIndex((v) => v.id === Number(viewMatch[1])), 1)
+      return route.fulfill({ status: 204 })
+    }
     if (method !== 'GET') return json({})
 
     if (path === '/me') return json({ user: users[0], settings })

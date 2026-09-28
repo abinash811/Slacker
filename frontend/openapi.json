@@ -686,6 +686,174 @@
         "title": "SLASettingsUpdateRequest",
         "type": "object"
       },
+      "SavedViewCreateRequest": {
+        "properties": {
+          "filters": {
+            "$ref": "#/components/schemas/SavedViewFilters"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "filters"
+        ],
+        "title": "SavedViewCreateRequest",
+        "type": "object"
+      },
+      "SavedViewFilters": {
+        "additionalProperties": false,
+        "description": "The ticket-list filters a view remembers \u2014 the same keys as the list\nendpoint's query parameters. Unknown keys are rejected.",
+        "properties": {
+          "category_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To"
+          },
+          "owner_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Id"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TicketPriority"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "search": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search"
+          },
+          "sla_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "breached",
+                  "ok"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sla Status"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TicketStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "support_assignee_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Support Assignee Id"
+          },
+          "team_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Id"
+          }
+        },
+        "title": "SavedViewFilters",
+        "type": "object"
+      },
+      "SavedViewOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/SavedViewFilters"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "filters",
+          "created_at"
+        ],
+        "title": "SavedViewOut",
+        "type": "object"
+      },
       "SettingsPermissions": {
         "properties": {
           "create": {
@@ -2970,6 +3138,167 @@
         "summary": "Me",
         "tags": [
           "lookups"
+        ]
+      }
+    },
+    "/api/me/views": {
+      "get": {
+        "operationId": "list_views_api_me_views_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SavedViewOut"
+                  },
+                  "title": "Response List Views Api Me Views Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Views",
+        "tags": [
+          "saved views"
+        ]
+      },
+      "post": {
+        "operationId": "create_view_api_me_views_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedViewCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedViewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create View",
+        "tags": [
+          "saved views"
+        ]
+      }
+    },
+    "/api/me/views/{view_id}": {
+      "delete": {
+        "operationId": "delete_view_api_me_views__view_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "view_id",
+            "required": true,
+            "schema": {
+              "title": "View Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete View",
+        "tags": [
+          "saved views"
         ]
       }
     },

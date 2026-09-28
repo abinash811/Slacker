@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Inbox, SearchX } from 'lucide-react'
 import { FilterBar } from '@/components/FilterBar'
+import { ViewsBar } from '@/components/ViewsBar'
 import { CreateTicketDialog } from '@/components/CreateTicketDialog'
 import { PriorityBadge, SlaBadge, StatusBadge } from '@/components/StatusPriorityBadges'
 import { Button } from '@/components/ui/button'
@@ -96,6 +97,7 @@ export function Tickets() {
         actions={<CreateTicketDialog />}
       />
 
+      <ViewsBar filters={filters} onChange={setFilters} />
       <FilterBar filters={filters} onChange={setFilters} />
 
       <DataTable

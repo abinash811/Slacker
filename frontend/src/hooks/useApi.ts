@@ -7,6 +7,8 @@ import type {
   CustomFieldType,
   DashboardSummary,
   Me,
+  SavedView,
+  SavedViewFilters,
   SettingsPermissions,
   OwnerPendingItem,
   Role,
@@ -72,6 +74,30 @@ const NO_PERMISSIONS: SettingsPermissions = { create: false, edit: false, delete
 /** What the current user may do in Settings. Everything is off until /me loads. */
 export function useSettingsPermissions(): SettingsPermissions {
   return useMe().data?.settings ?? NO_PERMISSIONS
+}
+
+// --- Saved views (personal) ---
+
+export function useSavedViews() {
+  return useQuery({ queryKey: ['saved-views'], queryFn: () => api.get<SavedView[]>('/me/views') })
+}
+
+export function useCreateSavedView() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { name: string; filters: SavedViewFilters }) => api.post<SavedView>('/me/views', payload),
+    meta: { success: 'View saved', inlineError: true },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['saved-views'] }),
+  })
+}
+
+export function useDeleteSavedView() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.delete(`/me/views/${id}`),
+    meta: { success: 'View deleted', errorTitle: "Couldn't delete view" },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['saved-views'] }),
+  })
 }
 
 export function useUsers() {

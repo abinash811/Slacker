@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, type LucideIcon } from 'lucide-react'
 import type { FieldValues, UseFormReturn } from 'react-hook-form'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
@@ -23,7 +23,8 @@ import { describeError } from '@/lib/api'
  * around a `useZodForm` form, with Cancel/Create footer, a pending state,
  * field errors from the schema, and the server error shown inline so the
  * user can fix and retry without retyping. Resets when closed.
- * Renders nothing unless the user may create items in Settings.
+ * By default it's a Settings action and renders nothing unless the user may
+ * create items in Settings; pass `settingsItem={false}` for personal items.
  */
 export function CreateItemDialog<TInput extends FieldValues, TOutput extends FieldValues>({
   noun,
@@ -32,6 +33,8 @@ export function CreateItemDialog<TInput extends FieldValues, TOutput extends Fie
   onSubmit,
   triggerLabel = 'New',
   triggerVariant = 'default',
+  triggerIcon: TriggerIcon = Plus,
+  settingsItem = true,
   submitLabel,
   children,
 }: {
@@ -42,6 +45,9 @@ export function CreateItemDialog<TInput extends FieldValues, TOutput extends Fie
   onSubmit: (values: TOutput) => Promise<unknown>
   triggerLabel?: string
   triggerVariant?: 'default' | 'ghost' | 'outline'
+  triggerIcon?: LucideIcon
+  /** Gate on the Settings "create" permission. */
+  settingsItem?: boolean
   submitLabel?: string
   children: React.ReactNode
 }) {
@@ -67,12 +73,12 @@ export function CreateItemDialog<TInput extends FieldValues, TOutput extends Fie
     }
   })
 
-  if (!canCreate) return null
+  if (settingsItem && !canCreate) return null
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger render={<Button size="sm" variant={triggerVariant} />}>
-        <Plus data-icon="inline-start" /> {triggerLabel}
+        <TriggerIcon data-icon="inline-start" /> {triggerLabel}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

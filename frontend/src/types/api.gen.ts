@@ -176,6 +176,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/me/views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Views */
+        get: operations["list_views_api_me_views_get"];
+        put?: never;
+        /** Create View */
+        post: operations["create_view_api_me_views_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/views/{view_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete View */
+        delete: operations["delete_view_api_me_views__view_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/roles": {
         parameters: {
             query?: never;
@@ -812,6 +847,50 @@ export interface components {
         SLASettingsUpdateRequest: {
             /** Default Hours */
             default_hours: number;
+        };
+        /** SavedViewCreateRequest */
+        SavedViewCreateRequest: {
+            filters: components["schemas"]["SavedViewFilters"];
+            /** Name */
+            name: string;
+        };
+        /**
+         * SavedViewFilters
+         * @description The ticket-list filters a view remembers — the same keys as the list
+         *     endpoint's query parameters. Unknown keys are rejected.
+         */
+        SavedViewFilters: {
+            /** Category Id */
+            category_id?: number | null;
+            /** Date From */
+            date_from?: string | null;
+            /** Date To */
+            date_to?: string | null;
+            /** Owner Id */
+            owner_id?: number | null;
+            priority?: components["schemas"]["TicketPriority"] | null;
+            /** Search */
+            search?: string | null;
+            /** Sla Status */
+            sla_status?: ("breached" | "ok") | null;
+            status?: components["schemas"]["TicketStatus"] | null;
+            /** Support Assignee Id */
+            support_assignee_id?: number | null;
+            /** Team Id */
+            team_id?: number | null;
+        };
+        /** SavedViewOut */
+        SavedViewOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            filters: components["schemas"]["SavedViewFilters"];
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
         };
         /** SettingsPermissions */
         SettingsPermissions: {
@@ -1545,6 +1624,103 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MeOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_views_api_me_views_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedViewOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_view_api_me_views_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedViewCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedViewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_view_api_me_views__view_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
+            path: {
+                view_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

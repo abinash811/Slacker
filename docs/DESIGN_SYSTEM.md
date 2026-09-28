@@ -102,7 +102,7 @@ ui.shadcn.com.
 | Form field | `FormField` (pattern: shadcn `Field`, `FieldLabel`, `FieldDescription`, `FieldError`); `required={false}` appends "(optional)" |
 | Group of fields in a long form | `FormSection` (shadcn `FieldSet` + `FieldLegend`) |
 | Dialog | shadcn `Dialog`, `DialogTrigger render={<Button/>}`, `DialogContent` (size with `className="sm:max-w-md"`), `DialogHeader`, `DialogTitle`, `DialogDescription` (always include one), `DialogFooter` |
-| "+ New" item flow | `CreateItemDialog` (`components/`) |
+| "+ New" item flow | `CreateItemDialog` (`components/`). Gated on the Settings create permission by default; `settingsItem={false}` for personal items like saved views |
 | Destructive confirmation | `ConfirmDialog` (pattern over shadcn `AlertDialog`) |
 | List of records | `DataTable` (pattern: shadcn's data-table recipe, meaning TanStack Table + shadcn `Table`, `Button`, `Pagination`). Columns from `columnHelper<T>()` in `lib/data-table.ts`; server-side sorting and paging; built-in loading, error and empty states. Per-column `meta`: `muted`, `align`, `className`, `invertSortIndicator`. Column ids must be server sort keys (a unit test checks them against the API schema); `enableSorting: false` only for a column the API truly can't sort. Omit `sorting` for a static table |
 | Status pill | `ToneBadge` (pattern over shadcn `Badge`: tones `neutral`, `info`, `success`, `warning`, `danger`); tickets use `StatusBadge`, `PriorityBadge`, `SlaBadge` |
@@ -208,6 +208,11 @@ directly only for actions that aren't mutations.
   `SettingsAccessNotice` at the top of Settings and Teams says what's
   missing and who to ask. A 403 from the server still surfaces as an error
   toast with the server's reason.
+- **Views:** the Tickets page's `ViewsBar` offers built-in views ("Pending
+  on me", "My support tickets", "SLA breached") and the user's saved views
+  (`/api/me/views`, private, max 20). Picking a view replaces all filters;
+  the view matching the current filters is highlighted (`aria-pressed`), and
+  "Save view" shows only when the current filters aren't already a view.
 - **Pagination:** reset to page 1 whenever filters or sort change; keep the
   current page visible while the next one loads (`keepPreviousData`).
 
