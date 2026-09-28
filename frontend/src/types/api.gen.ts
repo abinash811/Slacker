@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/analytics/trends": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Trends */
+        get: operations["get_trends_api_analytics_trends_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/categories": {
         parameters: {
             query?: never;
@@ -1190,6 +1207,25 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /**
+         * WeeklyTrend
+         * @description One ISO week (Monday 00:00 UTC) of ticket activity.
+         */
+        WeeklyTrend: {
+            /** Created */
+            created: number;
+            /** Median Resolution Hours */
+            median_resolution_hours: number | null;
+            /** Resolved */
+            resolved: number;
+            /** Sla Breached */
+            sla_breached: number;
+            /**
+             * Week Start
+             * Format: date-time
+             */
+            week_start: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -1386,6 +1422,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DashboardSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_trends_api_analytics_trends_get: {
+        parameters: {
+            query?: {
+                weeks?: number;
+                team_id?: number | null;
+                owner_id?: number | null;
+                support_assignee_id?: number | null;
+                category_id?: number | null;
+                priority?: components["schemas"]["TicketPriority"] | null;
+                status?: components["schemas"]["TicketStatus"] | null;
+                sla_status?: string | null;
+                date_from?: string | null;
+                date_to?: string | null;
+                search?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeeklyTrend"][];
                 };
             };
             /** @description Validation Error */

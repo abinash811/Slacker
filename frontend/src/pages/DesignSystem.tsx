@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { AlertCircle, AlertTriangle, Inbox, Plus, Trash2 } from 'lucide-react'
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { ChartCard } from '@/components/patterns/chart-card'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -43,6 +46,13 @@ interface Row {
 const ROWS: Row[] = [
   { id: 1, name: 'Interactive row', team: 'Support', breached: false },
   { id: 2, name: 'Needs attention', team: 'Billing', breached: true },
+]
+const CHART_ROWS = [
+  { week: 'Aug 24', created: 14, resolved: 11 },
+  { week: 'Aug 31', created: 18, resolved: 16 },
+  { week: 'Sep 7', created: 12, resolved: 15 },
+  { week: 'Sep 14', created: 21, resolved: 17 },
+  { week: 'Sep 21', created: 17, resolved: 19 },
 ]
 const col = columnHelper<Row>()
 const COLUMNS = col.columns([
@@ -305,6 +315,37 @@ export function DesignSystem() {
               <Progress value={62} aria-label="Share" />
             </CardContent>
           </Card>
+        </div>
+      </Section>
+
+      <Section title="Charts">
+        <div className="max-w-md">
+          <ChartCard
+            title="Created vs resolved"
+            description="ChartCard: shadcn chart + a table toggle"
+            rows={CHART_ROWS}
+            rowKey={(r) => r.week}
+            columns={[
+              { header: 'Week', cell: (r) => r.week },
+              { header: 'Created', cell: (r) => r.created, align: 'right' },
+              { header: 'Resolved', cell: (r) => r.resolved, align: 'right' },
+            ]}
+          >
+            <ChartContainer
+              config={{ created: { label: 'Created', color: 'var(--chart-1)' }, resolved: { label: 'Resolved', color: 'var(--chart-2)' } }}
+              className="aspect-auto h-48 w-full"
+            >
+              <LineChart data={CHART_ROWS} margin={{ top: 8, right: 16, left: 0, bottom: 0 }} accessibilityLayer>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="week" tickLine={false} axisLine={false} tickMargin={8} />
+                <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={32} />
+                <ChartTooltip cursor content={<ChartTooltipContent />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Line dataKey="created" type="monotone" stroke="var(--color-created)" strokeWidth={2} dot={false} />
+                <Line dataKey="resolved" type="monotone" stroke="var(--color-resolved)" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ChartContainer>
+          </ChartCard>
         </div>
       </Section>
 

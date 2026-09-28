@@ -26,6 +26,7 @@ import type {
   TicketStatus,
   TimelineEvent,
   User,
+  WeeklyTrend,
 } from '@/types/api'
 
 function filtersToQuery(filters: TicketFiltersState) {
@@ -159,6 +160,16 @@ export function useBreakdown(dimension: 'team' | 'category' | 'priority', filter
   return useQuery({
     queryKey: ['breakdown', dimension, filters],
     queryFn: () => api.get<BreakdownItem[]>(`/analytics/breakdown/${dimension}${filtersToQuery(filters)}`),
+  })
+}
+
+export function useTrends(filters: TicketFiltersState, weeks = 12) {
+  return useQuery({
+    queryKey: ['trends', filters, weeks],
+    queryFn: () => {
+      const query = filtersToQuery(filters)
+      return api.get<WeeklyTrend[]>(`/analytics/trends${query ? `${query}&` : '?'}weeks=${weeks}`)
+    },
   })
 }
 

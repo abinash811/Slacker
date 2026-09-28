@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, Clock, Hourglass, Inbox, TimerReset, Users } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,6 +15,9 @@ import { useBreakdown, useOwnerPending, useSummary, useTickets } from '@/hooks/u
 import { useTicketFilters } from '@/hooks/useTicketFilters'
 import { formatDuration, formatHours, formatPct } from '@/lib/format'
 import type { TicketListItem } from '@/types/api'
+
+// Charts pull in recharts (large), so they load after the rest of the dashboard.
+const TrendCharts = lazy(() => import('@/components/TrendCharts').then((m) => ({ default: m.TrendCharts })))
 
 export function Dashboard() {
   const [filters, setFilters] = useTicketFilters()
@@ -88,6 +92,10 @@ export function Dashboard() {
           </div>
         </>
       )}
+
+      <Suspense fallback={<Skeleton className="h-80 w-full" />}>
+        <TrendCharts filters={filters} />
+      </Suspense>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <BreakdownCard title="By team" query={teamBreakdown} />

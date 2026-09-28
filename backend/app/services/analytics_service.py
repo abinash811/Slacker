@@ -11,6 +11,7 @@ functions' signatures would not need to change.
 """
 
 from dataclasses import replace
+from statistics import median
 from datetime import datetime, timezone
 
 from sqlalchemy import select
@@ -18,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.models.enums import TicketStatus
 from app.models.ticket import Ticket
-from app.schemas.analytics import BreakdownItem, DashboardSummary, OwnerPendingItem, PeriodComparison
+from app.schemas.analytics import BreakdownItem, DashboardSummary, OwnerPendingItem, PeriodComparison, WeeklyTrend
 from app.services import period, sla_service
 from app.services.filters import TicketFilters
 from app.services.filters import apply as apply_filters
@@ -171,3 +172,36 @@ def _breakdown(db: Session, filters: TicketFilters, key_fn) -> list[BreakdownIte
             )
         )
     return sorted(items, key=lambda i: -i.total)
+
+
+def weekly_trends(db: Session, filters: TicketFilters, weeks: int) -> list[WeeklyTrend]:
+    """The last `weeks` ISO weeks, oldest first, including the current
+    (partial) week. Like the week-over-week comparisons, the time axis
+    replaces any date-range/SLA-status filters; team/owner/category/priority/
+    status filters still narrow the data.
+    """
+    now = datetime.now(timezone.utc)
+    tickets = _load(db, replace(filters, date_from=None, date_to=None, sla_status=None), now)
+
+    def in_range(ts: datetime | None, start: datetime, end: datetime) -> bool:
+        return ts is not None and start <= ts < end
+
+    trends = []
+    for weeks_ago in range(weeks - 1, -1, -1):
+        start, end = period.week_bounds(now, weeks_ago)
+        resolved = [t for t in tickets if in_range(t.resolved_at, start, end)]
+        hours = [(t.resolved_at - t.created_at).total_seconds() / 3600 for t in resolved]
+        trends.append(
+            WeeklyTrend(
+                week_start=start,
+                created=sum(1 for t in tickets if in_range(t.created_at, start, end)),
+                resolved=len(resolved),
+                median_resolution_hours=round(median(hours), 1) if hours else None,
+                sla_breached=sum(
+                    1
+                    for t in tickets
+                    if in_range(t.sla_due_at, start, end) and sla_service.sla_status(t.sla_due_at, t.resolved_at, now)[0]
+                ),
+            )
+        )
+    return trends

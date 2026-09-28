@@ -35,8 +35,12 @@
   --ring: oklch(0.585 0.233 277.117); /* indigo-500 */
   --success: oklch(0.596 0.145 163.225); /* emerald-600 */
   --warning: oklch(0.555 0.163 48.998); /* amber-700: AA contrast on white */
-  --chart-1: oklch(0.585 0.233 277.117);
-  --chart-2: oklch(0.596 0.145 163.225);
+  /* Chart series, in fixed order. 1–2 validated with the dataviz skill's
+     palette checker (lightness band, colorblind separation, 3:1 contrast)
+     against the card surface. Status colors (success/warning/destructive)
+     are never used as series colors. */
+  --chart-1: oklch(0.511 0.23 277); /* indigo #4f46e5 */
+  --chart-2: oklch(0.677 0.174 51.1); /* orange #e8710a */
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.577 0.245 27.325);
   --chart-5: oklch(0.556 0 0);
@@ -73,8 +77,8 @@
   --ring: oklch(0.673 0.182 276.935);
   --success: oklch(0.765 0.177 163.223);
   --warning: oklch(0.828 0.189 84.429);
-  --chart-1: oklch(0.673 0.182 276.935);
-  --chart-2: oklch(0.765 0.177 163.223);
+  --chart-1: oklch(0.615 0.181 278.2); /* #6f73ee, validated on #171717 */
+  --chart-2: oklch(0.622 0.173 40.1); /* #d95926 */
   --chart-3: oklch(0.828 0.189 84.429);
   --chart-4: oklch(0.704 0.191 22.216);
   --chart-5: oklch(0.708 0 0);

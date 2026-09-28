@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_ticket_filters
 from app.core.database import get_db
-from app.schemas.analytics import BreakdownItem, DashboardSummary, OwnerPendingItem
+from app.schemas.analytics import BreakdownItem, DashboardSummary, OwnerPendingItem, WeeklyTrend
 from app.services import analytics_service
 from app.services.filters import TicketFilters
 
@@ -43,3 +43,12 @@ def owner_pending(
     filters: TicketFilters = Depends(get_ticket_filters), db: Session = Depends(get_db)
 ) -> list[OwnerPendingItem]:
     return analytics_service.owner_pending(db, filters)
+
+
+@router.get("/trends", response_model=list[WeeklyTrend])
+def get_trends(
+    weeks: int = Query(12, ge=4, le=26),
+    filters: TicketFilters = Depends(get_ticket_filters),
+    db: Session = Depends(get_db),
+) -> list[WeeklyTrend]:
+    return analytics_service.weekly_trends(db, filters, weeks)

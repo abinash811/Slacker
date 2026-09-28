@@ -109,6 +109,7 @@ ui.shadcn.com.
 | Card | shadcn `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardAction`, `CardContent` |
 | Metric | `StatTile` / `StatTileSkeleton` |
 | Part-of-whole bar | shadcn `Progress` |
+| Chart | shadcn `Chart` (Recharts) inside `ChartCard` (pattern: shadcn `Card` + a "Show table" toggle). See Charts below |
 | Multi-select chips | `TagPicker` (shadcn `Toggle`s) |
 | Hint on hover | shadcn `Tooltip` (required on icon-only buttons) |
 | Navigation link | `NavItem` (`components/`, ghost `buttonVariants`) |
@@ -215,6 +216,26 @@ directly only for actions that aren't mutations.
   "Save view" shows only when the current filters aren't already a view.
 - **Pagination:** reset to page 1 whenever filters or sort change; keep the
   current page visible while the next one loads (`keepPreviousData`).
+
+## Charts
+
+Built with shadcn `Chart` (Recharts) and the dataviz skill's rules. The
+reference is `components/TrendCharts.tsx`.
+
+- **Form:** change over time = line; counts per period = columns
+  (`maxBarSize={24}`, `radius={[4, 4, 0, 0]}`). One y-axis per chart, never two.
+- **Color:** series use `--chart-1`, `--chart-2`… **in that fixed order**;
+  1–2 are validated for color-blind separation and contrast in light and dark
+  (re-run the skill's `validate_palette.js` if you change them). Status
+  colors (`success`, `warning`, `destructive`) are never series colors.
+- **Labels:** 2+ series get a legend (`ChartLegend`); a single series needs
+  none (the title names it). Label only the latest value at a line's end,
+  and skip end labels where lines converge. Text is never series-colored.
+- **Always:** hover tooltip (`ChartTooltip`), a "Show table" view
+  (`ChartCard`), hairline horizontal grid only, gaps for missing data (never a
+  fake zero), and a note when the latest period is still in progress.
+- **Loading:** charts are lazy-loaded (Recharts is ~100 kB gzipped) and show
+  `Skeleton`, `ErrorState`, or `EmptyState` like any data view.
 
 ## Performance
 

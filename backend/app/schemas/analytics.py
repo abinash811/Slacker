@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -41,3 +43,16 @@ class OwnerPendingItem(BaseModel):
     owner_id: int | None
     owner_name: str
     pending_count: int
+
+
+class WeeklyTrend(BaseModel):
+    """One ISO week (Monday 00:00 UTC) of ticket activity."""
+
+    week_start: datetime
+    created: int
+    resolved: int
+    # Median hours from creation to resolution, for tickets resolved this week.
+    # None when nothing was resolved (a gap, not zero).
+    median_resolution_hours: float | None
+    # Tickets whose SLA deadline fell in this week and was missed.
+    sla_breached: int

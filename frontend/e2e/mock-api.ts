@@ -175,6 +175,24 @@ export async function mockApi(
     }
     if (/^\/tickets\/\d+\/timeline$/.test(path)) return json([])
     if (path === '/analytics/summary') return json(summary)
+    if (path === '/analytics/trends') {
+      const weeks = Number(url.searchParams.get('weeks') ?? 12)
+      const monday = new Date()
+      monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7))
+      monday.setUTCHours(0, 0, 0, 0)
+      return json(
+        Array.from({ length: weeks }, (_, i) => {
+          const start = new Date(monday.getTime() - (weeks - 1 - i) * 7 * 86400e3)
+          return {
+            week_start: start.toISOString(),
+            created: [14, 18, 12, 21, 17, 25, 19, 23, 28, 22, 26, 9][i % 12],
+            resolved: [11, 16, 15, 17, 19, 20, 22, 18, 24, 25, 23, 7][i % 12],
+            median_resolution_hours: i === 3 ? null : [9.5, 8.2, 7.9, 0, 6.8, 7.4, 6.1, 5.8, 6.4, 5.2, 4.9, 4.6][i % 12],
+            sla_breached: [3, 2, 4, 1, 2, 5, 1, 2, 3, 1, 0, 1][i % 12],
+          }
+        }),
+      )
+    }
     if (path.startsWith('/analytics/')) return json([])
     return json({ detail: `Not mocked: ${path}` }, 404)
   })
