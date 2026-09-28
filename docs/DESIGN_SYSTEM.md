@@ -1,93 +1,234 @@
 # Design system
 
-This is the source of truth for how the Slacker dashboard looks and behaves.
-Any new page, dialog, or component must be built from what's documented here —
-not by eyeballing an existing page and copying its Tailwind classes by hand.
-If something you need isn't here, extend this doc in the same change that adds it.
+The source of truth for how Slacker looks and behaves. Every page, dialog, and
+component is assembled from what's documented here. If you need something
+that isn't here, add it here (and to `/design`) in the same change.
 
-## Typography
+**Three ways to check your work:**
 
-- **Typeface:** Inter, loaded via Google Fonts in `frontend/index.html`, applied
-  to `body` in `frontend/src/index.css`. Never set `font-family` anywhere else —
-  there should be zero matches for `font-family`/`fontFamily` outside `index.css`.
-- **Scale** — use these components, don't hand-write the classes:
+- **`/design`**: a page showing every shared component in every state (not
+  linked from the nav; open it directly). Source: `frontend/src/pages/DesignSystem.tsx`.
+- **`npm run lint`**: runs `scripts/check-design.mjs`, which fails on raw
+  colors, off-scale type, raw `<table>`/`<input>`/headings outside
+  `components/ui/`, inline styles, and Radix imports.
+- **This doc.**
 
-  | Use | Component | Renders as |
-  |---|---|---|
-  | Top-level page title (one per page) | `PageHeader` (`components/ui/typography.tsx`) | `h1 text-lg font-semibold` + optional `text-sm text-muted-foreground` description + right-aligned `actions` slot |
-  | Settings section title (inside a Settings tab) | `SettingsPageHeader` (`components/SettingsPageHeader.tsx`) | `h2 text-base font-semibold` + optional description |
-  | Card/section title | `CardTitle` (`components/ui/card.tsx`) | `h3 text-sm font-medium text-muted-foreground` (override className for emphasis, e.g. danger cards) |
-  | Secondary paragraph text | `Muted` (`components/ui/typography.tsx`) | `p text-sm text-muted-foreground` |
-  | Field labels, meta info, timestamps, table headers | `Caption` (`components/ui/typography.tsx`) | `text-xs text-muted-foreground`, pass `as="dt"` when used inside a `<dl>` |
-  | Empty list/card placeholder | `EmptyState` (`components/ui/typography.tsx`) | `variant="inline"` (filled block, dashboard panels) or `variant="bordered"` (settings lists) |
+## Stack
 
-  Don't invent a new heading size. If none of the above fits, that's a sign the
-  page needs a new documented pattern, not a one-off `text-xl font-bold`.
+- **Primitives:** [Base UI](https://base-ui.com) (`@base-ui/react`), styled
+  with Tailwind v4, following shadcn conventions. Radix is not used.
+- **Animations:** `tw-animate-css` (`animate-in`, `fade-in-0`, `zoom-in-95`…).
+- **Icons:** `lucide-react`, sized `size-4` by default (`size-3`/`size-3.5`
+  inside badges and small labels).
+- **Toasts:** Base UI Toast, via `toast` from `lib/toast.ts`.
 
-## Color
+## Tokens (`frontend/src/index.css`)
 
-All color comes from CSS custom properties defined once in `frontend/src/index.css`
-(`:root`), mapped into Tailwind via `@theme inline`, with a parallel (currently
-unused) `:root[data-theme="dark"]` block ready for a future theme toggle.
+Tokens are the only place raw values are allowed. Every token has a light
+value on `:root` and a dark value on `:root[data-theme="dark"]` (dark mode is
+ready but not switched on).
+
+### Color
 
 | Token | Use |
 |---|---|
-| `background` / `foreground` | page background / primary text |
-| `card` / `card-foreground` | card surfaces |
-| `muted` / `muted-foreground` | subdued backgrounds and secondary text |
-| `border` | all borders (also the global default via `* { border-color: var(--border) }`) |
-| `primary` / `primary-foreground` | primary buttons, active/selected states |
-| `accent` / `accent-foreground` | tag badges, subtle highlights |
-| `success` / `success-bg` | resolved/on-track states |
-| `warning` / `warning-bg` | medium-urgency states |
-| `danger` / `danger-bg` | SLA breaches, destructive actions, errors |
+| `background` / `foreground` | Page background / primary text |
+| `card` / `card-foreground` | Card and panel surfaces |
+| `popover` / `popover-foreground` | Floating surfaces: dropdowns, dialogs, toasts |
+| `muted` / `muted-foreground` | Subdued fills, hover fills, secondary text |
+| `border` | All borders (the global default) |
+| `input` | Borders of form controls (slightly darker than `border`) |
+| `primary` / `primary-foreground` | Primary buttons, links, checked controls |
+| `accent` / `accent-foreground` | Tags, selected chips, subtle highlights |
+| `ring` | Keyboard focus outline |
+| `success` / `success-bg` | Resolved, on-track, success feedback |
+| `warning` / `warning-bg` | Pending, medium urgency |
+| `danger` / `danger-bg` / `danger-foreground` | SLA breaches, errors, destructive actions |
+| `overlay` | The scrim behind dialogs |
 
-**Rule: never write a raw hex/rgb color or an inline `style={{ color: ... }}` in a
-component.** Always go through a Tailwind class backed by one of these tokens
-(`text-danger`, `bg-muted`, `border-border`, etc). This is currently 100% true
-across the codebase — keep it that way. If a new semantic color is needed, add
-the token to `index.css` (light + dark) first, then use it.
+`warning` is `#b45309` (amber-700), not amber-600, so text on white passes
+WCAG AA contrast.
+
+### Elevation (shadows)
+
+| Class | Use |
+|---|---|
+| `shadow-card` | Cards, lists, tables resting on the page |
+| `shadow-popover` | Dropdowns, tooltips |
+| `shadow-dialog` | Dialogs and confirm dialogs |
+| `shadow-toast` | Toasts |
+
+Never use `shadow-sm`/`md`/`lg` or `shadow-[…]`.
+
+### Radius
+
+`rounded-md` (8px, `--radius`) for controls and buttons, `rounded-lg` for
+cards, tables, and dialogs, `rounded-full` for badges and chips.
+
+### Motion
+
+| What | Duration | Classes |
+|---|---|---|
+| Hover / press color changes | 150ms | `transition-colors duration-150 ease-standard` |
+| Dropdowns, tooltips open/close | 100ms | fade + zoom-95 (built into `Select`, `Tooltip`) |
+| Dialogs open/close | 150ms | fade + zoom-95 (built into `DialogContent`) |
+| Toast enter/exit | 200ms | slide-up + fade (built into the toast viewport) |
+
+`ease-standard` is the only easing curve. Everything is disabled under
+`prefers-reduced-motion`. Don't animate layout (width/height) on data changes.
+
+## Typography
+
+Inter at 14px/1.5, set once on `<body>`. Never set a font anywhere else.
+
+| Use | Component | Renders |
+|---|---|---|
+| Page title (exactly one per page) | `PageHeader` | `h1 text-lg font-semibold` + description + `actions` |
+| Section title (Settings tabs, page sections) | `SectionHeader` | `h2 text-base font-semibold` + description + `actions`; owns its `mb-4` |
+| Card title | `CardTitle` | `h3 text-sm font-medium text-muted-foreground`; `tone="strong"` or `tone="danger"` |
+| Group label (form sections, sidebar lists) | `SectionLabel` | `text-xs font-semibold uppercase tracking-wide` |
+| Secondary paragraph | `Muted` | `text-sm text-muted-foreground` |
+| Meta, timestamps, read-only field labels | `Caption` | `text-xs text-muted-foreground` (`as="dt"` in a `<dl>`) |
+| Stat values | `StatTile` | `text-2xl font-semibold tabular-nums`, the only larger size |
+
+Use `tabular-nums` wherever numbers line up in columns. Don't invent a size;
+`text-xl` and larger, and `font-bold`, fail the lint check.
 
 ## Components
 
-Shared primitives live in `frontend/src/components/ui/`: `button`, `card`,
-`badge`, `dialog`, `input`, `label`, `select`, `share-bar`, `typography`.
-Composite, feature-level components (`FilterBar`, `CreateTicketDialog`,
-`StatTile`, `StatusPriorityBadges`, `SettingsPageHeader`, `TagPicker`) live in
-`components/`. Before writing new markup for something that looks like a
-button, badge, card, dialog, form field, page header, or empty state — **use
-the existing component**, don't recreate its classes inline.
+Primitives live in `frontend/src/components/ui/`. Product-level compositions
+live in `frontend/src/components/`.
 
-The "+ New" dialog pattern (`AddDialog` in `FormFields.tsx`, the role/team
-dialogs in `TeamsPermissions.tsx`) is the standard way to add an item to a
-list — a small `Dialog` triggered by a `Button` with a `Plus` icon, never a
-permanently-visible inline add form.
+| Need | Use |
+|---|---|
+| Button | `Button`: variants `default`, `outline`, `secondary`, `ghost`, `destructive`, `destructive-ghost`, `link`; sizes `default`, `sm`, `icon`, `icon-sm`; `loading` shows a spinner and disables it. Render as a link with `render={<Link to=… />} nativeButton={false}` |
+| Text input / textarea | `Input`, `Textarea` |
+| Dropdown | `Select` (string values, `null` = nothing chosen, `emptyLabel` adds a clearable "Unassigned"/"All …" row) |
+| Checkbox | `Checkbox` (label included) |
+| Form field | `Field` (label + control + `hint` or `error`); `required={false}` appends "(optional)" |
+| Group of fields in a long form | `FieldSection` |
+| Dialog | `Dialog`, `DialogTrigger render={<Button/>}`, `DialogContent size="sm/md/lg"`, `DialogHeader`, `DialogTitle`, `DialogDescription` (always include one), `DialogFooter` |
+| "+ New" item flow | `CreateItemDialog` (`components/`) |
+| Destructive confirmation | `ConfirmDialog` |
+| Data table | `Table`, `TableHeader`, `TableHead` (`sort`/`onSort`), `TableBody`, `TableRow` (`interactive`, `tone="danger"`), `TableCell` (`muted`, `align`), `TableMessage`, `TableSkeleton` |
+| Status pill | `Badge` (`neutral`, `accent`, `success`, `warning`, `danger`); tickets use `StatusBadge`, `PriorityBadge`, `SlaBadge` |
+| Card | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent` |
+| Metric | `StatTile` / `StatTileSkeleton` |
+| Part-of-whole bar | `ShareBar` |
+| Hint on hover | `Tooltip` (required on icon-only buttons) |
+| Navigation link | `NavItem` (`components/`) |
 
-## Interaction rules
+## States
 
-- **Hover:** rows and nav items use `hover:bg-muted/50` (or `/40`, `/50` depending
-  on surface) and `hover:text-foreground` on muted text. Table header cells that
-  sort get `hover:text-foreground` too, since they're clickable.
-- **Transitions:** interactive elements that change background/text on
-  hover/active use `transition-colors`.
-- **Status color-coding is never color-alone:** a danger/warning/success state
-  always pairs the token color with an icon (`AlertTriangle`, `CheckCircle2`)
-  and/or text label (e.g. "Breached", "On track") — see `StatusPriorityBadges.tsx`
-  and the SLA cell in `Tickets.tsx`.
-- **Row emphasis:** a row needing attention (SLA-breached tickets) gets
-  `border-l-danger bg-danger-bg/30` rather than changing text color alone.
-- **Empty states:** always through the `EmptyState` component (see Typography
-  table above), never a bare centered `<p>`.
-- **Forms:** always `Label` + `Input`/`Select` pairs from `components/ui`,
-  grouped visually with a `Section`-style wrapper when a dialog has more than
-  one logical group of fields (see `CreateTicketDialog.tsx`).
+Every interactive element and every data view must handle all of its states.
+
+### Interaction states
+
+| State | Treatment |
+|---|---|
+| Hover | Fill `bg-muted` (buttons, nav) or `bg-muted/50` (rows, list items); muted text goes to `text-foreground` |
+| Pressed | Buttons nudge down 1px (`active:translate-y-px`) |
+| Keyboard focus | `focus-ring` utility: 2px `ring`-colored outline, 2px offset, on `:focus-visible` only. Form controls use a border + soft ring instead. Every clickable thing gets one, and ui/ primitives include it |
+| Selected / active | `bg-muted text-foreground` (nav, list); `aria-pressed` / `aria-current` / `aria-sort` set accordingly |
+| Disabled | `opacity-50` and no pointer events. Explain why nearby when it isn't obvious (e.g. a placeholder saying "Everyone is already a member") |
+| Busy | `Button loading`; controls disable while their mutation is pending |
+| Invalid | `aria-invalid` on the control (red border + ring) and `Field error="…"` |
+
+### Loading
+
+- **Lists, tables, cards:** `Skeleton` / `TableSkeleton` / `StatTileSkeleton`
+  shaped like the content. Never a blank area, never a centered spinner for
+  a whole page.
+- **Whole page (detail views):** a skeleton of the page layout.
+- **A single action:** `Button loading`.
+- Only show skeletons on the first load (`isPending`); keep stale data on screen while refetching.
+
+### Empty
+
+Always `EmptyState`, with `variant="plain"` inside a card or table
+(`TableMessage`) and `variant="bordered"` standalone on a page. Distinguish:
+
+- **Nothing exists yet:** say what will appear and how ("No tags yet —
+  Create one so people can label tickets"), and offer the create action if the
+  user can take it.
+- **Filters hide everything:** "No tickets match these filters" + a
+  **Clear filters** button.
+- **Good news:** "Nothing pending" with a `CheckCircle2` icon.
+
+### Errors
+
+| Situation | Use |
+|---|---|
+| A list, card, or page failed to load | `ErrorState` with `onRetry` (inside a card or table: `plain`; standalone: `bordered`) |
+| A dialog's submit failed | `Alert tone="danger"` inside the dialog, above the footer; keep the dialog open and keep the input |
+| A field is invalid | `Field error` + `aria-invalid`; validate on submit, then live |
+| A background action failed (select change, archive, …) | Error toast; automatic, see below |
+| Unknown URL / missing record | `NotFound` |
+| A render crash | `ErrorBoundary` (wraps every route in `Layout`) |
+
+`describeError(error)` (`lib/api.ts`) turns any error into one readable
+sentence. Always use it; never show raw JSON or status codes.
+
+### Feedback (toasts)
+
+Mutations report their outcome automatically through the React Query
+`MutationCache` (`main.tsx`), configured per hook with `meta` in
+`hooks/useApi.ts`:
+
+- `meta.success`: success toast text (a string, or a function of the variables).
+- `meta.errorTitle`: error toast title; the description comes from `describeError`.
+- `meta.inlineError: true`: the UI shows the error itself (create dialogs), so no toast.
+
+Toasts confirm; they don't carry critical information. Success toasts
+disappear after 4 seconds and error toasts after 8. Call `toast.success/error/info`
+directly only for actions that aren't mutations.
+
+## Patterns
+
+- **Adding an item to a list:** a `+ New` `Button size="sm"` in the
+  `SectionHeader` actions opens a `CreateItemDialog`. Never use a permanently
+  visible inline add form (the team-member form, which is part of the member
+  table, is the exception).
+- **Destructive actions** (remove, delete): `destructive-ghost` trigger → `ConfirmDialog`
+  with a specific title ("Remove Priya?") and what happens next. Reversible
+  actions (Archive/Restore) don't need confirmation.
+- **Clickable rows:** `TableRow interactive` for the mouse, plus a real
+  `<Link>` in the first cell for keyboard and screen-reader users.
+- **Rows needing attention:** `TableRow tone="danger"`, always paired with a
+  badge or icon in a cell. Status is never shown by color alone.
+- **Forms:** `<form onSubmit>` so Enter submits; footer order is Cancel (outline) then
+  the primary action, right-aligned.
+
+## Writing
+
+- **Sentence case everywhere:** "Create ticket", "Custom fields", "Mobile number".
+  Proper nouns stay capitalized ("Slack", "SLA").
+- **Buttons are verbs plus the object:** "Create tag", "Remove member", "Save".
+  Avoid "OK", "Submit", and "Yes".
+- **Errors:** the title says what failed ("Couldn't save tag"); the body says
+  why or what to do next, in plain words. Never blame the user; never show
+  codes or JSON.
+- **Empty states:** a title saying what's empty, one line saying why or what to do, then an action.
+- **Validation:** tell the user what to do ("Choose a team."), not what went wrong ("Team is required").
+- **Placeholders:** examples ("e.g. Billing"), never instructions; a field's label and hint carry the meaning.
+- Use "—" for a missing value, "…" (one character) for in-progress text ("Creating…").
+
+## Accessibility checklist
+
+- One `h1` per page (`PageHeader`); headings don't skip levels.
+- Every control has a visible label (`Field`) or an `aria-label`.
+- Every icon-only button has an `aria-label` and a `Tooltip`; decorative icons get `aria-hidden`.
+- Every dialog has a `DialogTitle` and a `DialogDescription`.
+- Everything works with the keyboard: rows have a link, sort headers are buttons, and chips are toggle buttons.
+- Status is never shown by color alone.
 
 ## Adding something new
 
-1. Check this doc and the `components/ui/` + `components/` folders first.
-2. If an existing component fits, use it — don't hand-roll the same visual
-   result with raw Tailwind classes.
-3. If nothing fits, build the new primitive in `components/ui/`, document it
-   here in the same change, then use it.
-4. Never introduce a new font, a new heading size, or a raw color value
-   without adding it to this doc first.
+1. Check this doc, `/design`, and `components/ui/` first.
+2. If an existing component fits, use it. Extend it with a variant or prop
+   rather than overriding its classes from outside.
+3. If nothing fits, build it in `components/ui/` on Base UI and tokens, add
+   it to `/design` and to this doc, then use it.
+4. New color, shadow, or motion? Add the token to `index.css` (light and dark) and
+   the table above first.
+5. `npm run lint` must pass.

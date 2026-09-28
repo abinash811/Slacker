@@ -1,14 +1,47 @@
-import { useEffect, useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { useState } from 'react'
+import { Plus } from 'lucide-react'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Field, FieldSection } from '@/components/ui/field'
 import { Input, Textarea } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select } from '@/components/ui/select'
 import { TagPicker } from '@/components/TagPicker'
 import { useCategories, useCreateTicket, useCustomFields, useTags, useTeams, useUsers } from '@/hooks/useApi'
+import { describeError } from '@/lib/api'
+import { PRIORITY_OPTIONS, toOptions } from '@/lib/tickets'
 import type { TicketPriority } from '@/types/api'
 
-const PRIORITIES: TicketPriority[] = ['low', 'medium', 'high', 'urgent']
+const EMPTY_FORM = {
+  title: '',
+  description: '',
+  customer: '',
+  business_id: '',
+  mobile_number: '',
+  doctor_name: '',
+  category_id: null as string | null,
+  team_id: null as string | null,
+  priority: 'medium' as TicketPriority,
+  owner_id: null as string | null,
+}
+
+const REQUIRED = ['title', 'description', 'customer', 'category_id', 'team_id'] as const
+const REQUIRED_MESSAGE: Record<(typeof REQUIRED)[number], string> = {
+  title: 'Add a short title.',
+  description: 'Describe the issue.',
+  customer: 'Enter the customer or account.',
+  category_id: 'Choose a category.',
+  team_id: 'Choose a team.',
+}
 
 export function CreateTicketDialog() {
   const [open, setOpen] = useState(false)
@@ -19,220 +52,207 @@ export function CreateTicketDialog() {
   const { data: tags } = useTags(false)
   const createTicket = useCreateTicket()
 
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    customer: '',
-    business_id: '',
-    mobile_number: '',
-    doctor_name: '',
-    category_id: '',
-    team_id: '',
-    priority: 'medium' as TicketPriority,
-    owner_id: '',
-  })
+  const [form, setForm] = useState(EMPTY_FORM)
   const [customValues, setCustomValues] = useState<Record<number, string>>({})
   const [tagIds, setTagIds] = useState<number[]>([])
+  const [submitted, setSubmitted] = useState(false)
 
-  useEffect(() => {
-    if (form.team_id) return
-    const defaultTeam = (teams ?? []).find((t) => t.is_default)
-    if (defaultTeam) setForm((f) => ({ ...f, team_id: String(defaultTeam.id) }))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teams])
+  const defaultTeamId = (teams ?? []).find((t) => t.is_default)?.id
+  const teamId = form.team_id ?? (defaultTeamId !== undefined ? String(defaultTeamId) : null)
+  const values = { ...form, team_id: teamId }
 
-  const canSubmit = form.title && form.description && form.customer && form.category_id && form.team_id
+  const errors = Object.fromEntries(
+    REQUIRED.filter((key) => !values[key]).map((key) => [key, REQUIRED_MESSAGE[key]]),
+  ) as Partial<Record<(typeof REQUIRED)[number], string>>
+  const showError = (key: (typeof REQUIRED)[number]) => (submitted ? errors[key] : undefined)
 
-  function reset() {
-    const defaultTeam = (teams ?? []).find((t) => t.is_default)
-    setForm({
-      title: '',
-      description: '',
-      customer: '',
-      business_id: '',
-      mobile_number: '',
-      doctor_name: '',
-      category_id: '',
-      team_id: defaultTeam ? String(defaultTeam.id) : '',
-      priority: 'medium',
-      owner_id: '',
-    })
-    setCustomValues({})
-    setTagIds([])
+  function set<K extends keyof typeof EMPTY_FORM>(key: K, value: (typeof EMPTY_FORM)[K]) {
+    setForm((f) => ({ ...f, [key]: value }))
   }
 
-  async function handleSubmit() {
-    if (!canSubmit) return
-    await createTicket.mutateAsync({
-      title: form.title,
-      description: form.description,
-      customer: form.customer,
-      business_id: form.business_id || undefined,
-      mobile_number: form.mobile_number || undefined,
-      doctor_name: form.doctor_name || undefined,
-      category_id: Number(form.category_id),
-      team_id: Number(form.team_id),
-      priority: form.priority,
-      owner_id: form.owner_id ? Number(form.owner_id) : null,
-      push_to_slack: true,
-      custom_field_values: Object.entries(customValues)
-        .filter(([, value]) => value)
-        .map(([field_definition_id, value]) => ({ field_definition_id: Number(field_definition_id), value })),
-      tag_ids: tagIds,
-    })
-    reset()
-    setOpen(false)
+  function reset() {
+    setForm(EMPTY_FORM)
+    setCustomValues({})
+    setTagIds([])
+    setSubmitted(false)
+    createTicket.reset()
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSubmitted(true)
+    if (Object.keys(errors).length > 0) return
+    try {
+      await createTicket.mutateAsync({
+        title: values.title,
+        description: values.description,
+        customer: values.customer,
+        business_id: values.business_id || undefined,
+        mobile_number: values.mobile_number || undefined,
+        doctor_name: values.doctor_name || undefined,
+        category_id: Number(values.category_id),
+        team_id: Number(values.team_id),
+        priority: values.priority,
+        owner_id: values.owner_id ? Number(values.owner_id) : null,
+        push_to_slack: true,
+        custom_field_values: Object.entries(customValues)
+          .filter(([, value]) => value)
+          .map(([field_definition_id, value]) => ({ field_definition_id: Number(field_definition_id), value })),
+        tag_ids: tagIds,
+      })
+      setOpen(false)
+      reset()
+    } catch {
+      // Shown inline via createTicket.error below.
+    }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>Create Ticket</Button>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        if (!next) reset()
+      }}
+    >
+      <DialogTrigger render={<Button />}>
+        <Plus /> Create ticket
       </DialogTrigger>
-      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+      <DialogContent size="lg">
         <DialogHeader>
           <DialogTitle>Create ticket</DialogTitle>
+          <DialogDescription>It's posted to the team's Slack channel as soon as you create it.</DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-5">
-          <Section title="Basics">
-            <Field label="Title" htmlFor="ticket-title">
-              <Input id="ticket-title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+        <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
+          <FieldSection title="Basics">
+            <Field label="Title" htmlFor="ticket-title" error={showError('title')}>
+              <Input
+                id="ticket-title"
+                aria-invalid={!!showError('title')}
+                value={form.title}
+                onChange={(e) => set('title', e.target.value)}
+                placeholder="e.g. Prescriptions not syncing"
+              />
             </Field>
-            <Field label="Description" htmlFor="ticket-description">
+            <Field label="Description" htmlFor="ticket-description" error={showError('description')}>
               <Textarea
                 id="ticket-description"
+                aria-invalid={!!showError('description')}
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                onChange={(e) => set('description', e.target.value)}
               />
             </Field>
-          </Section>
+          </FieldSection>
 
-          <Section title="Contact">
-            <Field label="Customer / Account" htmlFor="ticket-customer">
-              <Input id="ticket-customer" value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })} />
+          <FieldSection title="Contact">
+            <Field label="Customer / account" htmlFor="ticket-customer" error={showError('customer')}>
+              <Input
+                id="ticket-customer"
+                aria-invalid={!!showError('customer')}
+                value={form.customer}
+                onChange={(e) => set('customer', e.target.value)}
+              />
             </Field>
-            <div className="grid grid-cols-3 gap-3">
-              <Field label="Business ID" htmlFor="ticket-business-id">
-                <Input id="ticket-business-id" value={form.business_id} onChange={(e) => setForm({ ...form, business_id: e.target.value })} />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <Field label="Business ID" htmlFor="ticket-business-id" required={false}>
+                <Input id="ticket-business-id" value={form.business_id} onChange={(e) => set('business_id', e.target.value)} />
               </Field>
-              <Field label="Mobile Number" htmlFor="ticket-mobile-number">
-                <Input id="ticket-mobile-number" value={form.mobile_number} onChange={(e) => setForm({ ...form, mobile_number: e.target.value })} />
+              <Field label="Mobile number" htmlFor="ticket-mobile-number" required={false}>
+                <Input
+                  id="ticket-mobile-number"
+                  type="tel"
+                  value={form.mobile_number}
+                  onChange={(e) => set('mobile_number', e.target.value)}
+                />
               </Field>
-              <Field label="Doctor Name" htmlFor="ticket-doctor-name">
-                <Input id="ticket-doctor-name" value={form.doctor_name} onChange={(e) => setForm({ ...form, doctor_name: e.target.value })} />
+              <Field label="Doctor name" htmlFor="ticket-doctor-name" required={false}>
+                <Input id="ticket-doctor-name" value={form.doctor_name} onChange={(e) => set('doctor_name', e.target.value)} />
               </Field>
             </div>
-          </Section>
+          </FieldSection>
 
-          <Section title="Routing">
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Category">
-                <SimpleSelect
+          <FieldSection title="Routing">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <Field label="Category" htmlFor="ticket-category" error={showError('category_id')}>
+                <Select
+                  id="ticket-category"
+                  invalid={!!showError('category_id')}
                   value={form.category_id}
-                  onChange={(v) => setForm({ ...form, category_id: v })}
-                  options={(categories ?? []).map((c) => ({ value: String(c.id), label: c.name }))}
+                  onValueChange={(v) => set('category_id', v)}
+                  options={toOptions(categories)}
                 />
               </Field>
-              <Field label="Team">
-                <SimpleSelect
-                  value={form.team_id}
-                  onChange={(v) => setForm({ ...form, team_id: v })}
-                  options={(teams ?? []).map((t) => ({ value: String(t.id), label: t.name }))}
+              <Field label="Team" htmlFor="ticket-team" error={showError('team_id')}>
+                <Select
+                  id="ticket-team"
+                  invalid={!!showError('team_id')}
+                  value={teamId}
+                  onValueChange={(v) => set('team_id', v)}
+                  options={toOptions(teams)}
                 />
               </Field>
-              <Field label="Priority">
-                <SimpleSelect
+              <Field label="Priority" htmlFor="ticket-priority">
+                <Select
+                  id="ticket-priority"
                   value={form.priority}
-                  onChange={(v) => setForm({ ...form, priority: v as TicketPriority })}
-                  options={PRIORITIES.map((p) => ({ value: p, label: p[0].toUpperCase() + p.slice(1) }))}
+                  onValueChange={(v) => v && set('priority', v as TicketPriority)}
+                  options={PRIORITY_OPTIONS}
                 />
               </Field>
             </div>
-            <Field label="Owner (optional)">
-              <SimpleSelect
+            <Field label="Owner" htmlFor="ticket-owner" required={false}>
+              <Select
+                id="ticket-owner"
                 value={form.owner_id}
-                onChange={(v) => setForm({ ...form, owner_id: v })}
-                options={(users ?? []).map((u) => ({ value: String(u.id), label: u.name }))}
-                allowEmpty
+                onValueChange={(v) => set('owner_id', v)}
+                emptyLabel="Unassigned"
+                placeholder="Unassigned"
+                options={toOptions(users)}
               />
             </Field>
-          </Section>
+          </FieldSection>
 
           {((customFields ?? []).length > 0 || (tags ?? []).length > 0) && (
-            <Section title="Additional details">
+            <FieldSection title="Additional details">
               {(customFields ?? []).map((field) => (
-                <Field key={field.id} label={field.label}>
+                <Field key={field.id} label={field.label} htmlFor={`ticket-cf-${field.id}`} required={false}>
                   {field.field_type === 'dropdown' ? (
-                    <SimpleSelect
-                      value={customValues[field.id] ?? ''}
-                      onChange={(v) => setCustomValues({ ...customValues, [field.id]: v })}
+                    <Select
+                      id={`ticket-cf-${field.id}`}
+                      value={customValues[field.id] || null}
+                      onValueChange={(v) => setCustomValues({ ...customValues, [field.id]: v ?? '' })}
+                      emptyLabel="None"
                       options={(field.options ?? []).map((o) => ({ value: o, label: o }))}
                     />
                   ) : (
                     <Input
+                      id={`ticket-cf-${field.id}`}
                       value={customValues[field.id] ?? ''}
                       onChange={(e) => setCustomValues({ ...customValues, [field.id]: e.target.value })}
                     />
                   )}
                 </Field>
               ))}
-              <Field label="Tags (optional)">
+              <Field label="Tags" required={false}>
                 <TagPicker tags={tags ?? []} selectedIds={tagIds} onChange={setTagIds} />
               </Field>
-            </Section>
+            </FieldSection>
           )}
 
-          <Button disabled={!canSubmit || createTicket.isPending} onClick={handleSubmit}>
-            {createTicket.isPending ? 'Creating…' : 'Create & push to Slack'}
-          </Button>
-        </div>
+          {createTicket.isError && (
+            <Alert tone="danger" title="Couldn't create ticket">
+              {describeError(createTicket.error)}
+            </Alert>
+          )}
+
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" type="button" />}>Cancel</DialogClose>
+            <Button type="submit" loading={createTicket.isPending}>
+              {createTicket.isPending ? 'Creating…' : 'Create & post to Slack'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-3 border-t border-border pt-4 first:border-0 first:pt-0">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
-      {children}
-    </div>
-  )
-}
-
-function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor={htmlFor}>{label}</Label>
-      {children}
-    </div>
-  )
-}
-
-function SimpleSelect({
-  value,
-  onChange,
-  options,
-  allowEmpty,
-}: {
-  value: string
-  onChange: (v: string) => void
-  options: { value: string; label: string }[]
-  allowEmpty?: boolean
-}) {
-  return (
-    <Select value={value || undefined} onValueChange={(v) => onChange(v === '__none' ? '' : v)}>
-      <SelectTrigger>
-        <SelectValue placeholder="Select…" />
-      </SelectTrigger>
-      <SelectContent>
-        {allowEmpty && <SelectItem value="__none">Unassigned</SelectItem>}
-        {options.map((opt) => (
-          <SelectItem key={opt.value} value={opt.value}>
-            {opt.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
   )
 }

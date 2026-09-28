@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useEffect } from 'react'
+import { Select } from '@/components/ui/select'
+import { Caption } from '@/components/ui/typography'
 import { useUsers } from '@/hooks/useApi'
 import { getCurrentUserEmail, setCurrentUserEmail } from '@/lib/devUser'
 
@@ -11,39 +12,28 @@ import { getCurrentUserEmail, setCurrentUserEmail } from '@/lib/devUser'
  */
 export function DevUserSwitcher() {
   const { data: users } = useUsers()
-  const [email, setEmail] = useState<string | null>(getCurrentUserEmail())
+  const email = getCurrentUserEmail() ?? users?.[0]?.email ?? null
 
   useEffect(() => {
-    if (!email && users && users.length > 0) {
-      setCurrentUserEmail(users[0].email)
-      setEmail(users[0].email)
-    }
-  }, [users, email])
+    if (!getCurrentUserEmail() && users && users.length > 0) setCurrentUserEmail(users[0].email)
+  }, [users])
 
   if (!users) return null
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-muted-foreground">Acting as</span>
+      <Caption>Acting as</Caption>
       <Select
-        value={email ?? undefined}
+        aria-label="Acting as"
+        className="w-auto min-w-36"
+        value={email}
         onValueChange={(v) => {
+          if (!v) return
           setCurrentUserEmail(v)
-          setEmail(v)
           window.location.reload()
         }}
-      >
-        <SelectTrigger className="w-auto min-w-36">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {users.map((u) => (
-            <SelectItem key={u.id} value={u.email}>
-              {u.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        options={users.map((u) => ({ value: u.email, label: u.name }))}
+      />
     </div>
   )
 }

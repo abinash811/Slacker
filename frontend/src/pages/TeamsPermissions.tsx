@@ -1,13 +1,29 @@
 import { useState } from 'react'
-import { Plus, UserPlus, UsersRound } from 'lucide-react'
+import { ShieldCheck, UserPlus, UsersRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import { ConfirmDialog } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { SettingsPageHeader as PageHeader } from '@/components/SettingsPageHeader'
+import { Field } from '@/components/ui/field'
+import { Select } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableMessage,
+  TableRow,
+  TableSkeleton,
+} from '@/components/ui/table'
+import { Caption, PageHeader, SectionHeader, SectionLabel } from '@/components/ui/typography'
+import { CreateItemDialog } from '@/components/CreateItemDialog'
 import { cn } from '@/lib/utils'
+import { toOptions } from '@/lib/tickets'
 import {
   useAddTeamMember,
   useCreateRole,
@@ -21,365 +37,312 @@ import {
   useUpdateTeamMemberRole,
   useUsers,
 } from '@/hooks/useApi'
-import type { Role, Team } from '@/types/api'
 
 export function RolesSection() {
-  const { data: roles } = useRoles(true)
+  const roles = useRoles(true)
   const createRole = useCreateRole()
   const updateRole = useUpdateRole()
 
+  const [name, setName] = useState('')
+  const [perms, setPerms] = useState({ create: false, edit: false, delete: false })
+
   return (
     <div>
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <PageHeader
-          title="Roles"
-          description="Control who can create, edit, or delete inside Settings — not tickets elsewhere in the dashboard."
-        />
-        <RoleFormDialog
-          onSubmit={(payload) => createRole.mutate(payload)}
-          trigger={
-            <Button size="sm">
-              <Plus className="h-4 w-4" /> New Role
-            </Button>
-          }
-        />
-      </div>
-      <div className="overflow-hidden rounded-lg border border-border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-              <th className="px-4 py-2 font-medium">Name</th>
-              <th className="px-4 py-2 font-medium">Settings permissions</th>
-              <th className="px-4 py-2 font-medium">Status</th>
-              <th className="px-4 py-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {(roles ?? []).map((role) => {
-              const perms = [
+      <SectionHeader
+        title="Roles"
+        description="Control who can create, edit, or delete inside Settings — not tickets elsewhere in the dashboard."
+        actions={
+          <CreateItemDialog
+            noun="role"
+            triggerLabel="New role"
+            description="Permissions apply to the Settings panel only (Roles, Teams, Categories, SLA, Tags, Custom fields)."
+            canSubmit={!!name.trim()}
+            onSubmit={() =>
+              createRole.mutateAsync({
+                name: name.trim(),
+                can_create_settings: perms.create,
+                can_edit_settings: perms.edit,
+                can_delete_settings: perms.delete,
+              })
+            }
+            onReset={() => {
+              setName('')
+              setPerms({ create: false, edit: false, delete: false })
+            }}
+          >
+            <Field label="Name" htmlFor="role-name">
+              <Input id="role-name" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sales lead" />
+            </Field>
+            <fieldset className="flex flex-col gap-2.5">
+              <legend className="mb-2 text-sm font-medium">Settings permissions</legend>
+              <Checkbox label="Can create" checked={perms.create} onCheckedChange={(v) => setPerms({ ...perms, create: v })} />
+              <Checkbox label="Can edit" checked={perms.edit} onCheckedChange={(v) => setPerms({ ...perms, edit: v })} />
+              <Checkbox label="Can delete" checked={perms.delete} onCheckedChange={(v) => setPerms({ ...perms, delete: v })} />
+            </fieldset>
+          </CreateItemDialog>
+        }
+      />
+      <Table>
+        <TableHeader>
+          <tr>
+            <TableHead>Name</TableHead>
+            <TableHead>Settings permissions</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead align="right">
+              <span className="sr-only">Actions</span>
+            </TableHead>
+          </tr>
+        </TableHeader>
+        <TableBody>
+          {roles.isPending ? (
+            <TableSkeleton columns={4} rows={3} />
+          ) : roles.isError ? (
+            <TableMessage colSpan={4}>
+              <ErrorState title="Couldn't load roles" error={roles.error} onRetry={() => roles.refetch()} retrying={roles.isFetching} />
+            </TableMessage>
+          ) : roles.data.length === 0 ? (
+            <TableMessage colSpan={4}>
+              <EmptyState icon={ShieldCheck} title="No roles yet" description="Create a role to control who can change Settings." />
+            </TableMessage>
+          ) : (
+            roles.data.map((role) => {
+              const granted = [
                 role.can_create_settings && 'Create',
                 role.can_edit_settings && 'Edit',
                 role.can_delete_settings && 'Delete',
               ].filter(Boolean) as string[]
               return (
-                <tr
-                  key={role.id}
-                  className={cn('border-b border-border last:border-0 hover:bg-muted/40', role.is_archived && 'bg-muted/20')}
-                >
-                  <td className={cn('px-4 py-3 font-medium', role.is_archived && 'text-muted-foreground')}>{role.name}</td>
-                  <td className="px-4 py-3">
-                    {perms.length > 0 ? (
+                <TableRow key={role.id} className={cn(role.is_archived && 'bg-muted/20')}>
+                  <TableCell className={cn('font-medium', role.is_archived && 'text-muted-foreground')}>{role.name}</TableCell>
+                  <TableCell>
+                    {granted.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
-                        {perms.map((p) => (
+                        {granted.map((p) => (
                           <Badge key={p} variant="accent">
                             {p}
                           </Badge>
                         ))}
                       </div>
                     ) : (
-                      <span className="text-xs text-muted-foreground">No access</span>
+                      <Caption>No access</Caption>
                     )}
-                  </td>
-                  <td className="px-4 py-3">
+                  </TableCell>
+                  <TableCell>
                     {role.is_archived ? <Badge variant="neutral">Archived</Badge> : <Badge variant="success">Active</Badge>}
-                  </td>
-                  <td className="px-4 py-3 text-right">
+                  </TableCell>
+                  <TableCell align="right">
                     <Button variant="ghost" size="sm" onClick={() => updateRole.mutate({ id: role.id, is_archived: !role.is_archived })}>
-                      {role.is_archived ? 'Unarchive' : 'Archive'}
+                      {role.is_archived ? 'Restore' : 'Archive'}
                     </Button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )
-            })}
-            {(roles ?? []).length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                  No roles yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            })
+          )}
+        </TableBody>
+      </Table>
     </div>
   )
 }
 
-function RoleFormDialog({
-  trigger,
-  onSubmit,
-}: {
-  trigger: React.ReactNode
-  onSubmit: (payload: { name: string; can_create_settings: boolean; can_edit_settings: boolean; can_delete_settings: boolean }) => void
-}) {
-  const [open, setOpen] = useState(false)
-  const [name, setName] = useState('')
-  const [canCreate, setCanCreate] = useState(false)
-  const [canEdit, setCanEdit] = useState(false)
-  const [canDelete, setCanDelete] = useState(false)
-
-  function reset() {
-    setName('')
-    setCanCreate(false)
-    setCanEdit(false)
-    setCanDelete(false)
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>New role</DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="role-name">Name</Label>
-            <Input id="role-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sales Lead" />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            These control access to the Settings panel only (Roles, Teams, Categories, SLA, Tags, Custom Fields) — not
-            tickets elsewhere in the dashboard.
-          </p>
-          <div className="flex flex-col gap-2">
-            <PermissionCheckbox label="Can create in Settings" checked={canCreate} onChange={setCanCreate} />
-            <PermissionCheckbox label="Can edit in Settings" checked={canEdit} onChange={setCanEdit} />
-            <PermissionCheckbox label="Can delete in Settings" checked={canDelete} onChange={setCanDelete} />
-          </div>
-          <Button
-            className="mt-2"
-            disabled={!name}
-            onClick={() => {
-              onSubmit({ name, can_create_settings: canCreate, can_edit_settings: canEdit, can_delete_settings: canDelete })
-              reset()
-              setOpen(false)
-            }}
-          >
-            Create role
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function PermissionCheckbox({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string
-  checked: boolean
-  onChange: (v: boolean) => void
-}) {
-  return (
-    <label className="flex items-center gap-2 text-sm">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4" />
-      {label}
-    </label>
-  )
-}
-
 export function TeamsSection() {
-  const { data: teams } = useTeamsList()
+  const teams = useTeamsList()
   const createTeam = useCreateTeam()
   const setDefaultTeam = useSetDefaultTeam()
   const [selectedTeamId, setSelectedTeamId] = useState<number | undefined>(undefined)
-  const [addTeamOpen, setAddTeamOpen] = useState(false)
   const [newTeamName, setNewTeamName] = useState('')
 
-  const selectedTeam = (teams ?? []).find((t) => t.id === selectedTeamId)
+  const selectedTeam = (teams.data ?? []).find((t) => t.id === selectedTeamId)
 
   return (
-    <div>
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Teams"
         description="New tickets route to the default team automatically; only its members can reassign its locked support owner."
       />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">All teams</span>
-            <Dialog open={addTeamOpen} onOpenChange={setAddTeamOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="ghost">
-                  <Plus className="h-4 w-4" /> New
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>New team</DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="new-team-name">Name</Label>
-                    <Input id="new-team-name" value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} placeholder="e.g. Product" />
-                  </div>
-                  <Button
-                    disabled={!newTeamName}
-                    onClick={() => {
-                      createTeam.mutate(newTeamName, { onSuccess: (team) => setSelectedTeamId(team.id) })
-                      setNewTeamName('')
-                      setAddTeamOpen(false)
-                    }}
+        <section className="lg:col-span-1">
+          <div className="mb-2 flex h-8 items-center justify-between">
+            <SectionLabel as="h2">All teams</SectionLabel>
+            <CreateItemDialog
+              noun="team"
+              triggerVariant="ghost"
+              description="You can add members once it's created."
+              canSubmit={!!newTeamName.trim()}
+              onSubmit={() =>
+                createTeam.mutateAsync(newTeamName.trim(), { onSuccess: (team) => setSelectedTeamId(team.id) })
+              }
+              onReset={() => setNewTeamName('')}
+            >
+              <Field label="Name" htmlFor="new-team-name">
+                <Input id="new-team-name" autoFocus value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} placeholder="e.g. Product" />
+              </Field>
+            </CreateItemDialog>
+          </div>
+          {teams.isPending ? (
+            <div className="flex flex-col gap-1 rounded-lg border border-border p-1">
+              {Array.from({ length: 3 }, (_, i) => (
+                <Skeleton key={i} className="m-2 h-5" />
+              ))}
+            </div>
+          ) : teams.isError ? (
+            <ErrorState variant="bordered" error={teams.error} onRetry={() => teams.refetch()} retrying={teams.isFetching} />
+          ) : teams.data.length === 0 ? (
+            <EmptyState variant="bordered" icon={UsersRound} title="No teams yet" description="Create a team to start routing tickets." />
+          ) : (
+            <ul className="flex flex-col gap-1 rounded-lg border border-border bg-card p-1 shadow-card">
+              {teams.data.map((team) => {
+                const selected = selectedTeamId === team.id
+                return (
+                  <li
+                    key={team.id}
+                    className={cn(
+                      'flex items-center justify-between gap-2 rounded-md pr-2 text-sm transition-colors duration-150 ease-standard hover:bg-muted/60',
+                      selected ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground',
+                    )}
                   >
-                    Create team
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-          <div className="flex flex-col gap-1 rounded-lg border border-border p-1">
-            {(teams ?? []).map((team: Team) => (
-              <div
-                key={team.id}
-                className={cn(
-                  'flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted',
-                  selectedTeamId === team.id ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground',
-                )}
-              >
-                <button onClick={() => setSelectedTeamId(team.id)} className="flex-1 text-left">
-                  {team.name}
-                </button>
-                {team.is_default ? (
-                  <Badge variant="accent">Default</Badge>
-                ) : (
-                  <Button variant="ghost" size="sm" onClick={() => setDefaultTeam.mutate(team.id)} disabled={setDefaultTeam.isPending}>
-                    Set default
-                  </Button>
-                )}
-              </div>
-            ))}
-            {(teams ?? []).length === 0 && (
-              <p className="px-3 py-4 text-center text-sm text-muted-foreground">No teams yet.</p>
-            )}
-          </div>
-        </div>
+                    <button
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => setSelectedTeamId(team.id)}
+                      className="focus-ring flex-1 rounded-md px-3 py-2 text-left hover:text-foreground"
+                    >
+                      {team.name}
+                    </button>
+                    {team.is_default ? (
+                      <Badge variant="accent">Default</Badge>
+                    ) : (
+                      <Button variant="ghost" size="sm" onClick={() => setDefaultTeam.mutate(team.id)} disabled={setDefaultTeam.isPending}>
+                        Set default
+                      </Button>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </section>
 
-        <div className="lg:col-span-2">
-          <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            <UserPlus className="h-3.5 w-3.5" />
-            {selectedTeam ? `${selectedTeam.name} members` : 'Members'}
+        <section className="lg:col-span-2">
+          <div className="mb-2 flex h-8 items-center">
+            <SectionLabel as="h2">
+              <UserPlus aria-hidden />
+              {selectedTeam ? `${selectedTeam.name} members` : 'Members'}
+            </SectionLabel>
           </div>
-          <div className="rounded-lg border border-border p-4">
+          <div className="rounded-lg border border-border bg-card p-4 shadow-card">
             {selectedTeamId ? (
               <TeamMembers teamId={selectedTeamId} />
             ) : (
-              <p className="flex items-center justify-center gap-2 py-8 text-center text-sm text-muted-foreground">
-                <UsersRound className="h-4 w-4" /> Pick a team on the left to view and manage its members.
-              </p>
+              <EmptyState icon={UsersRound} title="No team selected" description="Pick a team on the left to view and manage its members." />
             )}
           </div>
-        </div>
+        </section>
       </div>
     </div>
   )
 }
 
 function TeamMembers({ teamId }: { teamId: number }) {
-  const { data: team } = useTeamDetail(teamId)
+  const team = useTeamDetail(teamId)
   const { data: users } = useUsers()
   const { data: roles } = useRoles()
   const addMember = useAddTeamMember(teamId)
   const updateMemberRole = useUpdateTeamMemberRole(teamId)
   const removeMember = useRemoveTeamMember(teamId)
 
-  const [newUserId, setNewUserId] = useState('')
-  const [newRoleId, setNewRoleId] = useState('')
+  const [newUserId, setNewUserId] = useState<string | null>(null)
+  const [newRoleId, setNewRoleId] = useState<string | null>(null)
 
-  const existingUserIds = new Set((team?.members ?? []).map((m) => m.user.id))
+  const members = team.data?.members ?? []
+  const existingUserIds = new Set(members.map((m) => m.user.id))
   const availableUsers = (users ?? []).filter((u) => !existingUserIds.has(u.id))
 
   return (
     <div className="flex flex-col gap-4">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs text-muted-foreground">
-            <th className="py-2">Name</th>
-            <th className="py-2">Role</th>
-            <th className="py-2" />
+      <Table>
+        <TableHeader>
+          <tr>
+            <TableHead>Name</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead align="right">
+              <span className="sr-only">Actions</span>
+            </TableHead>
           </tr>
-        </thead>
-        <tbody>
-          {(team?.members ?? []).map((member) => (
-            <tr key={member.id} className="border-b border-border last:border-0 hover:bg-muted/60">
-              <td className="py-2 font-medium">{member.user.name}</td>
-              <td className="py-2">
-                <Select
-                  value={String(member.role.id)}
-                  onValueChange={(v) => updateMemberRole.mutate({ memberId: member.id, roleId: Number(v) })}
-                >
-                  <SelectTrigger className="w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(roles ?? []).map((r: Role) => (
-                      <SelectItem key={r.id} value={String(r.id)}>
-                        {r.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </td>
-              <td className="py-2 text-right">
-                <Button variant="ghost" size="sm" onClick={() => removeMember.mutate(member.id)}>
-                  Remove
-                </Button>
-              </td>
-            </tr>
-          ))}
-          {(team?.members ?? []).length === 0 && (
-            <tr>
-              <td colSpan={3} className="py-6 text-center text-sm text-muted-foreground">
-                No members yet — add one below.
-              </td>
-            </tr>
+        </TableHeader>
+        <TableBody>
+          {team.isPending ? (
+            <TableSkeleton columns={3} rows={3} />
+          ) : team.isError ? (
+            <TableMessage colSpan={3}>
+              <ErrorState title="Couldn't load members" error={team.error} onRetry={() => team.refetch()} retrying={team.isFetching} />
+            </TableMessage>
+          ) : members.length === 0 ? (
+            <TableMessage colSpan={3}>
+              <EmptyState title="No members yet" description="Add someone below to give them access to this team's tickets." />
+            </TableMessage>
+          ) : (
+            members.map((member) => (
+              <TableRow key={member.id}>
+                <TableCell className="font-medium">{member.user.name}</TableCell>
+                <TableCell>
+                  <Select
+                    aria-label={`Role for ${member.user.name}`}
+                    className="w-40"
+                    value={String(member.role.id)}
+                    onValueChange={(v) => v && updateMemberRole.mutate({ memberId: member.id, roleId: Number(v) })}
+                    options={toOptions(roles)}
+                  />
+                </TableCell>
+                <TableCell align="right">
+                  <ConfirmDialog
+                    trigger={<Button variant="destructive-ghost" size="sm" />}
+                    triggerLabel="Remove"
+                    title={`Remove ${member.user.name}?`}
+                    description={`They'll no longer be a member of ${team.data?.name ?? 'this team'}. You can add them back later.`}
+                    confirmLabel="Remove member"
+                    onConfirm={() => removeMember.mutateAsync(member.id)}
+                  />
+                </TableCell>
+              </TableRow>
+            ))
           )}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
 
-      <div className="flex items-end gap-2 rounded-md border border-dashed border-border bg-muted/30 p-3">
-        <div className="flex-1">
-          <Label className="mb-1.5 block text-xs">Add member</Label>
-          <Select value={newUserId} onValueChange={setNewUserId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select user…" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableUsers.map((u) => (
-                <SelectItem key={u.id} value={String(u.id)}>
-                  {u.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex-1">
-          <Label className="mb-1.5 block text-xs">Role</Label>
-          <Select value={newRoleId} onValueChange={setNewRoleId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select role…" />
-            </SelectTrigger>
-            <SelectContent>
-              {(roles ?? []).map((r: Role) => (
-                <SelectItem key={r.id} value={String(r.id)}>
-                  {r.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <Button
-          disabled={!newUserId || !newRoleId}
-          onClick={() => {
-            addMember.mutate({ user_id: Number(newUserId), role_id: Number(newRoleId) })
-            setNewUserId('')
-            setNewRoleId('')
-          }}
-        >
+      <form
+        className="flex flex-col gap-3 rounded-md border border-dashed border-border bg-muted/30 p-3 sm:flex-row sm:items-end"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (!newUserId || !newRoleId) return
+          addMember.mutate(
+            { user_id: Number(newUserId), role_id: Number(newRoleId) },
+            {
+              onSuccess: () => {
+                setNewUserId(null)
+                setNewRoleId(null)
+              },
+            },
+          )
+        }}
+      >
+        <Field label="Add member" htmlFor="add-member-user" className="flex-1">
+          <Select
+            id="add-member-user"
+            value={newUserId}
+            onValueChange={setNewUserId}
+            placeholder={availableUsers.length ? 'Select user…' : 'Everyone is already a member'}
+            disabled={availableUsers.length === 0}
+            options={toOptions(availableUsers)}
+          />
+        </Field>
+        <Field label="Role" htmlFor="add-member-role" className="flex-1">
+          <Select id="add-member-role" value={newRoleId} onValueChange={setNewRoleId} placeholder="Select role…" options={toOptions(roles)} />
+        </Field>
+        <Button type="submit" disabled={!newUserId || !newRoleId} loading={addMember.isPending}>
           Add
         </Button>
-      </div>
+      </form>
     </div>
   )
 }

@@ -1,11 +1,16 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
 import { SettingsShell } from '@/components/SettingsShell'
 import { Dashboard } from '@/pages/Dashboard'
+import { NotFound } from '@/pages/NotFound'
 import { Tickets } from '@/pages/Tickets'
 import { TicketDetail } from '@/pages/TicketDetail'
 import { RolesSection, TeamsSection } from '@/pages/TeamsPermissions'
 import { CategoriesSection, CustomFieldsSection, SlaSection, TagsSection } from '@/pages/FormFields'
+
+// Dev reference page — kept out of the main bundle.
+const DesignSystem = lazy(() => import('@/pages/DesignSystem').then((m) => ({ default: m.DesignSystem })))
 
 export default function App() {
   return (
@@ -23,9 +28,18 @@ export default function App() {
           <Route path="tags" element={<TagsSection />} />
           <Route path="custom-fields" element={<CustomFieldsSection />} />
         </Route>
+        <Route
+          path="/design"
+          element={
+            <Suspense fallback={null}>
+              <DesignSystem />
+            </Suspense>
+          }
+        />
         {/* Old bookmarked paths */}
         <Route path="/settings/teams" element={<Navigate to="/teams" replace />} />
         <Route path="/settings/fields" element={<Navigate to="/settings/custom-fields" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   )

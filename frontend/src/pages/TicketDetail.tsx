@@ -1,11 +1,17 @@
 import { useParams, Link } from 'react-router-dom'
+import { ArrowLeft, History } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Field } from '@/components/ui/field'
+import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
+import { Caption, PageHeader } from '@/components/ui/typography'
 import { PriorityBadge, StatusBadge, SlaBadge } from '@/components/StatusPriorityBadges'
 import { TagPicker } from '@/components/TagPicker'
-import { Caption } from '@/components/ui/typography'
+import { NotFound } from '@/pages/NotFound'
 import {
   useAssignTicket,
   useChangePriority,
@@ -21,25 +27,15 @@ import {
 } from '@/hooks/useApi'
 import { ApiError } from '@/lib/api'
 import { formatDateTime, formatDuration } from '@/lib/format'
+import { PRIORITY_OPTIONS, STATUS_OPTIONS, toOptions } from '@/lib/tickets'
 import type { TicketPriority, TicketStatus } from '@/types/api'
-
-function errorMessage(error: unknown): string | null {
-  if (!(error instanceof ApiError)) return null
-  try {
-    return JSON.parse(error.message).detail ?? error.message
-  } catch {
-    return error.message
-  }
-}
-
-const STATUSES: TicketStatus[] = ['open', 'in_progress', 'pending', 'resolved', 'closed']
-const PRIORITIES: TicketPriority[] = ['low', 'medium', 'high', 'urgent']
 
 export function TicketDetail() {
   const { id } = useParams()
   const ticketId = Number(id)
-  const { data: ticket } = useTicket(ticketId)
-  const { data: timeline } = useTicketTimeline(ticketId)
+  const validId = Number.isInteger(ticketId) && ticketId > 0
+  const ticketQuery = useTicket(validId ? ticketId : undefined)
+  const timeline = useTicketTimeline(validId ? ticketId : undefined)
   const { data: users } = useUsers()
   const { data: teams } = useTeams()
   const { data: activeTags } = useTags(false)
@@ -51,28 +47,47 @@ export function TicketDetail() {
   const resolve = useResolveTicket(ticketId)
   const updateTags = useUpdateTicketTags(ticketId)
 
-  if (!ticket) return null
+  const notFound = !validId || (ticketQuery.error instanceof ApiError && ticketQuery.error.status === 404)
+  if (notFound) {
+    return <NotFound title="Ticket not found" description="It may have been deleted, or the link is wrong." />
+  }
+  if (ticketQuery.isError) {
+    return (
+      <ErrorState
+        variant="bordered"
+        title="Couldn't load this ticket"
+        error={ticketQuery.error}
+        onRetry={() => ticketQuery.refetch()}
+        retrying={ticketQuery.isFetching}
+      />
+    )
+  }
+  const ticket = ticketQuery.data
+  if (!ticket) return <TicketDetailSkeleton />
+
+  const closed = ticket.status === 'resolved' || ticket.status === 'closed'
 
   return (
     <div className="flex flex-col gap-4">
-      <Link to="/tickets" className="text-sm text-muted-foreground hover:text-foreground">
-        ← Back to tickets
-      </Link>
+      <BackLink />
+
+      <PageHeader
+        title={`#${ticket.ticket_number} — ${ticket.title}`}
+        description={`Opened ${formatDateTime(ticket.created_at)} by ${ticket.created_by.name}`}
+        actions={
+          <>
+            <PriorityBadge priority={ticket.priority} />
+            <StatusBadge status={ticket.status} />
+            <SlaBadge breached={ticket.sla_breached} remainingSeconds={ticket.sla_remaining_seconds} />
+          </>
+        }
+      />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="flex flex-col gap-4 lg:col-span-2">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold text-foreground">
-                  #{ticket.ticket_number} — {ticket.title}
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <PriorityBadge priority={ticket.priority} />
-                  <StatusBadge status={ticket.status} />
-                  <SlaBadge breached={ticket.sla_breached} remainingSeconds={ticket.sla_remaining_seconds} />
-                </div>
-              </div>
+              <CardTitle>Details</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3 text-sm">
               <p className="whitespace-pre-wrap text-foreground">{ticket.description}</p>
@@ -88,19 +103,17 @@ export function TicketDetail() {
               <dl className="grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm">
                 <Info label="Customer" value={ticket.customer} />
                 <Info label="Business ID" value={ticket.business_id ?? '—'} />
-                <Info label="Mobile Number" value={ticket.mobile_number ?? '—'} />
-                <Info label="Doctor Name" value={ticket.doctor_name ?? '—'} />
+                <Info label="Mobile number" value={ticket.mobile_number ?? '—'} />
+                <Info label="Doctor name" value={ticket.doctor_name ?? '—'} />
                 <Info label="Category" value={ticket.category.name} />
                 <Info label="Team" value={ticket.team.name} />
                 <Info label="Assignee" value={ticket.owner?.name ?? 'Unassigned'} />
-                <Info label="Support Owner" value={ticket.support_assignee?.name ?? '—'} />
+                <Info label="Support owner" value={ticket.support_assignee?.name ?? '—'} />
                 <Info label="SLA" value={`${ticket.sla_hours}h — due ${formatDateTime(ticket.sla_due_at)}`} />
                 <Info
                   label={ticket.sla_breached ? 'SLA breached by' : 'SLA remaining'}
                   value={ticket.sla_remaining_seconds !== null ? formatDuration(Math.abs(ticket.sla_remaining_seconds)) : '—'}
                 />
-                <Info label="Created" value={formatDateTime(ticket.created_at)} />
-                <Info label="Created by" value={ticket.created_by.name} />
                 <Info label="First response" value={ticket.first_response_at ? formatDateTime(ticket.first_response_at) : '—'} />
                 <Info label="Resolved" value={ticket.resolved_at ? formatDateTime(ticket.resolved_at) : '—'} />
                 {ticket.custom_field_values.map((field) => (
@@ -115,17 +128,29 @@ export function TicketDetail() {
               <CardTitle>Timeline</CardTitle>
             </CardHeader>
             <CardContent>
-              <ol className="flex flex-col gap-3">
-                {(timeline ?? []).map((event, i) => (
-                  <li key={i} className="flex gap-3 text-sm">
-                    <span className="w-32 shrink-0 text-xs text-muted-foreground">{formatDateTime(event.timestamp)}</span>
-                    <span>
-                      {event.description}
-                      {event.actor_name && <span className="text-muted-foreground"> — {event.actor_name}</span>}
-                    </span>
-                  </li>
-                ))}
-              </ol>
+              {timeline.isPending ? (
+                <div className="flex flex-col gap-3">
+                  {Array.from({ length: 3 }, (_, i) => (
+                    <Skeleton key={i} className="h-4 w-full" />
+                  ))}
+                </div>
+              ) : timeline.isError ? (
+                <ErrorState error={timeline.error} onRetry={() => timeline.refetch()} retrying={timeline.isFetching} />
+              ) : timeline.data.length === 0 ? (
+                <EmptyState icon={History} title="No activity yet" description="Changes to this ticket will be listed here." />
+              ) : (
+                <ol className="flex flex-col gap-3">
+                  {timeline.data.map((event, i) => (
+                    <li key={i} className="flex gap-3 text-sm">
+                      <Caption className="w-32 shrink-0">{formatDateTime(event.timestamp)}</Caption>
+                      <span>
+                        {event.description}
+                        {event.actor_name && <span className="text-muted-foreground"> — {event.actor_name}</span>}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -135,86 +160,86 @@ export function TicketDetail() {
             <CardTitle>Actions</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <ActionField label="Assign" error={errorMessage(assign.error)}>
+            <Field label="Assignee" htmlFor="ticket-assignee">
               <Select
-                value={ticket.owner?.id?.toString() ?? '__unassigned'}
-                onValueChange={(v) => assign.mutate(v === '__unassigned' ? null : Number(v))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Unassigned" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__unassigned">Unassigned</SelectItem>
-                  {(users ?? []).map((u) => (
-                    <SelectItem key={u.id} value={u.id.toString()}>
-                      {u.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </ActionField>
+                id="ticket-assignee"
+                value={ticket.owner?.id?.toString() ?? null}
+                onValueChange={(v) => assign.mutate(v ? Number(v) : null)}
+                disabled={assign.isPending}
+                emptyLabel="Unassigned"
+                placeholder="Unassigned"
+                options={toOptions(users)}
+              />
+            </Field>
 
-            <ActionField label="Team" error={errorMessage(changeTeam.error)}>
-              <Select value={ticket.team.id.toString()} onValueChange={(v) => changeTeam.mutate(Number(v))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(teams ?? []).map((t) => (
-                    <SelectItem key={t.id} value={t.id.toString()}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </ActionField>
+            <Field label="Team" htmlFor="ticket-team">
+              <Select
+                id="ticket-team"
+                value={ticket.team.id.toString()}
+                onValueChange={(v) => v && changeTeam.mutate(Number(v))}
+                disabled={changeTeam.isPending}
+                options={toOptions(teams)}
+              />
+            </Field>
 
-            <ActionField label="Status">
-              <Select value={ticket.status} onValueChange={(v) => changeStatus.mutate(v as TicketStatus)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s.replace('_', ' ')}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </ActionField>
+            <Field label="Status" htmlFor="ticket-status">
+              <Select
+                id="ticket-status"
+                value={ticket.status}
+                onValueChange={(v) => v && changeStatus.mutate(v as TicketStatus)}
+                disabled={changeStatus.isPending}
+                options={STATUS_OPTIONS}
+              />
+            </Field>
 
-            <ActionField label="Priority">
-              <Select value={ticket.priority} onValueChange={(v) => changePriority.mutate(v as TicketPriority)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRIORITIES.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </ActionField>
+            <Field label="Priority" htmlFor="ticket-priority">
+              <Select
+                id="ticket-priority"
+                value={ticket.priority}
+                onValueChange={(v) => v && changePriority.mutate(v as TicketPriority)}
+                disabled={changePriority.isPending}
+                options={PRIORITY_OPTIONS}
+              />
+            </Field>
 
-            <Button
-              disabled={ticket.status === 'resolved' || ticket.status === 'closed' || resolve.isPending}
-              onClick={() => resolve.mutate()}
-            >
-              Resolve ticket
-            </Button>
-
-            <ActionField label="Tags">
+            <Field label="Tags">
               <TagPicker
                 tags={activeTags ?? []}
                 selectedIds={ticket.tags.map((t) => t.id)}
                 onChange={(ids) => updateTags.mutate(ids)}
+                disabled={updateTags.isPending}
               />
-            </ActionField>
+            </Field>
+
+            <Button disabled={closed} loading={resolve.isPending} onClick={() => resolve.mutate()}>
+              {closed ? 'Resolved' : 'Resolve ticket'}
+            </Button>
           </CardContent>
         </Card>
+      </div>
+    </div>
+  )
+}
+
+function BackLink() {
+  return (
+    <Button variant="link" size="sm" className="w-fit text-muted-foreground hover:text-foreground" render={<Link to="/tickets" />} nativeButton={false}>
+      <ArrowLeft /> Back to tickets
+    </Button>
+  )
+}
+
+function TicketDetailSkeleton() {
+  return (
+    <div className="flex flex-col gap-4" aria-busy="true" aria-label="Loading ticket">
+      <BackLink />
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-6 w-2/3" />
+        <Skeleton className="h-4 w-48" />
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Skeleton className="h-80 lg:col-span-2" />
+        <Skeleton className="h-80" />
       </div>
     </div>
   )
@@ -225,24 +250,6 @@ function Info({ label, value }: { label: string; value: string }) {
     <div>
       <Caption as="dt">{label}</Caption>
       <dd className="font-medium">{value}</dd>
-    </div>
-  )
-}
-
-function ActionField({
-  label,
-  error,
-  children,
-}: {
-  label: string
-  error?: string | null
-  children: React.ReactNode
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <Caption>{label}</Caption>
-      {children}
-      {error && <span className="text-xs text-danger">{error}</span>}
     </div>
   )
 }

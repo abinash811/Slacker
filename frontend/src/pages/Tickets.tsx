@@ -1,17 +1,34 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Inbox, SearchX } from 'lucide-react'
 import { FilterBar } from '@/components/FilterBar'
 import { CreateTicketDialog } from '@/components/CreateTicketDialog'
-import { PriorityBadge, StatusBadge } from '@/components/StatusPriorityBadges'
+import { PriorityBadge, SlaBadge, StatusBadge } from '@/components/StatusPriorityBadges'
+import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableMessage,
+  TableRow,
+  TableSkeleton,
+  type SortDirection,
+} from '@/components/ui/table'
 import { PageHeader } from '@/components/ui/typography'
 import { useTickets } from '@/hooks/useApi'
 import { useTicketFilters } from '@/hooks/useTicketFilters'
 import { formatDateTime, formatDuration } from '@/lib/format'
-import { cn } from '@/lib/utils'
+import { EMPTY_FILTERS } from '@/lib/tickets'
 
-const COLUMNS: { key: string; label: string }[] = [
-  { key: 'ticket_number', label: 'Ticket' },
+// `sortable` must match the backend's _SORTABLE_COLUMNS (ticket_service.py);
+// other columns render a plain header instead of a sort control that silently does nothing.
+// `inverted`: Age sorts by created_at, so newest-first (created_at desc) is age ascending.
+const COLUMNS: { key: string; label: string; sortable?: boolean; inverted?: boolean }[] = [
+  { key: 'ticket_number', label: 'Ticket', sortable: true },
   { key: 'title', label: 'Title' },
   { key: 'customer', label: 'Customer' },
   { key: 'business_id', label: 'Business ID' },
@@ -20,19 +37,23 @@ const COLUMNS: { key: string; label: string }[] = [
   { key: 'category_name', label: 'Category' },
   { key: 'team_name', label: 'Team' },
   { key: 'owner_name', label: 'Pending on' },
-  { key: 'priority', label: 'Priority' },
-  { key: 'status', label: 'Status' },
-  { key: 'sla_breached', label: 'SLA' },
-  { key: 'age_seconds', label: 'Age' },
-  { key: 'updated_at', label: 'Updated' },
+  { key: 'priority', label: 'Priority', sortable: true },
+  { key: 'status', label: 'Status', sortable: true },
+  { key: 'sla_due_at', label: 'SLA', sortable: true },
+  { key: 'created_at', label: 'Age', sortable: true, inverted: true },
+  { key: 'updated_at', label: 'Updated', sortable: true },
 ]
+
+const flip = (d: SortDirection): SortDirection => (d === 'asc' ? 'desc' : 'asc')
 
 export function Tickets() {
   const [filters, setFilters] = useTicketFilters()
   const [sortBy, setSortBy] = useState('created_at')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const { data } = useTickets(filters, { sortBy, sortDir, pageSize: 100 })
+  const [sortDir, setSortDir] = useState<SortDirection>('desc')
+  const tickets = useTickets(filters, { sortBy, sortDir, pageSize: 100 })
   const navigate = useNavigate()
+  const items = tickets.data?.items ?? []
+  const hasFilters = Object.values(filters).some((v) => v !== undefined)
 
   function toggleSort(key: string) {
     if (sortBy === key) {
@@ -47,79 +68,93 @@ export function Tickets() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title="Tickets"
-        description={`${data?.total ?? 0} ${data?.total === 1 ? 'ticket' : 'tickets'}`}
+        description={tickets.data ? `${tickets.data.total} ${tickets.data.total === 1 ? 'ticket' : 'tickets'}` : ' '}
         actions={<CreateTicketDialog />}
       />
 
       <FilterBar filters={filters} onChange={setFilters} />
 
-      <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/50 text-left text-xs text-muted-foreground">
-              {COLUMNS.map((col) => (
-                <th
-                  key={col.key}
-                  className="cursor-pointer select-none whitespace-nowrap px-3 py-2 font-medium hover:text-foreground"
-                  onClick={() => toggleSort(col.key)}
-                >
-                  {col.label}
-                  {sortBy === col.key && (sortDir === 'asc' ? ' ↑' : ' ↓')}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {(data?.items ?? []).map((t) => (
-              <tr
+      <Table>
+        <TableHeader>
+          <tr>
+            {COLUMNS.map((col) => (
+              <TableHead
+                key={col.key}
+                sort={col.sortable ? (sortBy === col.key ? (col.inverted ? flip(sortDir) : sortDir) : false) : undefined}
+                onSort={col.sortable ? () => toggleSort(col.key) : undefined}
+              >
+                {col.label}
+              </TableHead>
+            ))}
+          </tr>
+        </TableHeader>
+        <TableBody>
+          {tickets.isPending ? (
+            <TableSkeleton columns={COLUMNS.length} rows={8} />
+          ) : tickets.isError ? (
+            <TableMessage colSpan={COLUMNS.length}>
+              <ErrorState
+                title="Couldn't load tickets"
+                error={tickets.error}
+                onRetry={() => tickets.refetch()}
+                retrying={tickets.isFetching}
+              />
+            </TableMessage>
+          ) : items.length === 0 ? (
+            <TableMessage colSpan={COLUMNS.length}>
+              {hasFilters ? (
+                <EmptyState
+                  icon={SearchX}
+                  title="No tickets match these filters"
+                  description="Try removing a filter or searching for something else."
+                  action={
+                    <Button variant="outline" size="sm" onClick={() => setFilters(EMPTY_FILTERS)}>
+                      Clear filters
+                    </Button>
+                  }
+                />
+              ) : (
+                <EmptyState icon={Inbox} title="No tickets yet" description="Tickets created here or from Slack show up in this list." />
+              )}
+            </TableMessage>
+          ) : (
+            items.map((t) => (
+              <TableRow
                 key={t.id}
-                className={cn(
-                  'cursor-pointer border-b border-border border-l-2 border-l-transparent last:border-0 hover:bg-muted/50',
-                  t.sla_breached && 'border-l-danger bg-danger-bg/30 hover:bg-danger-bg/50',
-                )}
+                interactive
+                tone={t.sla_breached ? 'danger' : undefined}
                 onClick={() => navigate(`/tickets/${t.id}`)}
               >
-                <td className="whitespace-nowrap px-3 py-2 font-medium">#{t.ticket_number}</td>
-                <td className="max-w-64 truncate px-3 py-2">{t.title}</td>
-                <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{t.customer}</td>
-                <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{t.business_id ?? '—'}</td>
-                <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{t.mobile_number ?? '—'}</td>
-                <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{t.doctor_name ?? '—'}</td>
-                <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{t.category_name}</td>
-                <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{t.team_name}</td>
-                <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{t.owner_name ?? 'Unassigned'}</td>
-                <td className="whitespace-nowrap px-3 py-2">
+                <TableCell className="font-medium">
+                  {/* The real link — keyboard and screen-reader path into the ticket; the row click is a mouse shortcut. */}
+                  <Link to={`/tickets/${t.id}`} className="focus-ring rounded-sm hover:underline" onClick={(e) => e.stopPropagation()}>
+                    #{t.ticket_number}
+                  </Link>
+                </TableCell>
+                <TableCell className="max-w-64 truncate">{t.title}</TableCell>
+                <TableCell muted>{t.customer}</TableCell>
+                <TableCell muted>{t.business_id ?? '—'}</TableCell>
+                <TableCell muted>{t.mobile_number ?? '—'}</TableCell>
+                <TableCell muted>{t.doctor_name ?? '—'}</TableCell>
+                <TableCell muted>{t.category_name}</TableCell>
+                <TableCell muted>{t.team_name}</TableCell>
+                <TableCell muted>{t.owner_name ?? 'Unassigned'}</TableCell>
+                <TableCell>
                   <PriorityBadge priority={t.priority} />
-                </td>
-                <td className="whitespace-nowrap px-3 py-2">
+                </TableCell>
+                <TableCell>
                   <StatusBadge status={t.status} />
-                </td>
-                <td className="whitespace-nowrap px-3 py-2">
-                  {t.sla_breached ? (
-                    <span className="inline-flex items-center gap-1 font-medium text-danger">
-                      <AlertTriangle className="h-3.5 w-3.5" />
-                      Breached{t.sla_remaining_seconds != null ? ` by ${formatDuration(Math.abs(t.sla_remaining_seconds))}` : ''}
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-success">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> On track
-                    </span>
-                  )}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{formatDuration(t.age_seconds)}</td>
-                <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{formatDateTime(t.updated_at)}</td>
-              </tr>
-            ))}
-            {(data?.items ?? []).length === 0 && (
-              <tr>
-                <td colSpan={COLUMNS.length} className="px-3 py-8 text-center text-sm text-muted-foreground">
-                  No tickets match these filters.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                </TableCell>
+                <TableCell>
+                  <SlaBadge breached={t.sla_breached} remainingSeconds={t.sla_remaining_seconds} />
+                </TableCell>
+                <TableCell muted className="tabular-nums">{formatDuration(t.age_seconds)}</TableCell>
+                <TableCell muted>{formatDateTime(t.updated_at)}</TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </div>
   )
 }

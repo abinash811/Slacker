@@ -1,35 +1,25 @@
 import * as React from 'react'
-import { Slot } from '@radix-ui/react-slot'
-import { cva, type VariantProps } from 'class-variance-authority'
+import { Button as ButtonPrimitive } from '@base-ui/react/button'
+import type { VariantProps } from 'class-variance-authority'
+import { buttonVariants } from '@/components/ui/styles'
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 
-const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
-  {
-    variants: {
-      variant: {
-        default: 'bg-primary text-primary-foreground hover:opacity-90',
-        outline: 'border border-border bg-transparent hover:bg-muted',
-        ghost: 'hover:bg-muted',
-        destructive: 'bg-danger text-white hover:opacity-90',
-      },
-      size: {
-        default: 'h-9 px-3.5 py-2',
-        sm: 'h-8 px-2.5 text-xs',
-        icon: 'h-8 w-8',
-      },
-    },
-    defaultVariants: { variant: 'default', size: 'default' },
-  },
-)
-
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean
+export interface ButtonProps extends ButtonPrimitive.Props, VariantProps<typeof buttonVariants> {
+  /** Shows a spinner, disables the button, and keeps its width stable. */
+  loading?: boolean
 }
 
-export function Button({ className, variant, size, asChild, ...props }: ButtonProps) {
-  const Comp = asChild ? Slot : 'button'
-  return <Comp className={cn(buttonVariants({ variant, size, className }))} {...props} />
+export function Button({ className, variant, size, loading, disabled, children, ...props }: ButtonProps) {
+  return (
+    <ButtonPrimitive
+      className={cn(buttonVariants({ variant, size }), className)}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      {...props}
+    >
+      {loading && <Spinner label="Working" />}
+      {children as React.ReactNode}
+    </ButtonPrimitive>
+  )
 }

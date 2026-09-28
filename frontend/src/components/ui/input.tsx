@@ -1,26 +1,11 @@
 import * as React from 'react'
+import { controlClasses } from '@/components/ui/styles'
 import { cn } from '@/lib/utils'
 
 export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      className={cn(
-        'h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/50',
-        className,
-      )}
-      {...props}
-    />
-  )
+  return <input className={cn(controlClasses, 'h-9 px-3', className)} {...props} />
 }
 
 export function Textarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return (
-    <textarea
-      className={cn(
-        'min-h-20 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/50',
-        className,
-      )}
-      {...props}
-    />
-  )
+  return <textarea className={cn(controlClasses, 'min-h-20 px-3 py-2', className)} {...props} />
 }

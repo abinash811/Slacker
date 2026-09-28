@@ -45,3 +45,25 @@ export function buildQuery(params: Record<string, string | number | undefined>):
   const qs = search.toString()
   return qs ? `?${qs}` : ''
 }
+
+/**
+ * Turns any thrown value into one human sentence for error UI.
+ * FastAPI errors arrive as `{"detail": "..."}` or `{"detail": [{"msg": "..."}]}`.
+ */
+export function describeError(error: unknown): string {
+  if (error instanceof ApiError) {
+    try {
+      const detail = JSON.parse(error.message).detail
+      if (typeof detail === 'string') return detail
+      if (Array.isArray(detail) && detail[0]?.msg) return String(detail[0].msg)
+    } catch {
+      // Not JSON — fall through to status-based copy.
+    }
+    if (error.status >= 500) return 'The server ran into a problem. Try again in a moment.'
+    if (error.status === 404) return "It may have been deleted, or the link is wrong."
+    if (error.status === 403) return "You don't have permission to do that."
+    return error.message || 'Something went wrong.'
+  }
+  if (error instanceof TypeError) return "Can't reach the server. Check your connection and try again."
+  return 'Something went wrong. Try again.'
+}

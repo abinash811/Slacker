@@ -1,25 +1,45 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
+/*
+ * Design tokens — the only place raw color, shadow, or motion values may
+ * appear. Components reach these through Tailwind classes (`bg-card`,
+ * `shadow-popover`, `ease-standard`, `focus-ring`…). See docs/DESIGN_SYSTEM.md.
+ */
 :root {
   --background: #ffffff;
   --foreground: #0d0d12;
   --muted: #f4f4f6;
   --muted-foreground: #6b7280;
   --border: #e5e7eb;
+  --input: #d9dce1;
   --card: #ffffff;
   --card-foreground: #0d0d12;
+  --popover: #ffffff;
+  --popover-foreground: #0d0d12;
 
   --primary: #4f46e5;
   --primary-foreground: #ffffff;
   --accent: #eef2ff;
   --accent-foreground: #4338ca;
+  --ring: #6366f1;
 
   --success: #059669;
   --success-bg: #ecfdf5;
-  --warning: #d97706;
+  --warning: #b45309;
   --warning-bg: #fffbeb;
   --danger: #dc2626;
   --danger-bg: #fef2f2;
+  --danger-foreground: #ffffff;
+
+  /* Scrim behind dialogs. */
+  --overlay: rgb(13 13 18 / 0.4);
+
+  /* Elevation: flat surfaces → floating menus → modal dialogs → toasts. */
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04);
+  --shadow-popover: 0 4px 12px rgb(16 24 40 / 0.08), 0 1px 3px rgb(16 24 40 / 0.06);
+  --shadow-dialog: 0 20px 40px rgb(16 24 40 / 0.16), 0 2px 6px rgb(16 24 40 / 0.06);
+  --shadow-toast: 0 8px 24px rgb(16 24 40 / 0.12), 0 1px 3px rgb(16 24 40 / 0.06);
 
   --radius: 0.5rem;
 }
@@ -28,20 +48,24 @@
    should look the same for everyone regardless of OS setting. The dark
    palette is kept here, gated behind an explicit `data-theme="dark"` on
    <html>, so a manual theme toggle can be added later without redoing
-   the token set. */
+   the token set. Every token above must have a dark counterpart. */
 :root[data-theme="dark"] {
   --background: #0b0b0f;
   --foreground: #f3f4f6;
   --muted: #16161d;
   --muted-foreground: #9ca3af;
   --border: #262631;
+  --input: #33333f;
   --card: #121218;
   --card-foreground: #f3f4f6;
+  --popover: #17171f;
+  --popover-foreground: #f3f4f6;
 
   --primary: #818cf8;
   --primary-foreground: #0b0b0f;
   --accent: #1e1b4b;
   --accent-foreground: #c7d2fe;
+  --ring: #818cf8;
 
   --success: #34d399;
   --success-bg: #052e21;
@@ -49,6 +73,14 @@
   --warning-bg: #3a2a05;
   --danger: #f87171;
   --danger-bg: #3a0d0d;
+  --danger-foreground: #0b0b0f;
+
+  --overlay: rgb(0 0 0 / 0.6);
+
+  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.02);
+  --shadow-popover: 0 4px 12px rgb(0 0 0 / 0.5);
+  --shadow-dialog: 0 20px 40px rgb(0 0 0 / 0.6);
+  --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.5);
 }
 
 @theme inline {
@@ -57,23 +89,54 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
+  --color-input: var(--input);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-ring: var(--ring);
   --color-success: var(--success);
   --color-success-bg: var(--success-bg);
   --color-warning: var(--warning);
   --color-warning-bg: var(--warning-bg);
   --color-danger: var(--danger);
   --color-danger-bg: var(--danger-bg);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-overlay: var(--overlay);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-popover: var(--shadow-popover);
+  --shadow-dialog: var(--shadow-dialog);
+  --shadow-toast: var(--shadow-toast);
+
   --radius-md: var(--radius);
+
+  /* Motion: one easing curve for everything that moves. */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 }
 
-* {
-  border-color: var(--border);
+/* The one keyboard-focus treatment. Every interactive element gets it,
+   either through a ui/ primitive or by adding `focus-ring` directly. */
+@utility focus-ring {
+  outline: none;
+  &:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+/* Base styles live in the base layer so Tailwind utilities (border-danger,
+   bg-card…) always win over them. Unlayered rules would beat every utility. */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
 }
 
 body {
@@ -83,8 +146,23 @@ body {
   font: 14px/1.5 "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
+  /* Base UI popups position against the body. */
+  position: relative;
 }
 
 #root {
   min-height: 100vh;
+  /* Keeps app z-indexes below Base UI portals (dialogs, menus, toasts). */
+  isolation: isolate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -1,60 +1,98 @@
-import * as SelectPrimitive from '@radix-ui/react-select'
+import { Select as SelectPrimitive } from '@base-ui/react/select'
 import { Check, ChevronDown } from 'lucide-react'
+import { controlClasses } from '@/components/ui/styles'
 import { cn } from '@/lib/utils'
 
-export const Select = SelectPrimitive.Root
-export const SelectValue = SelectPrimitive.Value
-
-export function SelectTrigger({ className, children, ...props }: React.ComponentProps<typeof SelectPrimitive.Trigger>) {
-  return (
-    <SelectPrimitive.Trigger
-      className={cn(
-        'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
-        className,
-      )}
-      {...props}
-    >
-      {children}
-      <SelectPrimitive.Icon>
-        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-      </SelectPrimitive.Icon>
-    </SelectPrimitive.Trigger>
-  )
+export interface SelectOption {
+  value: string
+  label: string
 }
 
-export function SelectContent({ className, children, ...props }: React.ComponentProps<typeof SelectPrimitive.Content>) {
+/**
+ * The one dropdown. Values are strings; `null` means "nothing chosen".
+ * `emptyLabel` adds a selectable null row ("Unassigned", "All teams");
+ * without it, `placeholder` shows until something is picked.
+ */
+export function Select({
+  id,
+  value,
+  onValueChange,
+  options,
+  placeholder = 'Select…',
+  emptyLabel,
+  disabled,
+  invalid,
+  className,
+  'aria-label': ariaLabel,
+}: {
+  id?: string
+  value: string | null
+  onValueChange: (value: string | null) => void
+  options: SelectOption[]
+  placeholder?: string
+  emptyLabel?: string
+  disabled?: boolean
+  invalid?: boolean
+  className?: string
+  'aria-label'?: string
+}) {
+  const items: { value: string | null; label: string }[] = emptyLabel
+    ? [{ value: null, label: emptyLabel }, ...options]
+    : options
+
   return (
-    <SelectPrimitive.Portal>
-      <SelectPrimitive.Content
+    <SelectPrimitive.Root
+      items={items}
+      value={value}
+      onValueChange={(v) => onValueChange((v as string | null) ?? null)}
+      disabled={disabled}
+    >
+      <SelectPrimitive.Trigger
+        id={id}
+        aria-label={ariaLabel}
+        aria-invalid={invalid || undefined}
         className={cn(
-          'z-50 overflow-hidden rounded-md border border-border bg-card text-card-foreground shadow-lg',
+          controlClasses,
+          'flex h-9 cursor-default items-center justify-between gap-2 px-3 text-left',
+          'hover:border-muted-foreground/40 data-popup-open:border-ring data-placeholder:text-muted-foreground',
+          'data-disabled:cursor-not-allowed data-disabled:bg-muted data-disabled:opacity-60',
           className,
         )}
-        position="popper"
-        sideOffset={4}
-        {...props}
       >
-        <SelectPrimitive.Viewport className="p-1">{children}</SelectPrimitive.Viewport>
-      </SelectPrimitive.Content>
-    </SelectPrimitive.Portal>
-  )
-}
-
-export function SelectItem({ className, children, ...props }: React.ComponentProps<typeof SelectPrimitive.Item>) {
-  return (
-    <SelectPrimitive.Item
-      className={cn(
-        'relative flex cursor-pointer items-center rounded-sm px-6 py-1.5 text-sm outline-none data-[highlighted]:bg-muted',
-        className,
-      )}
-      {...props}
-    >
-      <span className="absolute left-1.5 flex h-4 w-4 items-center justify-center">
-        <SelectPrimitive.ItemIndicator>
-          <Check className="h-3.5 w-3.5" />
-        </SelectPrimitive.ItemIndicator>
-      </span>
-      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
-    </SelectPrimitive.Item>
+        <SelectPrimitive.Value className="truncate" placeholder={placeholder} />
+        <SelectPrimitive.Icon className="shrink-0 text-muted-foreground">
+          <ChevronDown className="size-4" />
+        </SelectPrimitive.Icon>
+      </SelectPrimitive.Trigger>
+      <SelectPrimitive.Portal>
+        <SelectPrimitive.Positioner className="z-50 outline-none" sideOffset={4} alignItemWithTrigger={false}>
+          <SelectPrimitive.Popup
+            className={cn(
+              'max-h-(--available-height) min-w-(--anchor-width) origin-(--transform-origin) overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-popover outline-none',
+              'duration-100 ease-standard data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
+            )}
+          >
+            <SelectPrimitive.List>
+              {items.map((item) => (
+                <SelectPrimitive.Item
+                  key={item.value ?? '__empty'}
+                  value={item.value}
+                  className={cn(
+                    'relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-7 pr-2 text-sm outline-none',
+                    'data-highlighted:bg-muted data-selected:font-medium data-disabled:opacity-50',
+                    item.value === null && 'text-muted-foreground',
+                  )}
+                >
+                  <SelectPrimitive.ItemIndicator className="absolute left-2 flex size-4 items-center justify-center">
+                    <Check className="size-3.5" />
+                  </SelectPrimitive.ItemIndicator>
+                  <SelectPrimitive.ItemText>{item.label}</SelectPrimitive.ItemText>
+                </SelectPrimitive.Item>
+              ))}
+            </SelectPrimitive.List>
+          </SelectPrimitive.Popup>
+        </SelectPrimitive.Positioner>
+      </SelectPrimitive.Portal>
+    </SelectPrimitive.Root>
   )
 }

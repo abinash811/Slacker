@@ -54,6 +54,7 @@ export function useUpdateSlaSettings() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (default_hours: number) => api.patch<SLASettings>('/sla-settings', { default_hours }),
+    meta: { success: 'SLA updated', errorTitle: "Couldn't update SLA" },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sla-settings'] }),
   })
 }
@@ -136,6 +137,7 @@ export function useCreateTicket() {
   const { invalidate } = useTicketMutation()
   return useMutation({
     mutationFn: (payload: TicketCreateRequest) => api.post<Ticket>('/tickets', payload),
+    meta: { success: 'Ticket created and posted to Slack', inlineError: true },
     onSuccess: invalidate,
   })
 }
@@ -144,6 +146,7 @@ export function useAssignTicket(ticketId: number) {
   const { invalidate } = useTicketMutation()
   return useMutation({
     mutationFn: (owner_id: number | null) => api.post<Ticket>(`/tickets/${ticketId}/assign`, { owner_id }),
+    meta: { success: 'Assignee updated', errorTitle: "Couldn't reassign ticket" },
     onSuccess: invalidate,
   })
 }
@@ -152,6 +155,7 @@ export function useChangeTeam(ticketId: number) {
   const { invalidate } = useTicketMutation()
   return useMutation({
     mutationFn: (team_id: number) => api.post<Ticket>(`/tickets/${ticketId}/team`, { team_id }),
+    meta: { success: 'Team updated', errorTitle: "Couldn't change team" },
     onSuccess: invalidate,
   })
 }
@@ -160,6 +164,7 @@ export function useChangeStatus(ticketId: number) {
   const { invalidate } = useTicketMutation()
   return useMutation({
     mutationFn: (status: TicketStatus) => api.post<Ticket>(`/tickets/${ticketId}/status`, { status }),
+    meta: { success: 'Status updated', errorTitle: "Couldn't change status" },
     onSuccess: invalidate,
   })
 }
@@ -168,6 +173,7 @@ export function useChangePriority(ticketId: number) {
   const { invalidate } = useTicketMutation()
   return useMutation({
     mutationFn: (priority: TicketPriority) => api.post<Ticket>(`/tickets/${ticketId}/priority`, { priority }),
+    meta: { success: 'Priority updated', errorTitle: "Couldn't change priority" },
     onSuccess: invalidate,
   })
 }
@@ -176,6 +182,7 @@ export function useResolveTicket(ticketId: number) {
   const { invalidate } = useTicketMutation()
   return useMutation({
     mutationFn: () => api.post<Ticket>(`/tickets/${ticketId}/resolve`),
+    meta: { success: 'Ticket resolved', errorTitle: "Couldn't resolve ticket" },
     onSuccess: invalidate,
   })
 }
@@ -200,6 +207,7 @@ export function useCreateRole() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (payload: RoleInput) => api.post<Role>('/roles', payload),
+    meta: { success: 'Role created', inlineError: true },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['roles'] }),
   })
 }
@@ -209,6 +217,7 @@ export function useUpdateRole() {
   return useMutation({
     mutationFn: ({ id, ...payload }: Partial<RoleInput> & { id: number; is_archived?: boolean }) =>
       api.patch<Role>(`/roles/${id}`, payload),
+    meta: { success: (v: { is_archived?: boolean }) => (v.is_archived ? 'Role archived' : v.is_archived === false ? 'Role restored' : 'Role updated'), errorTitle: "Couldn't update role" },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['roles'] }),
   })
 }
@@ -234,6 +243,7 @@ export function useCreateTeam() {
   const invalidate = useTeamMutation()
   return useMutation({
     mutationFn: (name: string) => api.post<TeamDetail>('/teams', { name }),
+    meta: { success: 'Team created', inlineError: true },
     onSuccess: invalidate,
   })
 }
@@ -242,6 +252,7 @@ export function useRenameTeam(teamId: number) {
   const invalidate = useTeamMutation()
   return useMutation({
     mutationFn: (name: string) => api.patch<TeamDetail>(`/teams/${teamId}`, { name }),
+    meta: { success: 'Team renamed', errorTitle: "Couldn't rename team" },
     onSuccess: invalidate,
   })
 }
@@ -250,6 +261,7 @@ export function useSetDefaultTeam() {
   const invalidate = useTeamMutation()
   return useMutation({
     mutationFn: (teamId: number) => api.post<TeamDetail>(`/teams/${teamId}/set-default`),
+    meta: { success: 'Default team updated', errorTitle: "Couldn't change default team" },
     onSuccess: invalidate,
   })
 }
@@ -259,6 +271,7 @@ export function useAddTeamMember(teamId: number) {
   return useMutation({
     mutationFn: (payload: { user_id: number; role_id: number }) =>
       api.post<TeamMemberEntry>(`/teams/${teamId}/members`, payload),
+    meta: { success: 'Member added', errorTitle: "Couldn't add member" },
     onSuccess: invalidate,
   })
 }
@@ -268,6 +281,7 @@ export function useUpdateTeamMemberRole(teamId: number) {
   return useMutation({
     mutationFn: ({ memberId, roleId }: { memberId: number; roleId: number }) =>
       api.patch<TeamMemberEntry>(`/teams/${teamId}/members/${memberId}`, { role_id: roleId }),
+    meta: { success: 'Role updated', errorTitle: "Couldn't change role" },
     onSuccess: invalidate,
   })
 }
@@ -276,6 +290,7 @@ export function useRemoveTeamMember(teamId: number) {
   const invalidate = useTeamMutation()
   return useMutation({
     mutationFn: (memberId: number) => api.delete(`/teams/${teamId}/members/${memberId}`),
+    meta: { success: 'Member removed', errorTitle: "Couldn't remove member" },
     onSuccess: invalidate,
   })
 }
@@ -298,6 +313,7 @@ export function useCreateCategory() {
   const invalidate = useLookupMutation(['categories', 'categories-admin'])
   return useMutation({
     mutationFn: (name: string) => api.post<Category>('/categories', { name }),
+    meta: { success: 'Category created', inlineError: true },
     onSuccess: invalidate,
   })
 }
@@ -307,6 +323,7 @@ export function useUpdateCategory() {
   return useMutation({
     mutationFn: ({ id, ...payload }: { id: number; name?: string; is_archived?: boolean }) =>
       api.patch<Category>(`/categories/${id}`, payload),
+    meta: { success: (v: { is_archived?: boolean }) => (v.is_archived ? 'Category archived' : v.is_archived === false ? 'Category restored' : 'Category updated'), errorTitle: "Couldn't update category" },
     onSuccess: invalidate,
   })
 }
@@ -324,6 +341,7 @@ export function useCreateCustomField() {
   return useMutation({
     mutationFn: (payload: { label: string; field_type: CustomFieldType; options: string[] | null }) =>
       api.post<CustomFieldDefinition>('/custom-fields', payload),
+    meta: { success: 'Custom field created', inlineError: true },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['custom-fields'] }),
   })
 }
@@ -333,6 +351,7 @@ export function useUpdateCustomField() {
   return useMutation({
     mutationFn: ({ id, ...payload }: { id: number; label?: string; options?: string[] | null; is_archived?: boolean }) =>
       api.patch<CustomFieldDefinition>(`/custom-fields/${id}`, payload),
+    meta: { success: (v: { is_archived?: boolean }) => (v.is_archived ? 'Custom field archived' : v.is_archived === false ? 'Custom field restored' : 'Custom field updated'), errorTitle: "Couldn't update custom field" },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['custom-fields'] }),
   })
 }
@@ -348,6 +367,7 @@ export function useCreateTag() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (name: string) => api.post<Tag>('/tags', { name }),
+    meta: { success: 'Tag created', inlineError: true },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tags'] }),
   })
 }
@@ -357,6 +377,7 @@ export function useUpdateTag() {
   return useMutation({
     mutationFn: ({ id, ...payload }: { id: number; name?: string; is_archived?: boolean }) =>
       api.patch<Tag>(`/tags/${id}`, payload),
+    meta: { success: (v: { is_archived?: boolean }) => (v.is_archived ? 'Tag archived' : v.is_archived === false ? 'Tag restored' : 'Tag updated'), errorTitle: "Couldn't update tag" },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tags'] }),
   })
 }
@@ -365,6 +386,7 @@ export function useUpdateTicketTags(ticketId: number) {
   const { invalidate } = useTicketMutation()
   return useMutation({
     mutationFn: (tag_ids: number[]) => api.post<Ticket>(`/tickets/${ticketId}/tags`, { tag_ids }),
+    meta: { errorTitle: "Couldn't update tags" },
     onSuccess: invalidate,
   })
 }

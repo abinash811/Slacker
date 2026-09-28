@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Search } from 'lucide-react'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useCategories, useTeams, useUsers } from '@/hooks/useApi'
+import { EMPTY_FILTERS, PRIORITY_OPTIONS, STATUS_OPTIONS, toOptions } from '@/lib/tickets'
 import type { TicketFiltersState } from '@/types/api'
 
 interface Props {
@@ -11,8 +12,7 @@ interface Props {
   onChange: (next: Partial<TicketFiltersState>) => void
 }
 
-const PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const
-const STATUSES = ['open', 'in_progress', 'pending', 'resolved', 'closed'] as const
+const toId = (v: string | null) => (v ? Number(v) : undefined)
 
 export function FilterBar({ filters, onChange }: Props) {
   const { data: teams } = useTeams()
@@ -22,79 +22,69 @@ export function FilterBar({ filters, onChange }: Props) {
   const hasAny = Object.values(filters).some((v) => v !== undefined)
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <SearchInput
-        value={filters.search}
-        onChange={(v) => onChange({ search: v })}
+    <div className="flex flex-wrap items-center gap-2" role="search">
+      <SearchInput value={filters.search} onChange={(v) => onChange({ search: v })} />
+      <Select
+        aria-label="Team"
+        className="w-auto min-w-32"
+        value={filters.team_id?.toString() ?? null}
+        onValueChange={(v) => onChange({ team_id: toId(v) })}
+        emptyLabel="All teams"
+        options={toOptions(teams)}
       />
-      <FilterSelect
-        label="Team"
-        value={filters.team_id?.toString()}
-        onChange={(v) => onChange({ team_id: v ? Number(v) : undefined })}
-        options={(teams ?? []).map((t) => ({ value: t.id.toString(), label: t.name }))}
+      <Select
+        aria-label="Pending on"
+        className="w-auto min-w-32"
+        value={filters.owner_id?.toString() ?? null}
+        onValueChange={(v) => onChange({ owner_id: toId(v) })}
+        emptyLabel="Pending on: Anyone"
+        options={toOptions(users)}
       />
-      <FilterSelect
-        label="Pending on"
-        allLabel="Pending on: Anyone"
-        value={filters.owner_id?.toString()}
-        onChange={(v) => onChange({ owner_id: v ? Number(v) : undefined })}
-        options={(users ?? []).map((u) => ({ value: u.id.toString(), label: u.name }))}
+      <Select
+        aria-label="Support owner"
+        className="w-auto min-w-32"
+        value={filters.support_assignee_id?.toString() ?? null}
+        onValueChange={(v) => onChange({ support_assignee_id: toId(v) })}
+        emptyLabel="Support owner: Anyone"
+        options={toOptions(users)}
       />
-      <FilterSelect
-        label="Support owner"
-        allLabel="Support owner: Anyone"
-        value={filters.support_assignee_id?.toString()}
-        onChange={(v) => onChange({ support_assignee_id: v ? Number(v) : undefined })}
-        options={(users ?? []).map((u) => ({ value: u.id.toString(), label: u.name }))}
+      <Select
+        aria-label="Category"
+        className="w-auto min-w-32"
+        value={filters.category_id?.toString() ?? null}
+        onValueChange={(v) => onChange({ category_id: toId(v) })}
+        emptyLabel="All categories"
+        options={toOptions(categories)}
       />
-      <FilterSelect
-        label="Category"
-        allLabel="All categories"
-        value={filters.category_id?.toString()}
-        onChange={(v) => onChange({ category_id: v ? Number(v) : undefined })}
-        options={(categories ?? []).map((c) => ({ value: c.id.toString(), label: c.name }))}
+      <Select
+        aria-label="Priority"
+        className="w-auto min-w-32"
+        value={filters.priority ?? null}
+        onValueChange={(v) => onChange({ priority: (v ?? undefined) as TicketFiltersState['priority'] })}
+        emptyLabel="All priorities"
+        options={PRIORITY_OPTIONS}
       />
-      <FilterSelect
-        label="Priority"
-        allLabel="All priorities"
-        value={filters.priority}
-        onChange={(v) => onChange({ priority: v as TicketFiltersState['priority'] })}
-        options={PRIORITIES.map((p) => ({ value: p, label: p[0].toUpperCase() + p.slice(1) }))}
+      <Select
+        aria-label="Status"
+        className="w-auto min-w-32"
+        value={filters.status ?? null}
+        onValueChange={(v) => onChange({ status: (v ?? undefined) as TicketFiltersState['status'] })}
+        emptyLabel="All statuses"
+        options={STATUS_OPTIONS}
       />
-      <FilterSelect
-        label="Status"
-        allLabel="All statuses"
-        value={filters.status}
-        onChange={(v) => onChange({ status: v as TicketFiltersState['status'] })}
-        options={STATUSES.map((s) => ({ value: s, label: s.replace('_', ' ') }))}
-      />
-      <FilterSelect
-        label="SLA"
-        allLabel="All SLA states"
-        value={filters.sla_status}
-        onChange={(v) => onChange({ sla_status: v as TicketFiltersState['sla_status'] })}
+      <Select
+        aria-label="SLA"
+        className="w-auto min-w-32"
+        value={filters.sla_status ?? null}
+        onValueChange={(v) => onChange({ sla_status: (v ?? undefined) as TicketFiltersState['sla_status'] })}
+        emptyLabel="All SLA states"
         options={[
           { value: 'breached', label: 'Breached' },
           { value: 'ok', label: 'On track' },
         ]}
       />
       {hasAny && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() =>
-            onChange({
-              team_id: undefined,
-              owner_id: undefined,
-              support_assignee_id: undefined,
-              category_id: undefined,
-              priority: undefined,
-              status: undefined,
-              sla_status: undefined,
-              search: undefined,
-            })
-          }
-        >
+        <Button variant="ghost" size="sm" onClick={() => onChange(EMPTY_FILTERS)}>
           Clear filters
         </Button>
       )}
@@ -104,8 +94,13 @@ export function FilterBar({ filters, onChange }: Props) {
 
 function SearchInput({ value, onChange }: { value: string | undefined; onChange: (v: string | undefined) => void }) {
   const [draft, setDraft] = useState(value ?? '')
+  const [lastValue, setLastValue] = useState(value)
 
-  useEffect(() => setDraft(value ?? ''), [value])
+  // Follow external resets (e.g. "Clear filters") without an effect.
+  if (value !== lastValue) {
+    setLastValue(value)
+    setDraft(value ?? '')
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -117,43 +112,15 @@ function SearchInput({ value, onChange }: { value: string | undefined; onChange:
 
   return (
     <div className="relative">
-      <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+      <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
       <Input
+        type="search"
+        aria-label="Search tickets"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
-        placeholder="Search Business ID, Mobile, Doctor…"
+        placeholder="Search ID, mobile, doctor…"
         className="w-64 pl-8"
       />
     </div>
-  )
-}
-
-function FilterSelect({
-  label,
-  allLabel,
-  value,
-  onChange,
-  options,
-}: {
-  label: string
-  allLabel?: string
-  value: string | undefined
-  onChange: (value: string | undefined) => void
-  options: { value: string; label: string }[]
-}) {
-  return (
-    <Select value={value ?? '__all'} onValueChange={(v) => onChange(v === '__all' ? undefined : v)}>
-      <SelectTrigger className="w-auto min-w-32">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="__all">{allLabel ?? `All ${label.toLowerCase()}s`}</SelectItem>
-        {options.map((opt) => (
-          <SelectItem key={opt.value} value={opt.value}>
-            {opt.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
   )
 }
