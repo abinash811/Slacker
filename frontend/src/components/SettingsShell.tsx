@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Folder, ShieldCheck, SlidersHorizontal, Tags, Timer } from 'lucide-react'
 import { NavItem } from '@/components/NavItem'
+import { SettingsAccessNotice } from '@/components/SettingsAccessNotice'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PageHeader } from '@/components/patterns/typography'
 
@@ -17,6 +18,7 @@ export function SettingsShell() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Settings" description="Roles and the values people pick from when creating a ticket." />
+      <SettingsAccessNotice />
       <div className="flex flex-col gap-6 sm:flex-row">
         <nav aria-label="Settings" className="flex shrink-0 flex-row gap-1 overflow-x-auto sm:w-44 sm:flex-col sm:overflow-visible">
           {NAV.map(({ to, label, icon }) => (

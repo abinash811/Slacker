@@ -28,6 +28,8 @@ export type DashboardSummary = Schemas['DashboardSummary']
 export type BreakdownItem = Schemas['BreakdownItem']
 export type OwnerPendingItem = Schemas['OwnerPendingItem']
 export type TicketCreateRequest = Schemas['TicketCreateRequest']
+export type Me = Schemas['MeOut']
+export type SettingsPermissions = Schemas['SettingsPermissions']
 
 /** Columns the ticket list endpoint can sort by (enum from the backend). */
 export type TicketSortColumn = NonNullable<

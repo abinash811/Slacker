@@ -43,8 +43,8 @@ live Slack testing) rather than building them ad hoc mid-task.
 
 - Team/member management (an actual admin UI over `teams`/`team_members`,
   which today only exist as tables)
-- RBAC — enforcing `team_members.role` for who can see/assign/resolve what
-  (the schema already supports this; V1 just doesn't check it)
+- RBAC for tickets — who can see/assign/resolve what. (Settings permissions
+  are already enforced: `app/core/permissions.py`.)
 - Company SSO, replacing the dev-mode `AuthProvider`
 - SLA automation — auto-selecting a policy by team/category/priority
   instead of the creator picking one (the `sla_policies` scoping columns

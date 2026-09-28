@@ -113,7 +113,13 @@ export interface MockApi {
 }
 
 /** Answers every /api call with fixture data; tests override single endpoints with `on`. */
-export async function mockApi(page: Page, { tickets = makeTickets(3) } = {}): Promise<MockApi> {
+export async function mockApi(
+  page: Page,
+  {
+    tickets = makeTickets(3),
+    settings = { create: true, edit: true, delete: true },
+  }: { tickets?: TicketListItem[]; settings?: { create: boolean; edit: boolean; delete: boolean } } = {},
+): Promise<MockApi> {
   const overrides: { method: string; path: string | RegExp; handler: Handler }[] = []
   const requests: string[] = []
 
@@ -131,6 +137,7 @@ export async function mockApi(page: Page, { tickets = makeTickets(3) } = {}): Pr
     const json = (body: unknown, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
     if (method !== 'GET') return json({})
 
+    if (path === '/me') return json({ user: users[0], settings })
     if (path === '/users') return json(users)
     if (path === '/teams') return json(teams)
     if (/^\/teams\/\d+\/detail$/.test(path)) {

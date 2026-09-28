@@ -439,6 +439,23 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "MeOut": {
+        "description": "The current user and what they may do in Settings (see app.core.permissions).",
+        "properties": {
+          "settings": {
+            "$ref": "#/components/schemas/SettingsPermissions"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserOut"
+          }
+        },
+        "required": [
+          "user",
+          "settings"
+        ],
+        "title": "MeOut",
+        "type": "object"
+      },
       "OwnerPendingItem": {
         "properties": {
           "owner_id": {
@@ -667,6 +684,29 @@
           "default_hours"
         ],
         "title": "SLASettingsUpdateRequest",
+        "type": "object"
+      },
+      "SettingsPermissions": {
+        "properties": {
+          "create": {
+            "title": "Create",
+            "type": "boolean"
+          },
+          "delete": {
+            "title": "Delete",
+            "type": "boolean"
+          },
+          "edit": {
+            "title": "Edit",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "create",
+          "edit",
+          "delete"
+        ],
+        "title": "SettingsPermissions",
         "type": "object"
       },
       "StatusChangeRequest": {
@@ -2588,6 +2628,24 @@
       },
       "post": {
         "operationId": "create_category_api_categories_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2637,6 +2695,22 @@
             "schema": {
               "title": "Category Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
             }
           }
         ],
@@ -2726,6 +2800,24 @@
       },
       "post": {
         "operationId": "create_custom_field_api_custom_fields_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2776,6 +2868,22 @@
               "title": "Field Id",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
+            }
           }
         ],
         "requestBody": {
@@ -2813,6 +2921,55 @@
         "summary": "Update Custom Field",
         "tags": [
           "custom-fields"
+        ]
+      }
+    },
+    "/api/me": {
+      "get": {
+        "operationId": "me_api_me_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Me",
+        "tags": [
+          "lookups"
         ]
       }
     },
@@ -2864,6 +3021,24 @@
       },
       "post": {
         "operationId": "create_role_api_roles_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2913,6 +3088,22 @@
             "schema": {
               "title": "Role Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
             }
           }
         ],
@@ -2976,6 +3167,24 @@
       },
       "patch": {
         "operationId": "update_sla_settings_api_sla_settings_patch",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3062,6 +3271,24 @@
       },
       "post": {
         "operationId": "create_tag_api_tags_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3111,6 +3338,22 @@
             "schema": {
               "title": "Tag Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
             }
           }
         ],
@@ -3178,6 +3421,24 @@
       },
       "post": {
         "operationId": "create_team_api_teams_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3227,6 +3488,22 @@
             "schema": {
               "title": "Team Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
             }
           }
         ],
@@ -3322,6 +3599,22 @@
               "title": "Team Id",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
+            }
           }
         ],
         "requestBody": {
@@ -3383,6 +3676,22 @@
               "title": "Member Id",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
+            }
           }
         ],
         "responses": {
@@ -3424,6 +3733,22 @@
             "schema": {
               "title": "Member Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
             }
           }
         ],
@@ -3476,6 +3801,22 @@
             "schema": {
               "title": "Team Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-dev-user-email",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Dev-User-Email"
             }
           }
         ],

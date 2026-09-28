@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.core.auth import get_current_user
 from app.core.database import get_db
+from app.core.permissions import ensure_update, require
+from app.models.user import User
 from app.schemas.tag import TagCreateRequest, TagOut, TagUpdateRequest
 from app.services import tag_service
 
@@ -14,10 +17,12 @@ def list_tags(include_archived: bool = Query(default=False), db: Session = Depen
 
 
 @router.post("", response_model=TagOut, status_code=201)
-def create_tag(payload: TagCreateRequest, db: Session = Depends(get_db)) -> TagOut:
+def create_tag(payload: TagCreateRequest, db: Session = Depends(get_db), _: User = Depends(require("create"))) -> TagOut:
     return tag_service.create_tag(db, payload.name)
 
 
 @router.patch("/{tag_id}", response_model=TagOut)
-def update_tag(tag_id: int, payload: TagUpdateRequest, db: Session = Depends(get_db)) -> TagOut:
-    return tag_service.update_tag(db, tag_id, **payload.model_dump(exclude_unset=True))
+def update_tag(tag_id: int, payload: TagUpdateRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> TagOut:
+    changes = payload.model_dump(exclude_unset=True)
+    ensure_update(db, user, changes)
+    return tag_service.update_tag(db, tag_id, **changes)

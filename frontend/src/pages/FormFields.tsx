@@ -25,6 +25,7 @@ import {
   useUpdateCustomField,
   useUpdateSlaSettings,
   useUpdateTag,
+  useSettingsPermissions,
 } from '@/hooks/useApi'
 import { useZodForm } from '@/lib/form'
 import { customFieldSchema, nameSchema, slaSchema } from '@/lib/schemas'
@@ -132,6 +133,7 @@ export function SlaSection() {
 
 function SlaForm({ savedHours }: { savedHours: number }) {
   const updateSettings = useUpdateSlaSettings()
+  const { edit: canEdit } = useSettingsPermissions()
   const form = useZodForm(slaSchema, { default_hours: savedHours })
   const error = form.formState.errors.default_hours?.message
 
@@ -141,7 +143,7 @@ function SlaForm({ savedHours }: { savedHours: number }) {
       className="flex items-start gap-3 rounded-xl p-4 ring-1 ring-foreground/10"
       onSubmit={form.handleSubmit((v) => updateSettings.mutateAsync(v.default_hours).catch(() => {}))}
     >
-      <FormField label="Default SLA (hours)" htmlFor="sla-default-hours" hint="Whole hours, 1 or more." error={error}>
+      <FormField label="Default SLA (hours)" htmlFor="sla-default-hours" hint={canEdit ? 'Whole hours, 1 or more.' : "Your role can't change this."} error={error}>
         <Input
           id="sla-default-hours"
           type="number"
@@ -149,12 +151,15 @@ function SlaForm({ savedHours }: { savedHours: number }) {
           step={1}
           className="w-40"
           aria-invalid={!!error}
+          disabled={!canEdit}
           {...form.register('default_hours')}
         />
       </FormField>
-      <LoadingButton type="submit" className="mt-6" disabled={!form.formState.isDirty} loading={form.formState.isSubmitting}>
-        Save
-      </LoadingButton>
+      {canEdit && (
+        <LoadingButton type="submit" className="mt-6" disabled={!form.formState.isDirty} loading={form.formState.isSubmitting}>
+          Save
+        </LoadingButton>
+      )}
     </form>
   )
 }
@@ -247,6 +252,7 @@ function ArchivableList<T>({
   empty: { icon: LucideIcon; title: string; description: string }
   onArchiveToggle: (id: number, is_archived: boolean) => void
 }) {
+  const { delete: canArchive } = useSettingsPermissions()
   if (query.isPending) {
     return (
       <div className="flex flex-col gap-1 rounded-xl p-1 ring-1 ring-foreground/10">
@@ -279,9 +285,11 @@ function ArchivableList<T>({
           </span>
           <div className="flex shrink-0 items-center gap-2">
             {item.is_archived ? <ToneBadge tone="neutral">Archived</ToneBadge> : <ToneBadge tone="success">Active</ToneBadge>}
-            <Button variant="ghost" size="sm" onClick={() => onArchiveToggle(item.id, !item.is_archived)}>
-              {item.is_archived ? 'Restore' : 'Archive'}
-            </Button>
+            {canArchive && (
+              <Button variant="ghost" size="sm" onClick={() => onArchiveToggle(item.id, !item.is_archived)}>
+                {item.is_archived ? 'Restore' : 'Archive'}
+              </Button>
+            )}
           </div>
         </li>
       ))}

@@ -13,6 +13,7 @@ import { EmptyState, ErrorState } from '@/components/patterns/states'
 import { ToneBadge } from '@/components/patterns/tone-badge'
 import { Caption, PageHeader, SectionHeader, SectionLabel } from '@/components/patterns/typography'
 import { CreateItemDialog } from '@/components/CreateItemDialog'
+import { SettingsAccessNotice } from '@/components/SettingsAccessNotice'
 import { cn } from '@/lib/utils'
 import { toOptions } from '@/lib/tickets'
 import { columnHelper } from '@/lib/data-table'
@@ -30,6 +31,7 @@ import {
   useTeamsList,
   useUpdateRole,
   useUpdateTeamMemberRole,
+  useSettingsPermissions,
   useUsers,
 } from '@/hooks/useApi'
 
@@ -37,6 +39,7 @@ export function RolesSection() {
   const roles = useRoles(true)
   const createRole = useCreateRole()
   const updateRole = useUpdateRole()
+  const permissions = useSettingsPermissions()
 
   const form = useZodForm(roleSchema, {
     name: '',
@@ -90,7 +93,9 @@ export function RolesSection() {
         }
       />
       <DataTable
-        columns={roleColumns((role) => updateRole.mutate({ id: role.id, is_archived: !role.is_archived }))}
+        columns={roleColumns(
+          permissions.delete ? (role) => updateRole.mutate({ id: role.id, is_archived: !role.is_archived }) : null,
+        )}
         data={roles.data ?? NO_ROLES}
         getRowId={(r) => String(r.id)}
         isLoading={roles.isPending}
@@ -109,8 +114,9 @@ const NO_ROLES: Role[] = []
 const NO_MEMBERS: TeamMemberEntry[] = []
 const roleCol = columnHelper<Role>()
 
-function roleColumns(onToggleArchive: (role: Role) => void) {
-  return roleCol.columns([
+/** `onToggleArchive` is null when the user can't archive, which drops the actions column. */
+function roleColumns(onToggleArchive: ((role: Role) => void) | null) {
+  const columns = [
     roleCol.accessor('name', {
       header: 'Name',
       cell: (i) => <span className={cn('font-medium', i.row.original.is_archived && 'text-muted-foreground')}>{i.getValue()}</span>,
@@ -141,6 +147,10 @@ function roleColumns(onToggleArchive: (role: Role) => void) {
       header: 'Status',
       cell: (i) => (i.getValue() ? <ToneBadge tone="neutral">Archived</ToneBadge> : <ToneBadge tone="success">Active</ToneBadge>),
     }),
+  ]
+  if (!onToggleArchive) return roleCol.columns(columns)
+  return roleCol.columns([
+    ...columns,
     roleCol.display({
       id: 'actions',
       header: () => <span className="sr-only">Actions</span>,
@@ -158,6 +168,7 @@ export function TeamsSection() {
   const teams = useTeamsList()
   const createTeam = useCreateTeam()
   const setDefaultTeam = useSetDefaultTeam()
+  const { edit: canEdit } = useSettingsPermissions()
   const [selectedTeamId, setSelectedTeamId] = useState<number | undefined>(undefined)
   const teamForm = useZodForm(nameSchema, { name: '' })
 
@@ -169,6 +180,7 @@ export function TeamsSection() {
         title="Teams"
         description="New tickets route to the default team automatically; only its members can reassign its locked support owner."
       />
+      <SettingsAccessNotice />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <section className="lg:col-span-1">
           <div className="mb-2 flex h-8 items-center justify-between">
@@ -224,9 +236,11 @@ export function TeamsSection() {
                     {team.is_default ? (
                       <ToneBadge tone="info">Default</ToneBadge>
                     ) : (
-                      <Button variant="ghost" size="sm" onClick={() => setDefaultTeam.mutate(team.id)} disabled={setDefaultTeam.isPending}>
-                        Set default
-                      </Button>
+                      canEdit && (
+                        <Button variant="ghost" size="sm" onClick={() => setDefaultTeam.mutate(team.id)} disabled={setDefaultTeam.isPending}>
+                          Set default
+                        </Button>
+                      )
                     )}
                   </li>
                 )
@@ -262,6 +276,7 @@ function TeamMembers({ teamId }: { teamId: number }) {
   const addMember = useAddTeamMember(teamId)
   const updateMemberRole = useUpdateTeamMemberRole(teamId)
   const removeMember = useRemoveTeamMember(teamId)
+  const permissions = useSettingsPermissions()
 
   const memberCol = columnHelper<TeamMemberEntry>()
   const memberColumns = memberCol.columns([
@@ -275,11 +290,16 @@ function TeamMembers({ teamId }: { teamId: number }) {
           className="w-40"
           value={String(member.role.id)}
           onValueChange={(v) => v && updateMemberRole.mutate({ memberId: member.id, roleId: Number(v) })}
+          disabled={!permissions.edit}
           options={toOptions(roles)}
         />
       ),
     }),
-    memberCol.display({
+    ...(permissions.delete ? [removeColumn()] : []),
+  ])
+
+  function removeColumn() {
+    return memberCol.display({
       id: 'actions',
       header: () => <span className="sr-only">Actions</span>,
       meta: { align: 'right' },
@@ -293,8 +313,8 @@ function TeamMembers({ teamId }: { teamId: number }) {
           onConfirm={() => removeMember.mutateAsync(member.id)}
         />
       ),
-    }),
-  ])
+    })
+  }
 
   const memberForm = useZodForm(addMemberSchema, { user_id: '', role_id: '' })
   const memberErrors = memberForm.formState.errors
@@ -318,53 +338,55 @@ function TeamMembers({ teamId }: { teamId: number }) {
         empty={<EmptyState title="No members yet" description="Add someone below to give them access to this team's tickets." />}
       />
 
-      <form
-        noValidate
-        className="flex flex-col gap-3 rounded-lg border border-dashed bg-muted/30 p-3 sm:flex-row sm:items-start"
-        onSubmit={memberForm.handleSubmit((v) =>
-          addMember
-            .mutateAsync({ user_id: Number(v.user_id), role_id: Number(v.role_id) })
-            .then(() => memberForm.reset())
-            .catch(() => {}),
-        )}
-      >
-        <FormField label="Add member" htmlFor="add-member-user" className="flex-1" error={memberErrors.user_id?.message}>
-          <Controller
-            control={memberForm.control}
-            name="user_id"
-            render={({ field }) => (
-              <OptionSelect
-                id="add-member-user"
-                invalid={!!memberErrors.user_id}
-                value={field.value || null}
-                onValueChange={(v) => field.onChange(v ?? '')}
-                placeholder={availableUsers.length ? 'Select person…' : 'Everyone is already a member'}
-                disabled={availableUsers.length === 0}
-                options={toOptions(availableUsers)}
-              />
-            )}
-          />
-        </FormField>
-        <FormField label="Role" htmlFor="add-member-role" className="flex-1" error={memberErrors.role_id?.message}>
-          <Controller
-            control={memberForm.control}
-            name="role_id"
-            render={({ field }) => (
-              <OptionSelect
-                id="add-member-role"
-                invalid={!!memberErrors.role_id}
-                value={field.value || null}
-                onValueChange={(v) => field.onChange(v ?? '')}
-                placeholder="Select role…"
-                options={toOptions(roles)}
-              />
-            )}
-          />
-        </FormField>
-        <LoadingButton type="submit" className="sm:mt-6" loading={memberForm.formState.isSubmitting}>
-          Add
-        </LoadingButton>
-      </form>
+      {permissions.create && (
+        <form
+          noValidate
+          className="flex flex-col gap-3 rounded-lg border border-dashed bg-muted/30 p-3 sm:flex-row sm:items-start"
+          onSubmit={memberForm.handleSubmit((v) =>
+            addMember
+              .mutateAsync({ user_id: Number(v.user_id), role_id: Number(v.role_id) })
+              .then(() => memberForm.reset())
+              .catch(() => {}),
+          )}
+        >
+          <FormField label="Add member" htmlFor="add-member-user" className="flex-1" error={memberErrors.user_id?.message}>
+            <Controller
+              control={memberForm.control}
+              name="user_id"
+              render={({ field }) => (
+                <OptionSelect
+                  id="add-member-user"
+                  invalid={!!memberErrors.user_id}
+                  value={field.value || null}
+                  onValueChange={(v) => field.onChange(v ?? '')}
+                  placeholder={availableUsers.length ? 'Select person…' : 'Everyone is already a member'}
+                  disabled={availableUsers.length === 0}
+                  options={toOptions(availableUsers)}
+                />
+              )}
+            />
+          </FormField>
+          <FormField label="Role" htmlFor="add-member-role" className="flex-1" error={memberErrors.role_id?.message}>
+            <Controller
+              control={memberForm.control}
+              name="role_id"
+              render={({ field }) => (
+                <OptionSelect
+                  id="add-member-role"
+                  invalid={!!memberErrors.role_id}
+                  value={field.value || null}
+                  onValueChange={(v) => field.onChange(v ?? '')}
+                  placeholder="Select role…"
+                  options={toOptions(roles)}
+                />
+              )}
+            />
+          </FormField>
+          <LoadingButton type="submit" className="sm:mt-6" loading={memberForm.formState.isSubmitting}>
+            Add
+          </LoadingButton>
+        </form>
+      )}
     </div>
   )
 }

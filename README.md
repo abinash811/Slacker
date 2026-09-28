@@ -88,7 +88,8 @@ comparisons, global filters, a dev-mode auth abstraction ready to be
 swapped for company SSO, Slack event signature verification + retry
 deduplication.
 
-**Deliberately not built in V1**: RBAC, real authentication,
+**Deliberately not built in V1**: ticket-level RBAC (Settings permissions
+from Roles *are* enforced — see `backend/app/core/permissions.py`), real authentication,
 notifications/escalation, email/WhatsApp integration, AI features,
 multi-workspace Slack install. The schema and service-layer separation
 were designed so these can be added later without rewriting what's here —

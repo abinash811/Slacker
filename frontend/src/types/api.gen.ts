@@ -159,6 +159,23 @@ export interface paths {
         patch: operations["update_custom_field_api_custom_fields__field_id__patch"];
         trace?: never;
     };
+    "/api/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Me */
+        get: operations["me_api_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/roles": {
         parameters: {
             query?: never;
@@ -708,6 +725,14 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /**
+         * MeOut
+         * @description The current user and what they may do in Settings (see app.core.permissions).
+         */
+        MeOut: {
+            settings: components["schemas"]["SettingsPermissions"];
+            user: components["schemas"]["UserOut"];
+        };
         /** OwnerPendingItem */
         OwnerPendingItem: {
             /** Owner Id */
@@ -787,6 +812,15 @@ export interface components {
         SLASettingsUpdateRequest: {
             /** Default Hours */
             default_hours: number;
+        };
+        /** SettingsPermissions */
+        SettingsPermissions: {
+            /** Create */
+            create: boolean;
+            /** Delete */
+            delete: boolean;
+            /** Edit */
+            edit: boolean;
         };
         /** StatusChangeRequest */
         StatusChangeRequest: {
@@ -1320,7 +1354,9 @@ export interface operations {
     create_category_api_categories_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1353,7 +1389,9 @@ export interface operations {
     update_category_api_categories__category_id__patch: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
             path: {
                 category_id: number;
             };
@@ -1419,7 +1457,9 @@ export interface operations {
     create_custom_field_api_custom_fields_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1452,7 +1492,9 @@ export interface operations {
     update_custom_field_api_custom_fields__field_id__patch: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
             path: {
                 field_id: number;
             };
@@ -1471,6 +1513,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CustomFieldDefinitionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    me_api_me_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeOut"];
                 };
             };
             /** @description Validation Error */
@@ -1518,7 +1591,9 @@ export interface operations {
     create_role_api_roles_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1551,7 +1626,9 @@ export interface operations {
     update_role_api_roles__role_id__patch: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
             path: {
                 role_id: number;
             };
@@ -1606,7 +1683,9 @@ export interface operations {
     update_sla_settings_api_sla_settings_patch: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1670,7 +1749,9 @@ export interface operations {
     create_tag_api_tags_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1703,7 +1784,9 @@ export interface operations {
     update_tag_api_tags__tag_id__patch: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
             path: {
                 tag_id: number;
             };
@@ -1758,7 +1841,9 @@ export interface operations {
     create_team_api_teams_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1791,7 +1876,9 @@ export interface operations {
     rename_team_api_teams__team_id__patch: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
             path: {
                 team_id: number;
             };
@@ -1857,7 +1944,9 @@ export interface operations {
     add_member_api_teams__team_id__members_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
             path: {
                 team_id: number;
             };
@@ -1892,7 +1981,9 @@ export interface operations {
     remove_member_api_teams__team_id__members__member_id__delete: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
             path: {
                 team_id: number;
                 member_id: number;
@@ -1922,7 +2013,9 @@ export interface operations {
     update_member_role_api_teams__team_id__members__member_id__patch: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
             path: {
                 team_id: number;
                 member_id: number;
@@ -1958,7 +2051,9 @@ export interface operations {
     set_default_team_api_teams__team_id__set_default_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
             path: {
                 team_id: number;
             };

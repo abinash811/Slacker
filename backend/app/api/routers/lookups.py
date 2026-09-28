@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.auth import get_current_user
 from app.core.database import get_db
+from app.core.permissions import ensure_update, permissions_for, require
 from app.models.team import Team
 from app.models.user import User
 from app.schemas.lookup import (
@@ -13,7 +15,7 @@ from app.schemas.lookup import (
     SLASettingsUpdateRequest,
     TeamOut,
 )
-from app.schemas.user import UserOut
+from app.schemas.user import MeOut, SettingsPermissions, UserOut
 from app.services import lookup_service, sla_service
 
 router = APIRouter(tags=["lookups"])
@@ -30,13 +32,19 @@ def list_categories(include_archived: bool = Query(default=False), db: Session =
 
 
 @router.post("/categories", response_model=CategoryOut, status_code=201)
-def create_category(payload: CategoryCreateRequest, db: Session = Depends(get_db)) -> CategoryOut:
+def create_category(
+    payload: CategoryCreateRequest, db: Session = Depends(get_db), _: User = Depends(require("create"))
+) -> CategoryOut:
     return lookup_service.create_category(db, payload.name)
 
 
 @router.patch("/categories/{category_id}", response_model=CategoryOut)
-def update_category(category_id: int, payload: CategoryUpdateRequest, db: Session = Depends(get_db)) -> CategoryOut:
-    return lookup_service.update_category(db, category_id, **payload.model_dump(exclude_unset=True))
+def update_category(
+    category_id: int, payload: CategoryUpdateRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> CategoryOut:
+    changes = payload.model_dump(exclude_unset=True)
+    ensure_update(db, user, changes)
+    return lookup_service.update_category(db, category_id, **changes)
 
 
 @router.get("/sla-settings", response_model=SLASettingsOut)
@@ -45,8 +53,15 @@ def get_sla_settings(db: Session = Depends(get_db)) -> SLASettingsOut:
 
 
 @router.patch("/sla-settings", response_model=SLASettingsOut)
-def update_sla_settings(payload: SLASettingsUpdateRequest, db: Session = Depends(get_db)) -> SLASettingsOut:
+def update_sla_settings(
+    payload: SLASettingsUpdateRequest, db: Session = Depends(get_db), _: User = Depends(require("edit"))
+) -> SLASettingsOut:
     return sla_service.set_default_hours(db, payload.default_hours)
+
+
+@router.get("/me", response_model=MeOut)
+def me(db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> MeOut:
+    return MeOut(user=UserOut.model_validate(user), settings=SettingsPermissions(**permissions_for(db, user)))
 
 
 @router.get("/users", response_model=list[UserOut])

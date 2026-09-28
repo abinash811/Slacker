@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { useSettingsPermissions } from '@/hooks/useApi'
 import { describeError } from '@/lib/api'
 
 /**
@@ -22,6 +23,7 @@ import { describeError } from '@/lib/api'
  * around a `useZodForm` form, with Cancel/Create footer, a pending state,
  * field errors from the schema, and the server error shown inline so the
  * user can fix and retry without retyping. Resets when closed.
+ * Renders nothing unless the user may create items in Settings.
  */
 export function CreateItemDialog<TInput extends FieldValues, TOutput extends FieldValues>({
   noun,
@@ -45,6 +47,7 @@ export function CreateItemDialog<TInput extends FieldValues, TOutput extends Fie
 }) {
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<unknown>(null)
+  const { create: canCreate } = useSettingsPermissions()
 
   function handleOpenChange(next: boolean) {
     setOpen(next)
@@ -63,6 +66,8 @@ export function CreateItemDialog<TInput extends FieldValues, TOutput extends Fie
       setError(err)
     }
   })
+
+  if (!canCreate) return null
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

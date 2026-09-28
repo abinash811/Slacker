@@ -13,9 +13,8 @@ class Role(Base, TimestampMixin):
     The three flags below gate access to the Settings panel only (Teams &
     Permissions, Form Fields & Dropdowns) — not tickets or anything else in
     the dashboard, which stay open to everyone per the V1 "everyone sees
-    everything" model. Enforcement of these flags is deliberately not wired
-    up yet (see docs/ROADMAP.md) — this table exists so it can be, later,
-    without another schema change.
+    everything" model. Enforced by app.core.permissions on every Settings
+    write endpoint (a user holds a flag via any team membership's role).
     """
 
     __tablename__ = "roles"

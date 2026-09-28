@@ -200,6 +200,14 @@ directly only for actions that aren't mutations.
   enabled so the user can press them and see what's missing (the exception is Save
   on an unchanged settings form). `<form onSubmit noValidate>` so Enter
   submits; the footer order is Cancel (outline) then the primary action, right-aligned.
+- **Permissions:** the server enforces Settings permissions
+  (`backend/app/core/permissions.py`); the UI mirrors them with
+  `useSettingsPermissions()` and **hides** controls the user can't use
+  (`CreateItemDialog` does this itself) rather than showing disabled ones.
+  Inputs that stay visible for reading are disabled, with a hint.
+  `SettingsAccessNotice` at the top of Settings and Teams says what's
+  missing and who to ask. A 403 from the server still surfaces as an error
+  toast with the server's reason.
 - **Pagination:** reset to page 1 whenever filters or sort change; keep the
   current page visible while the next one loads (`keepPreviousData`).
 

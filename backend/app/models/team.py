@@ -19,9 +19,8 @@ class Team(Base, TimestampMixin):
 
 
 class TeamMember(Base, TimestampMixin):
-    """Team membership. Role is not yet used for authorization decisions
-    (everyone can see everything, per spec) — see app.models.role.Role for
-    where that will hook in later.
+    """Team membership. The member's role grants Settings permissions
+    (app.core.permissions); tickets stay visible to everyone, per spec.
     """
 
     __tablename__ = "team_members"

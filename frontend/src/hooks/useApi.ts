@@ -6,6 +6,8 @@ import type {
   CustomFieldDefinition,
   CustomFieldType,
   DashboardSummary,
+  Me,
+  SettingsPermissions,
   OwnerPendingItem,
   Role,
   SLASettings,
@@ -58,6 +60,18 @@ export function useUpdateSlaSettings() {
     meta: { success: 'SLA updated', errorTitle: "Couldn't update SLA" },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sla-settings'] }),
   })
+}
+
+/** The current user and their Settings permissions. The server enforces them; the UI hides what's not allowed. */
+export function useMe() {
+  return useQuery({ queryKey: ['me'], queryFn: () => api.get<Me>('/me'), staleTime: 60_000 })
+}
+
+const NO_PERMISSIONS: SettingsPermissions = { create: false, edit: false, delete: false }
+
+/** What the current user may do in Settings. Everything is off until /me loads. */
+export function useSettingsPermissions(): SettingsPermissions {
+  return useMe().data?.settings ?? NO_PERMISSIONS
 }
 
 export function useUsers() {
