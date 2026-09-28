@@ -15,7 +15,7 @@ test('pages through tickets 50 at a time', async ({ page }) => {
   expect(api.requests).toContainEqual(expect.stringMatching(/GET \/tickets\?.*page=2/))
 })
 
-test('sorts only on columns the server supports, and resets to page 1', async ({ page }) => {
+test('sorts any column on the server, and resets to page 1', async ({ page }) => {
   const api = await mockApi(page, { tickets: makeTickets(120) })
   await page.goto('/tickets')
   await page.getByLabel('Go to next page').click()
@@ -26,8 +26,11 @@ test('sorts only on columns the server supports, and resets to page 1', async ({
   await expect(page.getByRole('columnheader', { name: 'Priority' })).toHaveAttribute('aria-sort', 'descending')
   expect(api.requests).toContainEqual(expect.stringMatching(/sort_by=priority&sort_dir=desc.*page=1/))
 
-  // Title has no sort control at all.
-  await expect(page.getByRole('columnheader', { name: 'Title' }).getByRole('button')).toHaveCount(0)
+  // Name columns sort too (joined on the server), ascending on second click.
+  await page.getByRole('button', { name: 'Team' }).click()
+  await page.getByRole('button', { name: 'Team' }).click()
+  await expect(page.getByRole('columnheader', { name: 'Team' })).toHaveAttribute('aria-sort', 'ascending')
+  expect(api.requests).toContainEqual(expect.stringMatching(/sort_by=team_name&sort_dir=asc/))
 })
 
 test('shows a filtered empty state with a way out', async ({ page }) => {

@@ -104,7 +104,7 @@ ui.shadcn.com.
 | Dialog | shadcn `Dialog`, `DialogTrigger render={<Button/>}`, `DialogContent` (size with `className="sm:max-w-md"`), `DialogHeader`, `DialogTitle`, `DialogDescription` (always include one), `DialogFooter` |
 | "+ New" item flow | `CreateItemDialog` (`components/`) |
 | Destructive confirmation | `ConfirmDialog` (pattern over shadcn `AlertDialog`) |
-| List of records | `DataTable` (pattern: shadcn's data-table recipe, meaning TanStack Table + shadcn `Table`, `Button`, `Pagination`). Columns from `columnHelper<T>()` in `lib/data-table.ts`; server-side sorting and paging; built-in loading, error and empty states. Per-column `meta`: `muted`, `align`, `className`, `invertSortIndicator`; `enableSorting: false` on columns the API can't sort. Omit `sorting` for a static table |
+| List of records | `DataTable` (pattern: shadcn's data-table recipe, meaning TanStack Table + shadcn `Table`, `Button`, `Pagination`). Columns from `columnHelper<T>()` in `lib/data-table.ts`; server-side sorting and paging; built-in loading, error and empty states. Per-column `meta`: `muted`, `align`, `className`, `invertSortIndicator`. Column ids must be server sort keys (a unit test checks them against the API schema); `enableSorting: false` only for a column the API truly can't sort. Omit `sorting` for a static table |
 | Status pill | `ToneBadge` (pattern over shadcn `Badge`: tones `neutral`, `info`, `success`, `warning`, `danger`); tickets use `StatusBadge`, `PriorityBadge`, `SlaBadge` |
 | Card | shadcn `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardAction`, `CardContent` |
 | Metric | `StatTile` / `StatTileSkeleton` |

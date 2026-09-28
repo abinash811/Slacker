@@ -3517,6 +3517,22 @@
             "required": false,
             "schema": {
               "default": "created_at",
+              "enum": [
+                "ticket_number",
+                "title",
+                "customer",
+                "business_id",
+                "mobile_number",
+                "doctor_name",
+                "category_name",
+                "team_name",
+                "owner_name",
+                "priority",
+                "status",
+                "sla_due_at",
+                "created_at",
+                "updated_at"
+              ],
               "title": "Sort By",
               "type": "string"
             }
@@ -3527,6 +3543,10 @@
             "required": false,
             "schema": {
               "default": "desc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
               "title": "Sort Dir",
               "type": "string"
             }
@@ -3537,6 +3557,7 @@
             "required": false,
             "schema": {
               "default": 1,
+              "minimum": 1,
               "title": "Page",
               "type": "integer"
             }
@@ -3547,6 +3568,8 @@
             "required": false,
             "schema": {
               "default": 50,
+              "maximum": 200,
+              "minimum": 1,
               "title": "Page Size",
               "type": "integer"
             }

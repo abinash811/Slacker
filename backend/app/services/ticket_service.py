@@ -12,6 +12,7 @@ from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
+from app.models.category import Category
 from app.models.custom_field import TicketCustomFieldValue
 from app.models.enums import EventSource, TicketPriority, TicketStatus
 from app.models.team import Team
@@ -324,13 +325,30 @@ def record_comment_reference(
     return ticket
 
 
-_SORTABLE_COLUMNS = {
-    "created_at": Ticket.created_at,
-    "updated_at": Ticket.updated_at,
+def _name_of(model, fk):
+    """Correlated lookup of a related row's name, for sorting without
+    adding joins that would clash with TICKET_LOAD_OPTIONS' joinedloads."""
+    return select(model.name).where(model.id == fk).scalar_subquery()
+
+
+# Every column the ticket list can sort by, keyed by the id the frontend uses
+# (frontend/src/pages/Tickets.tsx). Text sorts ignore case. Adding a column to
+# the table means adding it here too — the router rejects unknown keys.
+SORTABLE_COLUMNS = {
+    "ticket_number": Ticket.ticket_number,
+    "title": func.lower(Ticket.title),
+    "customer": func.lower(Ticket.customer),
+    "business_id": func.lower(Ticket.business_id),
+    "mobile_number": Ticket.mobile_number,
+    "doctor_name": func.lower(Ticket.doctor_name),
+    "category_name": func.lower(_name_of(Category, Ticket.category_id)),
+    "team_name": func.lower(_name_of(Team, Ticket.team_id)),
+    "owner_name": func.lower(_name_of(User, Ticket.owner_id)),
     "priority": Ticket.priority,
     "status": Ticket.status,
     "sla_due_at": Ticket.sla_due_at,
-    "ticket_number": Ticket.ticket_number,
+    "created_at": Ticket.created_at,
+    "updated_at": Ticket.updated_at,
 }
 
 
@@ -343,14 +361,19 @@ def list_tickets(
     page: int = 1,
     page_size: int = 50,
 ) -> tuple[list[Ticket], int]:
+    if sort_by not in SORTABLE_COLUMNS:
+        raise ValueError(f"Unknown sort column: {sort_by}")
     now = datetime.now(timezone.utc)
     stmt = select(Ticket).options(*TICKET_LOAD_OPTIONS)
     stmt = apply_filters(stmt, filters, now)
 
     total = db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
 
-    sort_col = _SORTABLE_COLUMNS.get(sort_by, Ticket.created_at)
-    stmt = stmt.order_by(sort_col.desc() if sort_dir == "desc" else sort_col.asc())
+    sort_col = SORTABLE_COLUMNS[sort_by]
+    ordered = sort_col.desc() if sort_dir == "desc" else sort_col.asc()
+    # Empty values (no owner, no Business ID…) always sort last, and ticket id
+    # breaks ties so rows never repeat or go missing across pages.
+    stmt = stmt.order_by(ordered.nulls_last(), Ticket.id.desc())
     stmt = stmt.offset((page - 1) * page_size).limit(page_size)
 
     items = list(db.execute(stmt).unique().scalars().all())

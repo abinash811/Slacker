@@ -1989,8 +1989,8 @@ export interface operations {
     list_tickets_api_tickets_get: {
         parameters: {
             query?: {
-                sort_by?: string;
-                sort_dir?: string;
+                sort_by?: "ticket_number" | "title" | "customer" | "business_id" | "mobile_number" | "doctor_name" | "category_name" | "team_name" | "owner_name" | "priority" | "status" | "sla_due_at" | "created_at" | "updated_at";
+                sort_dir?: "asc" | "desc";
                 page?: number;
                 page_size?: number;
                 team_id?: number | null;

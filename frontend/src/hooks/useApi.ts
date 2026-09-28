@@ -18,6 +18,7 @@ import type {
   TicketFiltersState,
   TicketListResponse,
   TicketPriority,
+  TicketSortColumn,
   TicketStatus,
   TimelineEvent,
   User,
@@ -65,7 +66,7 @@ export function useUsers() {
 
 export function useTickets(
   filters: TicketFiltersState,
-  opts: { sortBy?: string; sortDir?: 'asc' | 'desc'; page?: number; pageSize?: number } = {},
+  opts: { sortBy?: TicketSortColumn; sortDir?: 'asc' | 'desc'; page?: number; pageSize?: number } = {},
 ) {
   const query = buildQuery({
     team_id: filters.team_id,

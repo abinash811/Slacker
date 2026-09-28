@@ -2,7 +2,7 @@
 // response shape here. Regenerate after changing a backend schema:
 //   cd backend && python -m scripts.export_openapi && cd ../frontend && npm run gen:api
 // CI fails if frontend/openapi.json or api.gen.ts is stale.
-import type { components } from './api.gen'
+import type { components, operations } from './api.gen'
 
 type Schemas = components['schemas']
 
@@ -28,6 +28,11 @@ export type DashboardSummary = Schemas['DashboardSummary']
 export type BreakdownItem = Schemas['BreakdownItem']
 export type OwnerPendingItem = Schemas['OwnerPendingItem']
 export type TicketCreateRequest = Schemas['TicketCreateRequest']
+
+/** Columns the ticket list endpoint can sort by (enum from the backend). */
+export type TicketSortColumn = NonNullable<
+  NonNullable<operations['list_tickets_api_tickets_get']['parameters']['query']>['sort_by']
+>
 
 /** Client-side filter state (URL-backed); not an API schema. */
 export interface TicketFiltersState {

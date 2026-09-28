@@ -1,6 +1,8 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_ticket_filters
@@ -29,14 +31,18 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
+# Published in the OpenAPI schema as an enum, so the frontend's generated
+# types list exactly the columns the server can sort.
+TicketSortColumn = Literal[tuple(ticket_service.SORTABLE_COLUMNS)]  # type: ignore[valid-type]
+
 
 @router.get("", response_model=TicketListResponse)
 def list_tickets(
     filters: TicketFilters = Depends(get_ticket_filters),
-    sort_by: str = "created_at",
-    sort_dir: str = "desc",
-    page: int = 1,
-    page_size: int = 50,
+    sort_by: TicketSortColumn = "created_at",
+    sort_dir: Literal["asc", "desc"] = "desc",
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
 ) -> TicketListResponse:
     items, total = ticket_service.list_tickets(

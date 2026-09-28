@@ -13,7 +13,7 @@ import { useTicketFilters } from '@/hooks/useTicketFilters'
 import { columnHelper } from '@/lib/data-table'
 import { formatDateTime, formatDuration } from '@/lib/format'
 import { EMPTY_FILTERS } from '@/lib/tickets'
-import type { TicketListItem } from '@/types/api'
+import type { TicketListItem, TicketSortColumn } from '@/types/api'
 
 const PAGE_SIZE = 50
 const EMPTY_ROWS: TicketListItem[] = []
@@ -22,9 +22,10 @@ const DEFAULT_SORT: SortingState = [{ id: 'created_at', desc: true }]
 const col = columnHelper<TicketListItem>()
 const dash = (v: string | null) => v ?? '—'
 
-// Sortable column ids must match the backend's _SORTABLE_COLUMNS
-// (ticket_service.py); every other column has sorting disabled.
-const COLUMNS = col.columns([
+// Every column sorts on the server. Column ids are the backend's sort keys
+// (SORTABLE_COLUMNS in ticket_service.py); Tickets.test.ts checks every
+// column id against the API schema, so a mismatch fails the tests.
+export const COLUMNS = col.columns([
   col.accessor('ticket_number', {
     header: 'Ticket',
     meta: { className: 'font-medium' },
@@ -39,14 +40,14 @@ const COLUMNS = col.columns([
       </Link>
     ),
   }),
-  col.accessor('title', { header: 'Title', enableSorting: false, meta: { className: 'max-w-64 truncate' } }),
-  col.accessor('customer', { header: 'Customer', enableSorting: false, meta: { muted: true } }),
-  col.accessor('business_id', { header: 'Business ID', enableSorting: false, meta: { muted: true }, cell: (i) => dash(i.getValue()) }),
-  col.accessor('mobile_number', { header: 'Mobile', enableSorting: false, meta: { muted: true }, cell: (i) => dash(i.getValue()) }),
-  col.accessor('doctor_name', { header: 'Doctor', enableSorting: false, meta: { muted: true }, cell: (i) => dash(i.getValue()) }),
-  col.accessor('category_name', { header: 'Category', enableSorting: false, meta: { muted: true } }),
-  col.accessor('team_name', { header: 'Team', enableSorting: false, meta: { muted: true } }),
-  col.accessor('owner_name', { header: 'Pending on', enableSorting: false, meta: { muted: true }, cell: (i) => i.getValue() ?? 'Unassigned' }),
+  col.accessor('title', { header: 'Title', meta: { className: 'max-w-64 truncate' } }),
+  col.accessor('customer', { header: 'Customer', meta: { muted: true } }),
+  col.accessor('business_id', { header: 'Business ID', meta: { muted: true }, cell: (i) => dash(i.getValue()) }),
+  col.accessor('mobile_number', { header: 'Mobile', meta: { muted: true }, cell: (i) => dash(i.getValue()) }),
+  col.accessor('doctor_name', { header: 'Doctor', meta: { muted: true }, cell: (i) => dash(i.getValue()) }),
+  col.accessor('category_name', { header: 'Category', meta: { muted: true } }),
+  col.accessor('team_name', { header: 'Team', meta: { muted: true } }),
+  col.accessor('owner_name', { header: 'Pending on', meta: { muted: true }, cell: (i) => i.getValue() ?? 'Unassigned' }),
   col.accessor('priority', { header: 'Priority', cell: (i) => <PriorityBadge priority={i.getValue()} /> }),
   col.accessor('status', { header: 'Status', cell: (i) => <StatusBadge status={i.getValue()} /> }),
   col.accessor('sla_breached', {
@@ -78,7 +79,7 @@ export function Tickets() {
   }
 
   const tickets = useTickets(filters, {
-    sortBy: sorting[0]?.id,
+    sortBy: sorting[0]?.id as TicketSortColumn | undefined,
     sortDir: sorting[0]?.desc ? 'desc' : 'asc',
     page: pagination.pageIndex + 1,
     pageSize: pagination.pageSize,
