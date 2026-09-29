@@ -88,7 +88,7 @@ Use `tabular-nums` wherever numbers line up in columns. Don't invent a size;
 **shadcn components in use** (`components/ui/`): `alert`, `alert-dialog`,
 `badge`, `button`, `card`, `checkbox`, `dialog`, `empty`, `field`, `input`,
 `label`, `pagination`, `progress`, `select`, `separator`, `skeleton`,
-`sonner`, `spinner`, `table`, `textarea`, `toggle`, `tooltip`. Use them as documented on
+`sonner`, `spinner`, `table`, `tabs`, `textarea`, `toggle`, `tooltip`. Use them as documented on
 ui.shadcn.com.
 
 | Need | Use |
@@ -111,7 +111,9 @@ ui.shadcn.com.
 | Part-of-whole bar | shadcn `Progress` |
 | Chart | shadcn `Chart` (Recharts) inside `ChartCard` (pattern: shadcn `Card` + a "Show table" toggle). See Charts below |
 | Multi-select chips | `TagPicker` (shadcn `Toggle`s) |
-| Hint on hover | shadcn `Tooltip` (required on icon-only buttons) |
+| Hint on hover | shadcn `Tooltip` (required on icon-only buttons). Set `delay={300}` on `TooltipTrigger`; there's deliberately no app-wide `TooltipProvider`, since importing it in `main.tsx` pulls tooltip code into the first load |
+| Copyable command, config or key | `CodeSnippet`; a one-line copy action is `CopyButton` (icon button with tooltip) |
+| Alternatives within one card | shadcn `Tabs` |
 | Navigation link | `NavItem` (`components/`, ghost `buttonVariants`) |
 | Empty / failed list | `EmptyState` / `ErrorState` (patterns over shadcn `Empty`) |
 
@@ -207,6 +209,12 @@ directly only for actions that aren't mutations.
   sections (`TicketFormSections.tsx`, read through `useFormContext`) so the
   two never drift. Fields with their own tracked history (owner, team,
   status, priority) stay in the Actions card, not the edit form.
+- **Copyable text** (commands, config, keys): `CodeSnippet` (monospace,
+  wraps, copy button, `label` names it for screen readers). A single line
+  with a copy action uses `CopyButton`. Copying confirms with a tick and a
+  "Copied" toast.
+- **Switching between alternatives** in one card (e.g. setup per app on
+  the Connect page): shadcn `Tabs`. Not for page navigation.
 - **Sub-issues:** one level deep. A main ticket's `SubIssuesCard` lists
   them with a `Progress` bar ("1 of 2 done") and an outline "Add sub-issue"
   button that opens `CreateTicketDialog parent={ticket}`, prefilled with the

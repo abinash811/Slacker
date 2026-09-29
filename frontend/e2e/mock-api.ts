@@ -1,5 +1,6 @@
 import type { Page, Route } from '@playwright/test'
 import type {
+  ApiToken,
   Category,
   DashboardSummary,
   Role,
@@ -124,6 +125,7 @@ export async function mockApi(
 ): Promise<MockApi> {
   const overrides: { method: string; path: string | RegExp; handler: Handler }[] = []
   const views: { id: number; name: string; filters: Record<string, unknown>; created_at: string }[] = []
+  const apiTokens: ApiToken[] = []
   const requests: string[] = []
 
   await page.route(/\/api\//, async (route) => {
@@ -151,9 +153,22 @@ export async function mockApi(
       views.splice(views.findIndex((v) => v.id === Number(viewMatch[1])), 1)
       return route.fulfill({ status: 204 })
     }
+    if (path === '/me/tokens' && method === 'POST') {
+      const body = route.request().postDataJSON()
+      const token = { id: apiTokens.length + 1, name: body.name, prefix: 'slk_test1234', created_at: new Date().toISOString(), last_used_at: null }
+      apiTokens.push(token)
+      return json({ ...token, key: 'slk_test1234secretvalue' }, 201)
+    }
+    const tokenMatch = path.match(/^\/me\/tokens\/(\d+)$/)
+    if (tokenMatch && method === 'DELETE') {
+      apiTokens.splice(apiTokens.findIndex((t) => t.id === Number(tokenMatch[1])), 1)
+      return route.fulfill({ status: 204 })
+    }
     if (method !== 'GET') return json({})
 
     if (path === '/me') return json({ user: users[0], settings })
+    if (path === '/me/tokens') return json(apiTokens)
+    if (path === '/mcp-info') return json({ url: 'http://localhost:8000/mcp' })
     if (path === '/users') return json(users)
     if (path === '/teams') return json(teams)
     if (/^\/teams\/\d+\/detail$/.test(path)) {

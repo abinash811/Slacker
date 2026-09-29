@@ -44,6 +44,17 @@ class Settings(BaseSettings):
     slack_default_channel_id: str = ""
     slack_workspace_domain: str = ""  # optional: enables "Open in Slack" links
 
+    # Where this backend is reachable, as users' AI assistants see it. The
+    # MCP server lives at <public_api_url>/mcp; its host is also the only
+    # one (besides localhost) the MCP endpoint accepts requests for.
+    public_api_url: str = "http://localhost:8000"
+    # Where people open the dashboard; used for ticket links in MCP results.
+    public_app_url: str = "http://localhost:5173"
+
+    @property
+    def mcp_url(self) -> str:
+        return self.public_api_url.rstrip("/") + "/mcp"
+
     @property
     def cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.backend_cors_origins.split(",") if origin.strip()]

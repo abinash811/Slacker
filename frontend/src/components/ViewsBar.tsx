@@ -69,7 +69,7 @@ export function ViewsBar({
           </Button>
           {view.id !== undefined && (
             <Tooltip>
-              <TooltipTrigger render={<span />}>
+              <TooltipTrigger delay={300} render={<span />}>
                 <ConfirmDialog
                   trigger={<Button variant="ghost" size="icon-xs" aria-label={`Delete view ${view.name}`} />}
                   triggerLabel={<X />}

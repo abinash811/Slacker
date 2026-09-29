@@ -68,6 +68,9 @@ everything automatically (see the note about the ticket-number sequence in
 - **Secrets**: `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, `SLACK_APP_TOKEN`,
   `DATABASE_URL` etc. via AWS Secrets Manager or SSM Parameter Store,
   injected as container environment variables — never baked into the image.
+- **AI assistants (MCP)**: set `PUBLIC_API_URL` to the backend's public
+  HTTPS address and `PUBLIC_APP_URL` to the dashboard's; `/mcp` only accepts
+  requests for that host. See `docs/MCP.md`.
 - Deliberately **not** included for V1: multi-AZ complexity beyond what
   RDS/ECS give you by default, a message queue, a separate worker service,
   or multi-region — none of these are needed at V1's scale (see spec

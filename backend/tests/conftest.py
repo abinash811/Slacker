@@ -55,6 +55,7 @@ def _clean_tables(db_session):
     from sqlalchemy import text as sa_text
 
     tables = [
+        "api_tokens",
         "audit_events",
         "saved_views",
         "ticket_tags",

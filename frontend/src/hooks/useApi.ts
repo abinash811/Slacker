@@ -2,6 +2,9 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { api, buildQuery } from '@/lib/api'
 import { dayEndIso, dayStartIso } from '@/lib/dates'
 import type {
+  ApiToken,
+  ApiTokenCreated,
+  McpInfo,
   BreakdownItem,
   Category,
   CustomFieldDefinition,
@@ -449,5 +452,33 @@ export function useUpdateTicketTags(ticketId: number) {
     mutationFn: (tag_ids: number[]) => api.post<Ticket>(`/tickets/${ticketId}/tags`, { tag_ids }),
     meta: { errorTitle: "Couldn't update tags" },
     onSuccess: invalidate,
+  })
+}
+
+// --- AI assistant access (MCP) ---
+
+export function useMcpInfo() {
+  return useQuery({ queryKey: ['mcp-info'], queryFn: () => api.get<McpInfo>('/mcp-info'), staleTime: Infinity })
+}
+
+export function useApiTokens() {
+  return useQuery({ queryKey: ['api-tokens'], queryFn: () => api.get<ApiToken[]>('/me/tokens') })
+}
+
+export function useCreateApiToken() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (name: string) => api.post<ApiTokenCreated>('/me/tokens', { name }),
+    meta: { errorTitle: "Couldn't create a key" },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['api-tokens'] }),
+  })
+}
+
+export function useRevokeApiToken() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.delete<void>(`/me/tokens/${id}`),
+    meta: { success: 'Key revoked', errorTitle: "Couldn't revoke the key" },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['api-tokens'] }),
   })
 }

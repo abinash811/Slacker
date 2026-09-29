@@ -24,6 +24,7 @@ export function Layout() {
               <NavItem to="/tickets">Tickets</NavItem>
               <NavItem to="/teams">Teams</NavItem>
               <NavItem to="/settings">Settings</NavItem>
+              <NavItem to="/connect">Connect Claude</NavItem>
             </nav>
           </div>
           <DevUserSwitcher />

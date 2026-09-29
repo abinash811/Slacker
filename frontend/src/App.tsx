@@ -18,6 +18,7 @@ const CategoriesSection = lazy(() => import('@/pages/FormFields').then((m) => ({
 const SlaSection = lazy(() => import('@/pages/FormFields').then((m) => ({ default: m.SlaSection })))
 const TagsSection = lazy(() => import('@/pages/FormFields').then((m) => ({ default: m.TagsSection })))
 const CustomFieldsSection = lazy(() => import('@/pages/FormFields').then((m) => ({ default: m.CustomFieldsSection })))
+const Connect = lazy(() => import('@/pages/Connect').then((m) => ({ default: m.Connect })))
 const DesignSystem = lazy(() => import('@/pages/DesignSystem').then((m) => ({ default: m.DesignSystem })))
 
 export default function App() {
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="tags" element={<TagsSection />} />
           <Route path="custom-fields" element={<CustomFieldsSection />} />
         </Route>
+        <Route path="/connect" element={<Connect />} />
         <Route path="/design" element={<DesignSystem />} />
         {/* Old bookmarked paths */}
         <Route path="/settings/teams" element={<Navigate to="/teams" replace />} />

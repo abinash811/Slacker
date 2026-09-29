@@ -20,9 +20,11 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ButtonLink, LoadingButton } from '@/components/patterns/buttons'
+import { CodeSnippet, CopyButton } from '@/components/patterns/code-snippet'
 import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
 import { DataTable, TablePager, type SortingState } from '@/components/patterns/data-table'
 import { CheckboxField, FormField, FormSection } from '@/components/patterns/form-field'
@@ -132,7 +134,7 @@ export function DesignSystem() {
           <LoadingButton loading>Saving…</LoadingButton>
           <Button disabled>Disabled</Button>
           <Tooltip>
-            <TooltipTrigger render={<Button variant="ghost" size="icon" aria-label="Delete" />}>
+            <TooltipTrigger delay={300} render={<Button variant="ghost" size="icon" aria-label="Delete" />}>
               <Trash2 />
             </TooltipTrigger>
             <TooltipContent>Delete (icon buttons always get a tooltip)</TooltipContent>
@@ -231,6 +233,26 @@ export function DesignSystem() {
           <Button variant="outline" onClick={() => toast.info('Filters cleared')}>
             Info toast
           </Button>
+        </div>
+      </Section>
+
+      <Section title="Tabs & copyable text">
+        <div className="flex max-w-xl flex-col gap-3">
+          <Tabs defaultValue="command">
+            <TabsList>
+              <TabsTrigger value="command">Command</TabsTrigger>
+              <TabsTrigger value="config">Config</TabsTrigger>
+            </TabsList>
+            <TabsContent value="command" className="pt-3">
+              <CodeSnippet label="Example command" code='claude mcp add --transport http slacker http://localhost:8000/mcp' />
+            </TabsContent>
+            <TabsContent value="config" className="pt-3">
+              <CodeSnippet label="Example config" code={'{\n  "name": "slacker"\n}'} />
+            </TabsContent>
+          </Tabs>
+          <div className="flex items-center gap-2 text-sm">
+            A line with its own copy button <CopyButton text="Copied text" />
+          </div>
         </div>
       </Section>
 
