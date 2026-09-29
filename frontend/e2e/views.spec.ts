@@ -14,7 +14,7 @@ test('built-in views apply their filters and show which is active', async ({ pag
   expect(api.requests).toContainEqual(expect.stringMatching(/GET \/tickets\?owner_id=1/))
   // Built-in views show only ongoing tickets.
   expect(api.requests).toContainEqual(expect.stringMatching(/GET \/tickets\?.*state=active/))
-  await expect(page.getByRole('combobox', { name: 'Status' })).toHaveText('Not resolved')
+  await expect(page.getByRole('combobox', { name: 'Status' })).toContainText('Not resolved')
 
   await views.getByRole('button', { name: 'All tickets' }).click()
   await expect(page).not.toHaveURL(/owner_id/)

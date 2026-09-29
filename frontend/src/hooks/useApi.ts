@@ -31,19 +31,24 @@ import type {
   WeeklyTrend,
 } from '@/types/api'
 
-function filtersToQuery(filters: TicketFiltersState) {
-  return buildQuery({
+function filterParams(filters: TicketFiltersState) {
+  return {
     team_id: filters.team_id,
     owner_id: filters.owner_id,
     support_assignee_id: filters.support_assignee_id,
     category_id: filters.category_id,
     priority: filters.priority,
     status: filters.status,
+    state: filters.state,
     sla_status: filters.sla_status,
     date_from: filters.date_from ? dayStartIso(filters.date_from) : undefined,
     date_to: filters.date_to ? dayEndIso(filters.date_to) : undefined,
     search: filters.search,
-  })
+  }
+}
+
+function filtersToQuery(filters: TicketFiltersState) {
+  return buildQuery(filterParams(filters))
 }
 
 export function useTeams() {
@@ -112,16 +117,7 @@ export function useTickets(
   opts: { sortBy?: TicketSortColumn; sortDir?: 'asc' | 'desc'; page?: number; pageSize?: number } = {},
 ) {
   const query = buildQuery({
-    team_id: filters.team_id,
-    owner_id: filters.owner_id,
-    support_assignee_id: filters.support_assignee_id,
-    category_id: filters.category_id,
-    priority: filters.priority,
-    status: filters.status,
-    sla_status: filters.sla_status,
-    date_from: filters.date_from ? dayStartIso(filters.date_from) : undefined,
-    date_to: filters.date_to ? dayEndIso(filters.date_to) : undefined,
-    search: filters.search,
+    ...filterParams(filters),
     sort_by: opts.sortBy,
     sort_dir: opts.sortDir,
     page: opts.page,
