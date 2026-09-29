@@ -22,20 +22,17 @@ export function useTicketFilters(): [TicketFiltersState, (next: Partial<TicketFi
     search: params.get('search') || undefined,
   }
 
-  // Merge into the *latest* URL params (functional update), so several quick
-  // changes in a row never overwrite each other with a stale copy.
+  // Merge into the live URL, not `params`: React Router hands the updater
+  // the params from the last render, so a second change made before the
+  // page re-renders (e.g. setting "from" then "to" quickly) would otherwise
+  // undo the first. BrowserRouter writes the URL synchronously.
   function update(next: Partial<TicketFiltersState>) {
-    setParams(
-      (prev) => {
-        const merged = new URLSearchParams(prev)
-        for (const [key, value] of Object.entries(next)) {
-          if (value === undefined || value === '') merged.delete(key)
-          else merged.set(key, String(value))
-        }
-        return merged
-      },
-      { replace: true },
-    )
+    const merged = new URLSearchParams(window.location.search)
+    for (const [key, value] of Object.entries(next)) {
+      if (value === undefined || value === '') merged.delete(key)
+      else merged.set(key, String(value))
+    }
+    setParams(merged, { replace: true })
   }
 
   return [filters, update]

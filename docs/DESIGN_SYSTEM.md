@@ -199,8 +199,14 @@ directly only for actions that aren't mutations.
   `<Controller>`. Pass `form.formState.errors.x?.message` to `FormField error` and
   set `aria-invalid`. Validation runs on submit, then live. Submit buttons stay
   enabled so the user can press them and see what's missing (the exception is Save
-  on an unchanged settings form). `<form onSubmit noValidate>` so Enter
+  on an unchanged settings or edit form). `<form onSubmit noValidate>` so Enter
   submits; the footer order is Cancel (outline) then the primary action, right-aligned.
+- **Editing a record:** an outline `Edit` button (`Pencil` icon) in the
+  card's `CardAction` opens a lazy-loaded dialog prefilled with the current
+  values (see `EditTicketDialog`). Create and edit forms share their field
+  sections (`TicketFormSections.tsx`, read through `useFormContext`) so the
+  two never drift. Fields with their own tracked history (owner, team,
+  status, priority) stay in the Actions card, not the edit form.
 - **Permissions:** the server enforces Settings permissions
   (`backend/app/core/permissions.py`); the UI mirrors them with
   `useSettingsPermissions()` and **hides** controls the user can't use

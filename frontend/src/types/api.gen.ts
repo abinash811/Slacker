@@ -456,7 +456,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Update Ticket */
+        patch: operations["update_ticket_api_tickets__ticket_id__patch"];
         trace?: never;
     };
     "/api/tickets/{ticket_id}/assign": {
@@ -1166,6 +1167,30 @@ export interface components {
          * @enum {string}
          */
         TicketStatus: "open" | "in_progress" | "pending" | "resolved" | "closed";
+        /**
+         * TicketUpdateRequest
+         * @description Edits the ticket's details. Only the fields sent are changed; send
+         *     null (or "") to clear an optional one. `custom_field_values` replaces
+         *     the listed fields' values, and an empty value clears that field.
+         */
+        TicketUpdateRequest: {
+            /** Business Id */
+            business_id?: string | null;
+            /** Category Id */
+            category_id?: number | null;
+            /** Custom Field Values */
+            custom_field_values?: components["schemas"]["CustomFieldValueInput"][] | null;
+            /** Customer */
+            customer?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Doctor Name */
+            doctor_name?: string | null;
+            /** Mobile Number */
+            mobile_number?: string | null;
+            /** Title */
+            title?: string | null;
+        };
         /** TimelineEvent */
         TimelineEvent: {
             /** Actor Name */
@@ -2423,6 +2448,43 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_ticket_api_tickets__ticket_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-dev-user-email"?: string | null;
+            };
+            path: {
+                ticket_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TicketUpdateRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

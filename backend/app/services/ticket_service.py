@@ -12,6 +12,7 @@ from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
+from app.models.audit import AuditEvent
 from app.models.category import Category
 from app.models.custom_field import TicketCustomFieldValue
 from app.models.enums import EventSource, TicketPriority, TicketStatus
@@ -124,6 +125,68 @@ def create_ticket(
 
     db.commit()
     db.refresh(ticket)
+    return get_ticket_or_404(db, ticket.id)
+
+
+# Editable details and how the timeline names them.
+EDITABLE_FIELDS = {
+    "title": "Title",
+    "description": "Description",
+    "customer": "Business name",
+    "business_id": "Business ID",
+    "mobile_number": "Mobile number",
+    "doctor_name": "Doctor name",
+    "category_id": "Category",
+}
+_REQUIRED_FIELDS = {"title", "description", "customer", "category_id"}
+
+
+def update_details(
+    db: Session,
+    ticket: Ticket,
+    changes: dict,
+    custom_field_values: list[tuple[int, str]] | None,
+    edited_by: User,
+    source: EventSource,
+) -> Ticket:
+    """Edits a ticket's descriptive fields (not owner/team/status/priority,
+    which have their own history). Records one audit event naming what
+    changed; does nothing if nothing did.
+    """
+    changed: list[str] = []
+    for field, value in changes.items():
+        if field not in EDITABLE_FIELDS:
+            continue
+        if isinstance(value, str):
+            value = value.strip() or None
+        if value is None and field in _REQUIRED_FIELDS:
+            raise HTTPException(status_code=400, detail=f"{EDITABLE_FIELDS[field]} can't be empty")
+        if field == "category_id":
+            category = db.get(Category, value)
+            if category is None:
+                raise HTTPException(status_code=400, detail="Category not found")
+            if category.is_archived and category.id != ticket.category_id:
+                raise HTTPException(status_code=400, detail=f"{category.name} is archived")
+        if getattr(ticket, field) != value:
+            setattr(ticket, field, value)
+            changed.append(EDITABLE_FIELDS[field])
+
+    if custom_field_values is not None:
+        changed += custom_field_service.replace_values(db, ticket.id, custom_field_values)
+
+    if not changed:
+        return ticket
+
+    audit_service.record_event(
+        db,
+        ticket_id=ticket.id,
+        actor_id=edited_by.id,
+        source=source,
+        event_type="details_edited",
+        payload={"fields": changed},
+    )
+    db.commit()
+    db.expire(ticket)
     return get_ticket_or_404(db, ticket.id)
 
 
@@ -473,6 +536,15 @@ def get_timeline(db: Session, ticket: Ticket) -> list[TimelineEvent]:
         if row.author_id:
             actor_ids.add(row.author_id)
         raw_events.append((row.created_at, "comment", lambda names: "Replied in Slack thread", row.author_id))
+
+    edit_rows = db.execute(
+        select(AuditEvent).where(AuditEvent.ticket_id == ticket.id, AuditEvent.event_type == "details_edited")
+    ).scalars().all()
+    for row in edit_rows:
+        if row.actor_id:
+            actor_ids.add(row.actor_id)
+        fields = ", ".join(row.payload.get("fields", [])) or "details"
+        raw_events.append((row.created_at, "details_edited", lambda _, f=fields: f"Edited {f}", row.actor_id))
 
     names: dict[int, str] = {}
     if actor_ids:

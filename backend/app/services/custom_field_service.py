@@ -39,10 +39,39 @@ def update_definition(db: Session, definition_id: int, **updates: object) -> Cus
 
 
 def save_values(db: Session, ticket_id: int, values: list[tuple[int, str]]) -> None:
-    """Persists a ticket's custom field values. Called once at ticket
-    creation — values aren't editable after the fact in V1.
+    """Persists a ticket's custom field values at creation. Later edits
+    go through `replace_values`.
     """
     for field_definition_id, value in values:
         if db.get(CustomFieldDefinition, field_definition_id) is None:
             raise HTTPException(status_code=400, detail=f"Unknown custom field {field_definition_id}")
         db.add(TicketCustomFieldValue(ticket_id=ticket_id, field_definition_id=field_definition_id, value=value))
+
+
+def replace_values(db: Session, ticket_id: int, values: list[tuple[int, str]]) -> list[str]:
+    """Sets, changes or (with an empty value) clears each listed field on a
+    ticket. Fields not listed are left alone. Returns the labels of the
+    fields that actually changed.
+    """
+    existing = {
+        v.field_definition_id: v
+        for v in db.execute(select(TicketCustomFieldValue).where(TicketCustomFieldValue.ticket_id == ticket_id)).scalars()
+    }
+    changed: list[str] = []
+    for field_definition_id, raw in values:
+        definition = db.get(CustomFieldDefinition, field_definition_id)
+        if definition is None:
+            raise HTTPException(status_code=400, detail=f"Unknown custom field {field_definition_id}")
+        value = raw.strip()
+        current = existing.get(field_definition_id)
+        if not value:
+            if current is not None:
+                db.delete(current)
+                changed.append(definition.label)
+        elif current is None:
+            db.add(TicketCustomFieldValue(ticket_id=ticket_id, field_definition_id=field_definition_id, value=value))
+            changed.append(definition.label)
+        elif current.value != value:
+            current.value = value
+            changed.append(definition.label)
+    return changed

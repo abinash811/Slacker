@@ -28,6 +28,22 @@ class TicketCreateRequest(BaseModel):
     tag_ids: list[int] = []
 
 
+class TicketUpdateRequest(BaseModel):
+    """Edits the ticket's details. Only the fields sent are changed; send
+    null (or "") to clear an optional one. `custom_field_values` replaces
+    the listed fields' values, and an empty value clears that field.
+    """
+
+    title: str | None = Field(default=None, min_length=1, max_length=500)
+    description: str | None = Field(default=None, min_length=1)
+    customer: str | None = Field(default=None, min_length=1, max_length=255)
+    business_id: str | None = Field(default=None, max_length=100)
+    mobile_number: str | None = Field(default=None, max_length=32)
+    doctor_name: str | None = Field(default=None, max_length=255)
+    category_id: int | None = None
+    custom_field_values: list[CustomFieldValueInput] | None = None
+
+
 class AssignRequest(BaseModel):
     owner_id: int | None
 

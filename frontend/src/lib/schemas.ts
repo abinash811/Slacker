@@ -43,7 +43,8 @@ export const addMemberSchema = z.object({
   role_id: z.string({ message: 'Choose a role.' }).min(1, 'Choose a role.'),
 })
 
-export const ticketSchema = z.object({
+// The fields a ticket's details are made of; shared by the create and edit forms.
+export const ticketDetailsSchema = z.object({
   title: required('Add a short title.').max(200, 'Keep the title under 200 characters.'),
   description: required('Describe the issue.'),
   customer: required('Enter the business name.'), // stored as `customer`
@@ -51,9 +52,13 @@ export const ticketSchema = z.object({
   mobile_number: optionalText.refine((v) => !v || /^[+\d][\d\s-]{6,}$/.test(v), 'Enter a valid phone number.'),
   doctor_name: optionalText,
   category_id: z.string({ message: 'Choose a category.' }).min(1, 'Choose a category.'),
+  custom_values: z.record(z.string(), z.string()),
+})
+export type TicketDetailsInput = z.input<typeof ticketDetailsSchema>
+
+export const ticketSchema = ticketDetailsSchema.extend({
   team_id: z.string({ message: 'Choose a team.' }).min(1, 'Choose a team.'),
   priority: z.enum(['low', 'medium', 'high', 'urgent']),
   owner_id: z.string().nullable(),
-  custom_values: z.record(z.string(), z.string()),
   tag_ids: z.array(z.number()),
 })

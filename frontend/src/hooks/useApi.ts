@@ -20,6 +20,7 @@ import type {
   TeamMemberEntry,
   Ticket,
   TicketCreateRequest,
+  TicketUpdateRequest,
   TicketFiltersState,
   TicketListResponse,
   TicketPriority,
@@ -193,6 +194,15 @@ export function useCreateTicket() {
   return useMutation({
     mutationFn: (payload: TicketCreateRequest) => api.post<Ticket>('/tickets', payload),
     meta: { success: 'Ticket created and posted to Slack', inlineError: true },
+    onSuccess: invalidate,
+  })
+}
+
+export function useUpdateTicket(ticketId: number) {
+  const { invalidate } = useTicketMutation()
+  return useMutation({
+    mutationFn: (payload: TicketUpdateRequest) => api.patch<Ticket>(`/tickets/${ticketId}`, payload),
+    meta: { success: 'Ticket updated', inlineError: true },
     onSuccess: invalidate,
   })
 }

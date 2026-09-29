@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { makeTickets, mockApi } from './mock-api'
+import { makeTickets, mockApi, ticketDetail } from './mock-api'
 
 test('pages through tickets 50 at a time', async ({ page }) => {
   const api = await mockApi(page, { tickets: makeTickets(120) })
@@ -54,4 +54,36 @@ test('unknown ticket shows not found', async ({ page }) => {
   await mockApi(page)
   await page.goto('/tickets/999')
   await expect(page.getByText('Ticket not found')).toBeVisible()
+})
+
+test('edits a ticket’s details', async ({ page }) => {
+  const api = await mockApi(page)
+  let sent: Record<string, unknown> | undefined
+  api.on('PATCH', '/tickets/1', (route) => {
+    sent = route.request().postDataJSON()
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ...ticketDetail(1), ...sent }) })
+  })
+  await page.goto('/tickets/1')
+
+  await page.getByRole('button', { name: 'Edit' }).click()
+  const dialog = page.getByRole('dialog', { name: /Edit ticket/ })
+  await expect(dialog.getByRole('button', { name: 'Save changes' })).toBeDisabled()
+
+  await dialog.getByLabel('Business name').fill('ABT Private Ltd')
+  await dialog.getByLabel('Doctor name').fill('Dr. Rao')
+  await dialog.getByRole('button', { name: 'Save changes' }).click()
+
+  await expect(dialog).toBeHidden()
+  await expect(page.getByText('Ticket updated')).toBeVisible()
+  expect(sent).toMatchObject({ customer: 'ABT Private Ltd', doctor_name: 'Dr. Rao', business_id: null, category_id: 1 })
+})
+
+test('edit form asks for required details', async ({ page }) => {
+  await mockApi(page)
+  await page.goto('/tickets/1')
+  await page.getByRole('button', { name: 'Edit' }).click()
+  const dialog = page.getByRole('dialog', { name: /Edit ticket/ })
+  await dialog.getByLabel('Business name').fill('')
+  await dialog.getByRole('button', { name: 'Save changes' }).click()
+  await expect(dialog.getByText('Enter the business name.')).toBeVisible()
 })

@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { ArrowLeft, History } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ButtonLink, LoadingButton } from '@/components/patterns/buttons'
 import { OptionSelect } from '@/components/patterns/option-select'
 import { ToneBadge } from '@/components/patterns/tone-badge'
@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/patterns/states'
 import { ErrorState } from '@/components/patterns/states'
 import { Caption, PageHeader } from '@/components/patterns/typography'
 import { PriorityBadge, StatusBadge, SlaBadge } from '@/components/StatusPriorityBadges'
+import { EditTicketDialog } from '@/components/EditTicketDialog'
 import { TagPicker } from '@/components/TagPicker'
 import { NotFound } from '@/pages/NotFound'
 import {
@@ -88,6 +89,9 @@ export function TicketDetail() {
           <Card>
             <CardHeader>
               <CardTitle className="text-muted-foreground">Details</CardTitle>
+              <CardAction>
+                <EditTicketDialog ticket={ticket} />
+              </CardAction>
             </CardHeader>
             <CardContent className="flex flex-col gap-3 text-sm">
               <p className="whitespace-pre-wrap text-foreground">{ticket.description}</p>

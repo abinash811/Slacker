@@ -1,4 +1,4 @@
-import { Controller } from 'react-hook-form'
+import { Controller, FormProvider } from 'react-hook-form'
 import type { z } from 'zod'
 import { DialogClose, DialogFooter } from '@/components/ui/dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -6,10 +6,14 @@ import { AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LoadingButton } from '@/components/patterns/buttons'
 import { FormField, FormSection } from '@/components/patterns/form-field'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { OptionSelect } from '@/components/patterns/option-select'
 import { TagPicker } from '@/components/TagPicker'
+import {
+  TicketBasicsSection,
+  TicketCategoryField,
+  TicketContactSection,
+  TicketCustomFields,
+} from '@/components/TicketFormSections'
 import { useCategories, useCreateTicket, useCustomFields, useTags, useTeams, useUsers } from '@/hooks/useApi'
 import { describeError } from '@/lib/api'
 import { useZodForm } from '@/lib/form'
@@ -53,7 +57,7 @@ export function CreateTicketForm({ onCreated }: { onCreated: () => void }) {
     team_id: defaultTeamId !== undefined ? String(defaultTeamId) : '',
   })
   const { errors, isSubmitting } = form.formState
-  const { register, control } = form
+  const { control } = form
 
   const onSubmit = form.handleSubmit(async (v) => {
     try {
@@ -80,152 +84,91 @@ export function CreateTicketForm({ onCreated }: { onCreated: () => void }) {
     }
   })
 
-  const text = (name: 'title' | 'customer' | 'business_id' | 'mobile_number' | 'doctor_name') => ({
-    id: `ticket-${name.replace('_', '-')}`,
-    'aria-invalid': !!errors[name],
-    ...register(name),
-  })
-
   return (
-    <form className="flex flex-col gap-5" onSubmit={onSubmit} noValidate>
-      <FormSection title="Basics">
-        <FormField label="Title" htmlFor="ticket-title" error={errors.title?.message}>
-          <Input {...text('title')} placeholder="e.g. Prescriptions not syncing" />
-        </FormField>
-        <FormField label="Description" htmlFor="ticket-description" error={errors.description?.message}>
-          <Textarea id="ticket-description" aria-invalid={!!errors.description} {...register('description')} />
-        </FormField>
-      </FormSection>
+    <FormProvider {...form}>
+      <form className="flex flex-col gap-5" onSubmit={onSubmit} noValidate>
+        <TicketBasicsSection />
+        <TicketContactSection />
 
-      <FormSection title="Contact">
-        <FormField label="Business name" htmlFor="ticket-customer" error={errors.customer?.message}>
-          <Input {...text('customer')} />
-        </FormField>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <FormField label="Business ID" htmlFor="ticket-business-id" required={false} error={errors.business_id?.message}>
-            <Input {...text('business_id')} />
-          </FormField>
-          <FormField label="Mobile number" htmlFor="ticket-mobile-number" required={false} error={errors.mobile_number?.message}>
-            <Input type="tel" {...text('mobile_number')} />
-          </FormField>
-          <FormField label="Doctor name" htmlFor="ticket-doctor-name" required={false} error={errors.doctor_name?.message}>
-            <Input {...text('doctor_name')} />
-          </FormField>
-        </div>
-      </FormSection>
-
-      <FormSection title="Routing">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <FormField label="Category" htmlFor="ticket-category" error={errors.category_id?.message}>
-            <Controller
-              control={control}
-              name="category_id"
-              render={({ field }) => (
-                <OptionSelect
-                  id="ticket-category"
-                  invalid={!!errors.category_id}
-                  value={field.value || null}
-                  onValueChange={(v) => field.onChange(v ?? '')}
-                  options={toOptions(categories)}
-                />
-              )}
-            />
-          </FormField>
-          <FormField label="Team" htmlFor="ticket-team" error={errors.team_id?.message}>
-            <Controller
-              control={control}
-              name="team_id"
-              render={({ field }) => (
-                <OptionSelect
-                  id="ticket-team"
-                  invalid={!!errors.team_id}
-                  value={field.value || null}
-                  onValueChange={(v) => field.onChange(v ?? '')}
-                  options={toOptions(teams)}
-                />
-              )}
-            />
-          </FormField>
-          <FormField label="Priority" htmlFor="ticket-priority">
-            <Controller
-              control={control}
-              name="priority"
-              render={({ field }) => (
-                <OptionSelect
-                  id="ticket-priority"
-                  value={field.value}
-                  onValueChange={(v) => v && field.onChange(v as TicketPriority)}
-                  options={PRIORITY_OPTIONS}
-                />
-              )}
-            />
-          </FormField>
-        </div>
-        <FormField label="Owner" htmlFor="ticket-owner" required={false}>
-          <Controller
-            control={control}
-            name="owner_id"
-            render={({ field }) => (
-              <OptionSelect
-                id="ticket-owner"
-                value={field.value ?? null}
-                onValueChange={field.onChange}
-                emptyLabel="Unassigned"
-                placeholder="Unassigned"
-                options={toOptions(users)}
+        <FormSection title="Routing">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <TicketCategoryField categories={categories} />
+            <FormField label="Team" htmlFor="ticket-team" error={errors.team_id?.message}>
+              <Controller
+                control={control}
+                name="team_id"
+                render={({ field }) => (
+                  <OptionSelect
+                    id="ticket-team"
+                    invalid={!!errors.team_id}
+                    value={field.value || null}
+                    onValueChange={(v) => field.onChange(v ?? '')}
+                    options={toOptions(teams)}
+                  />
+                )}
               />
-            )}
-          />
-        </FormField>
-      </FormSection>
-
-      {((customFields ?? []).length > 0 || (tags ?? []).length > 0) && (
-        <FormSection title="Additional details">
-          {(customFields ?? []).map((cf) => (
-            <FormField key={cf.id} label={cf.label} htmlFor={`ticket-cf-${cf.id}`} required={false}>
-              {cf.field_type === 'dropdown' ? (
-                <Controller
-                  control={control}
-                  name={`custom_values.${cf.id}`}
-                  render={({ field }) => (
-                    <OptionSelect
-                      id={`ticket-cf-${cf.id}`}
-                      value={field.value || null}
-                      onValueChange={(v) => field.onChange(v ?? '')}
-                      emptyLabel="None"
-                      options={(cf.options ?? []).map((o) => ({ value: o, label: o }))}
-                    />
-                  )}
-                />
-              ) : (
-                <Input id={`ticket-cf-${cf.id}`} {...register(`custom_values.${cf.id}`)} />
-              )}
             </FormField>
-          ))}
-          <FormField label="Tags" required={false}>
+            <FormField label="Priority" htmlFor="ticket-priority">
+              <Controller
+                control={control}
+                name="priority"
+                render={({ field }) => (
+                  <OptionSelect
+                    id="ticket-priority"
+                    value={field.value}
+                    onValueChange={(v) => v && field.onChange(v as TicketPriority)}
+                    options={PRIORITY_OPTIONS}
+                  />
+                )}
+              />
+            </FormField>
+          </div>
+          <FormField label="Owner" htmlFor="ticket-owner" required={false}>
             <Controller
               control={control}
-              name="tag_ids"
-              render={({ field }) => <TagPicker tags={tags ?? []} selectedIds={field.value} onChange={field.onChange} />}
+              name="owner_id"
+              render={({ field }) => (
+                <OptionSelect
+                  id="ticket-owner"
+                  value={field.value ?? null}
+                  onValueChange={field.onChange}
+                  emptyLabel="Unassigned"
+                  placeholder="Unassigned"
+                  options={toOptions(users)}
+                />
+              )}
             />
           </FormField>
         </FormSection>
-      )}
 
-      {createTicket.isError && (
-        <Alert variant="destructive">
-          <AlertCircle />
-          <AlertTitle>Couldn't create ticket</AlertTitle>
-          <AlertDescription>{describeError(createTicket.error)}</AlertDescription>
-        </Alert>
-      )}
+        {((customFields ?? []).length > 0 || (tags ?? []).length > 0) && (
+          <FormSection title="Additional details">
+            <TicketCustomFields fields={customFields ?? []} />
+            <FormField label="Tags" required={false}>
+              <Controller
+                control={control}
+                name="tag_ids"
+                render={({ field }) => <TagPicker tags={tags ?? []} selectedIds={field.value} onChange={field.onChange} />}
+              />
+            </FormField>
+          </FormSection>
+        )}
 
-      <DialogFooter>
-        <DialogClose render={<Button variant="outline" type="button" />}>Cancel</DialogClose>
-        <LoadingButton type="submit" loading={isSubmitting}>
-          {isSubmitting ? 'Creating…' : 'Create & post to Slack'}
-        </LoadingButton>
-      </DialogFooter>
-    </form>
+        {createTicket.isError && (
+          <Alert variant="destructive">
+            <AlertCircle />
+            <AlertTitle>Couldn't create ticket</AlertTitle>
+            <AlertDescription>{describeError(createTicket.error)}</AlertDescription>
+          </Alert>
+        )}
+
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" type="button" />}>Cancel</DialogClose>
+          <LoadingButton type="submit" loading={isSubmitting}>
+            {isSubmitting ? 'Creating…' : 'Create & post to Slack'}
+          </LoadingButton>
+        </DialogFooter>
+      </form>
+    </FormProvider>
   )
 }

@@ -19,6 +19,7 @@ from app.schemas.ticket import (
     TagsUpdateRequest,
     TeamChangeRequest,
     TicketCreateRequest,
+    TicketUpdateRequest,
     TicketListResponse,
     TicketOut,
     TimelineEvent,
@@ -100,6 +101,25 @@ def get_ticket(ticket_id: int, db: Session = Depends(get_db)) -> TicketOut:
 def get_ticket_timeline(ticket_id: int, db: Session = Depends(get_db)) -> list[TimelineEvent]:
     ticket = ticket_service.get_ticket_or_404(db, ticket_id)
     return ticket_service.get_timeline(db, ticket)
+
+
+@router.patch("/{ticket_id}", response_model=TicketOut)
+def update_ticket(
+    ticket_id: int,
+    payload: TicketUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TicketOut:
+    ticket = ticket_service.get_ticket_or_404(db, ticket_id)
+    changes = payload.model_dump(exclude_unset=True, exclude={"custom_field_values"})
+    custom_values = (
+        [(v.field_definition_id, v.value) for v in payload.custom_field_values]
+        if payload.custom_field_values is not None
+        else None
+    )
+    ticket = ticket_service.update_details(db, ticket, changes, custom_values, current_user, EventSource.DASHBOARD)
+    notify_ticket_change(db, ticket, current_user)
+    return to_ticket_out(ticket_service.get_ticket_or_404(db, ticket.id))
 
 
 @router.post("/{ticket_id}/assign", response_model=TicketOut)
