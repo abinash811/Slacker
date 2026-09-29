@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { api, buildQuery } from '@/lib/api'
 import { dayEndIso, dayStartIso } from '@/lib/dates'
 import type {
+  AgingBucket,
   ApiToken,
   ApiTokenCreated,
   McpInfo,
@@ -15,6 +16,7 @@ import type {
   SavedViewFilters,
   SettingsPermissions,
   OwnerPendingItem,
+  PersonScore,
   Role,
   SLASettings,
   Tag,
@@ -178,6 +180,20 @@ export function useOwnerPending(filters: TicketFiltersState) {
   return useQuery({
     queryKey: ['owner-pending', filters],
     queryFn: () => api.get<OwnerPendingItem[]>(`/analytics/owner-pending${filtersToQuery(filters)}`),
+  })
+}
+
+export function useAging(filters: TicketFiltersState) {
+  return useQuery({
+    queryKey: ['aging', filters],
+    queryFn: () => api.get<AgingBucket[]>(`/analytics/aging${filtersToQuery(filters)}`),
+  })
+}
+
+export function usePeopleScorecard(filters: TicketFiltersState) {
+  return useQuery({
+    queryKey: ['people-scorecard', filters],
+    queryFn: () => api.get<PersonScore[]>(`/analytics/people${filtersToQuery(filters)}`),
   })
 }
 

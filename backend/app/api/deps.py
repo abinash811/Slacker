@@ -14,7 +14,7 @@ def get_ticket_filters(
     priority: TicketPriority | None = Query(default=None),
     status: TicketStatus | None = Query(default=None),
     state: str | None = Query(default=None, pattern="^(active|done)$"),
-    sla_status: str | None = Query(default=None, pattern="^(breached|ok)$"),
+    sla_status: str | None = Query(default=None, pattern="^(breached|ok|at_risk)$"),
     date_from: datetime | None = Query(default=None),
     date_to: datetime | None = Query(default=None),
     search: str | None = Query(default=None),

@@ -24,7 +24,8 @@ List tickets with filters, sorting, and pagination.
 Query params (all optional): `team_id`, `owner_id`, `category_id`,
 `priority` (`low|medium|high|urgent`), `status`
 (`open|in_progress|pending|resolved|closed`), `sla_status`
-(`breached|ok`), `date_from`, `date_to` (ISO 8601, filters on
+(`breached|ok|at_risk`; `at_risk` = ongoing and due within the next 24
+hours), `state` (`active|done`), `date_from`, `date_to` (ISO 8601, filters on
 `created_at`), `sort_by` (`created_at|updated_at|priority|status|sla_due_at|ticket_number`),
 `sort_dir` (`asc|desc`), `page`, `page_size`.
 
@@ -101,6 +102,15 @@ All accept the same filter query params as `GET /tickets` (minus sorting/paginat
 - `GET /analytics/breakdown/team` / `/category` / `/priority` → per-group
   totals, pending count, SLA breaches, avg resolution hours (spec section 9).
 - `GET /analytics/owner-pending` → pending ticket count per current owner.
+- `GET /analytics/aging` → ongoing tickets by age (`under_1d`, `1_3d`,
+  `3_7d`, `over_7d`), each with its SLA-breached count. Always ongoing
+  only, whatever the status/state filters say.
+- `GET /analytics/people` → scorecard per current owner: open, overdue
+  (open and past SLA), resolved, median resolution and first-response
+  hours, and SLA met % (resolved on time, of resolved). Busiest first; an
+  "Unassigned" row appears while unowned tickets are open.
+- `GET /analytics/trends?weeks=4..26` → per week: created, resolved,
+  median resolution hours, SLA breaches.
 
 ## Lookups
 

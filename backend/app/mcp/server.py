@@ -26,7 +26,14 @@ from app.models.tag import Tag
 from app.models.team import Team
 from app.models.ticket import Ticket
 from app.models.user import User
-from app.schemas.analytics import BreakdownItem, DashboardSummary, OwnerPendingItem, WeeklyTrend
+from app.schemas.analytics import (
+    AgingBucket,
+    BreakdownItem,
+    DashboardSummary,
+    OwnerPendingItem,
+    PersonScore,
+    WeeklyTrend,
+)
 from app.schemas.ticket import TicketListItem, TicketOut, TimelineEvent
 from app.services import analytics_service, ticket_service
 from app.services.filters import TicketFilters
@@ -60,7 +67,10 @@ TeamName = Annotated[str | None, Field(description="Team name, as in list_refere
 CategoryName = Annotated[str | None, Field(description="Category name, as in list_reference_data.")]
 Person = Annotated[str | None, Field(description='Who the ticket is pending on: a name, an email, or "me".')]
 SupportPerson = Annotated[str | None, Field(description='The support owner: a name, an email, or "me".')]
-Sla = Annotated[Literal["breached", "on_track"] | None, Field(description="SLA state.")]
+Sla = Annotated[
+    Literal["breached", "on_track", "due_within_24h"] | None,
+    Field(description="SLA state. due_within_24h: ongoing and not yet breached, but due in the next 24 hours."),
+]
 CreatedFrom = Annotated[date | None, Field(description="Created on or after this day (YYYY-MM-DD).")]
 CreatedTo = Annotated[date | None, Field(description="Created on or before this day (YYYY-MM-DD).")]
 
@@ -125,7 +135,7 @@ def _filters(
         priority=priority,
         status=status,
         state={"ongoing": "active", "done": "done"}.get(state),
-        sla_status={"breached": "breached", "on_track": "ok"}.get(sla) if sla else None,
+        sla_status={"breached": "breached", "on_track": "ok", "due_within_24h": "at_risk"}.get(sla) if sla else None,
         date_from=datetime.combine(created_from, time.min, timezone.utc) if created_from else None,
         date_to=datetime.combine(created_to, time.max, timezone.utc) if created_to else None,
         search=text or None,
@@ -159,7 +169,7 @@ class TicketDetail(BaseModel):
 
 class Breakdown(BaseModel):
     by: str
-    rows: list[BreakdownItem] | list[OwnerPendingItem]
+    rows: list[BreakdownItem] | list[OwnerPendingItem] | list[AgingBucket] | list[PersonScore]
 
 
 class Me(BaseModel):
@@ -287,8 +297,15 @@ def get_summary(
 def get_breakdown(
     ctx: Context,
     by: Annotated[
-        Literal["team", "category", "priority", "pending_on"],
-        Field(description="team/category/priority give totals, pending, SLA breaches and average resolution time; pending_on gives how many ongoing tickets sit with each person."),
+        Literal["team", "category", "priority", "pending_on", "age", "person"],
+        Field(
+            description=(
+                "team/category/priority give totals, pending, SLA breaches and average resolution time; "
+                "pending_on gives how many ongoing tickets sit with each person; age groups ongoing tickets "
+                "by how long they've been open; person is a scorecard per owner (open, overdue, resolved, "
+                "median resolution and first-response hours, SLA met %)."
+            )
+        ),
     ],
     text: Text = None,
     state: State = "any",
@@ -310,6 +327,8 @@ def get_breakdown(
             "category": analytics_service.breakdown_by_category,
             "priority": analytics_service.breakdown_by_priority,
             "pending_on": analytics_service.owner_pending,
+            "age": analytics_service.aging,
+            "person": analytics_service.people_scorecard,
         }[by]
         return Breakdown(by=by, rows=fn(db, filters))
 

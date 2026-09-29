@@ -52,7 +52,7 @@ export function makeTickets(count: number): TicketListItem[] {
   }))
 }
 
-const summary: DashboardSummary = {
+export const summary: DashboardSummary = {
   total_open_tickets: 12,
   total_resolved_tickets: 40,
   avg_resolution_hours: 5,
@@ -210,6 +210,19 @@ export async function mockApi(
         }),
       )
     }
+    if (path === '/analytics/aging')
+      return json([
+        { key: 'under_1d', label: 'Under 1 day', count: 6, sla_breached: 0 },
+        { key: '1_3d', label: '1–3 days', count: 4, sla_breached: 1 },
+        { key: '3_7d', label: '3–7 days', count: 2, sla_breached: 1 },
+        { key: 'over_7d', label: 'Over 7 days', count: 1, sla_breached: 1 },
+      ])
+    if (path === '/analytics/people')
+      return json([
+        { owner_id: 1, owner_name: 'Priya Sharma', open: 7, overdue: 2, resolved: 18, median_resolution_hours: 5.5, median_first_response_hours: 0.4, sla_met_pct: 89 },
+        { owner_id: 2, owner_name: 'Arjun Rao', open: 4, overdue: 0, resolved: 22, median_resolution_hours: 3.2, median_first_response_hours: 0.25, sla_met_pct: 95.5 },
+        { owner_id: null, owner_name: 'Unassigned', open: 2, overdue: 0, resolved: 0, median_resolution_hours: null, median_first_response_hours: null, sla_met_pct: null },
+      ])
     if (path.startsWith('/analytics/')) return json([])
     return json({ detail: `Not mocked: ${path}` }, 404)
   })

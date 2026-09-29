@@ -90,6 +90,7 @@ export function FilterBar({ filters, onChange }: Props) {
         options={[
           { value: 'breached', label: 'Breached' },
           { value: 'ok', label: 'On track' },
+          { value: 'at_risk', label: 'Due within 24h' },
         ]}
       />
       <DateRangeFilter

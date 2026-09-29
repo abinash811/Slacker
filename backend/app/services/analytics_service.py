@@ -19,7 +19,15 @@ from sqlalchemy.orm import Session
 
 from app.models.enums import TicketStatus
 from app.models.ticket import Ticket
-from app.schemas.analytics import BreakdownItem, DashboardSummary, OwnerPendingItem, PeriodComparison, WeeklyTrend
+from app.schemas.analytics import (
+    AgingBucket,
+    BreakdownItem,
+    DashboardSummary,
+    OwnerPendingItem,
+    PeriodComparison,
+    PersonScore,
+    WeeklyTrend,
+)
 from app.services import period, sla_service
 from app.services.filters import TicketFilters
 from app.services.filters import apply as apply_filters
@@ -142,6 +150,77 @@ def owner_pending(db: Session, filters: TicketFilters) -> list[OwnerPendingItem]
         OwnerPendingItem(owner_id=owner_id, owner_name=name, pending_count=count)
         for owner_id, (name, count) in sorted(counts.items(), key=lambda kv: -kv[1][1])
     ]
+
+
+_AGE_BUCKETS = [
+    # (key, label, upper bound in days, exclusive; None = no upper bound)
+    ("under_1d", "Under 1 day", 1),
+    ("1_3d", "1–3 days", 3),
+    ("3_7d", "3–7 days", 7),
+    ("over_7d", "Over 7 days", None),
+]
+
+
+def aging(db: Session, filters: TicketFilters) -> list[AgingBucket]:
+    """Ongoing tickets by age, youngest first. Always ongoing only, whatever
+    the status filters say: a resolved ticket has no age to worry about."""
+    now = datetime.now(timezone.utc)
+    tickets = _load(db, replace(filters, state="active", status=None), now)
+    buckets: dict[str, list[Ticket]] = {key: [] for key, _, _ in _AGE_BUCKETS}
+    for t in tickets:
+        age_days = (now - t.created_at).total_seconds() / 86400
+        key = next(k for k, _, upper in _AGE_BUCKETS if upper is None or age_days < upper)
+        buckets[key].append(t)
+    return [
+        AgingBucket(
+            key=key,
+            label=label,
+            count=len(buckets[key]),
+            sla_breached=sum(1 for t in buckets[key] if sla_service.sla_status(t.sla_due_at, None, now)[0]),
+        )
+        for key, label, _ in _AGE_BUCKETS
+    ]
+
+
+def _median_hours(values: list[float]) -> float | None:
+    return round(median(values), 1) if values else None
+
+
+def people_scorecard(db: Session, filters: TicketFilters) -> list[PersonScore]:
+    """Per current owner: open and overdue now, plus how their resolved
+    tickets went. Busiest first; unassigned open tickets get their own row."""
+    now = datetime.now(timezone.utc)
+    groups: dict[int | None, list[Ticket]] = {}
+    for t in _load(db, filters, now):
+        groups.setdefault(t.owner_id, []).append(t)
+
+    rows = []
+    for owner_id, tickets in groups.items():
+        open_tickets = [t for t in tickets if t.status not in RESOLVED_STATUSES]
+        resolved = [t for t in tickets if t.resolved_at is not None]
+        if owner_id is None and not open_tickets:
+            continue  # resolved-while-unassigned history isn't anyone's score
+        rows.append(
+            PersonScore(
+                owner_id=owner_id,
+                owner_name=tickets[0].owner.name if tickets[0].owner else "Unassigned",
+                open=len(open_tickets),
+                overdue=sum(1 for t in open_tickets if sla_service.sla_status(t.sla_due_at, None, now)[0]),
+                resolved=len(resolved),
+                median_resolution_hours=_median_hours(
+                    [(t.resolved_at - t.created_at).total_seconds() / 3600 for t in resolved]
+                ),
+                median_first_response_hours=_median_hours(
+                    [(t.first_response_at - t.created_at).total_seconds() / 3600 for t in tickets if t.first_response_at]
+                ),
+                sla_met_pct=(
+                    round(sum(1 for t in resolved if t.resolved_at <= t.sla_due_at) / len(resolved) * 100, 1)
+                    if resolved
+                    else None
+                ),
+            )
+        )
+    return sorted(rows, key=lambda r: (-r.open, -r.overdue, -r.resolved, r.owner_name))
 
 
 def _breakdown(db: Session, filters: TicketFilters, key_fn) -> list[BreakdownItem]:

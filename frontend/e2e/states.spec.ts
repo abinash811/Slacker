@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { mockApi } from './mock-api'
+import { mockApi, summary } from './mock-api'
 
 test('dashboard shows an error with a working retry', async ({ page }) => {
   const api = await mockApi(page)
@@ -7,7 +7,7 @@ test('dashboard shows an error with a working retry', async ({ page }) => {
   api.on('GET', '/analytics/summary', (route) =>
     fail
       ? route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ detail: 'Database unavailable' }) })
-      : route.fallback(),
+      : route.fulfill({ contentType: 'application/json', body: JSON.stringify(summary) }),
   )
   await page.goto('/')
   await expect(page.getByText("Couldn't load dashboard numbers")).toBeVisible({ timeout: 10_000 })
@@ -15,7 +15,7 @@ test('dashboard shows an error with a working retry', async ({ page }) => {
 
   fail = false
   await page.getByRole('button', { name: 'Try again' }).first().click()
-  await expect(page.getByText('Open tickets')).toBeVisible()
+  await expect(page.getByText('Open tickets', { exact: true })).toBeVisible()
 })
 
 test('background action failures show an error toast', async ({ page }) => {

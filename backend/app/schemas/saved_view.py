@@ -19,7 +19,7 @@ class SavedViewFilters(BaseModel):
     priority: TicketPriority | None = None
     status: TicketStatus | None = None
     state: Literal["active", "done"] | None = None
-    sla_status: Literal["breached", "ok"] | None = None
+    sla_status: Literal["breached", "ok", "at_risk"] | None = None
     date_from: str | None = None
     date_to: str | None = None
     search: str | None = Field(default=None, max_length=200)

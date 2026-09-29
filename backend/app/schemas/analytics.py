@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -37,6 +38,28 @@ class BreakdownItem(BaseModel):
     pending: int
     sla_breached: int
     avg_resolution_hours: float | None
+
+
+class AgingBucket(BaseModel):
+    """Ongoing tickets grouped by how long they've been open."""
+
+    key: Literal["under_1d", "1_3d", "3_7d", "over_7d"]
+    label: str
+    count: int
+    sla_breached: int
+
+
+class PersonScore(BaseModel):
+    """One owner's tickets (by current owner) within the filters."""
+
+    owner_id: int | None
+    owner_name: str
+    open: int
+    overdue: int  # open and past SLA
+    resolved: int
+    median_resolution_hours: float | None
+    median_first_response_hours: float | None
+    sla_met_pct: float | None  # resolved within SLA, of resolved
 
 
 class OwnerPendingItem(BaseModel):

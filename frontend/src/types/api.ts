@@ -27,6 +27,8 @@ export type PeriodComparison = Schemas['PeriodComparison']
 export type DashboardSummary = Schemas['DashboardSummary']
 export type BreakdownItem = Schemas['BreakdownItem']
 export type OwnerPendingItem = Schemas['OwnerPendingItem']
+export type AgingBucket = Schemas['AgingBucket']
+export type PersonScore = Schemas['PersonScore']
 export type WeeklyTrend = Schemas['WeeklyTrend']
 export type TicketCreateRequest = Schemas['TicketCreateRequest']
 export type TicketUpdateRequest = Schemas['TicketUpdateRequest']
@@ -53,7 +55,8 @@ export interface TicketFiltersState {
   status?: TicketStatus
   /** 'active' = not resolved or closed; 'done' = resolved or closed. */
   state?: 'active' | 'done'
-  sla_status?: 'breached' | 'ok'
+  /** 'at_risk': ongoing, not yet breached, due within 24 hours. */
+  sla_status?: 'breached' | 'ok' | 'at_risk'
   date_from?: string
   date_to?: string
   search?: string

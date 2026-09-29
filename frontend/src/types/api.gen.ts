@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/analytics/aging": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Aging */
+        get: operations["aging_api_analytics_aging_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/analytics/breakdown/category": {
         parameters: {
             query?: never;
@@ -64,6 +81,23 @@ export interface paths {
         };
         /** Owner Pending */
         get: operations["owner_pending_api_analytics_owner_pending_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/analytics/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** People Scorecard */
+        get: operations["people_scorecard_api_analytics_people_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -699,6 +733,23 @@ export interface components {
             /** User Id */
             user_id: number;
         };
+        /**
+         * AgingBucket
+         * @description Ongoing tickets grouped by how long they've been open.
+         */
+        AgingBucket: {
+            /** Count */
+            count: number;
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "under_1d" | "1_3d" | "3_7d" | "over_7d";
+            /** Label */
+            label: string;
+            /** Sla Breached */
+            sla_breached: number;
+        };
         /** ApiTokenCreateRequest */
         ApiTokenCreateRequest: {
             /** Name */
@@ -903,6 +954,28 @@ export interface components {
             /** Previous */
             previous: number;
         };
+        /**
+         * PersonScore
+         * @description One owner's tickets (by current owner) within the filters.
+         */
+        PersonScore: {
+            /** Median First Response Hours */
+            median_first_response_hours: number | null;
+            /** Median Resolution Hours */
+            median_resolution_hours: number | null;
+            /** Open */
+            open: number;
+            /** Overdue */
+            overdue: number;
+            /** Owner Id */
+            owner_id: number | null;
+            /** Owner Name */
+            owner_name: string;
+            /** Resolved */
+            resolved: number;
+            /** Sla Met Pct */
+            sla_met_pct: number | null;
+        };
         /** PriorityChangeRequest */
         PriorityChangeRequest: {
             priority: components["schemas"]["TicketPriority"];
@@ -989,7 +1062,7 @@ export interface components {
             /** Search */
             search?: string | null;
             /** Sla Status */
-            sla_status?: ("breached" | "ok") | null;
+            sla_status?: ("breached" | "ok" | "at_risk") | null;
             /** State */
             state?: ("active" | "done") | null;
             status?: components["schemas"]["TicketStatus"] | null;
@@ -1389,6 +1462,47 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    aging_api_analytics_aging_get: {
+        parameters: {
+            query?: {
+                team_id?: number | null;
+                owner_id?: number | null;
+                support_assignee_id?: number | null;
+                category_id?: number | null;
+                priority?: components["schemas"]["TicketPriority"] | null;
+                status?: components["schemas"]["TicketStatus"] | null;
+                state?: string | null;
+                sla_status?: string | null;
+                date_from?: string | null;
+                date_to?: string | null;
+                search?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgingBucket"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     breakdown_by_category_api_analytics_breakdown_category_get: {
         parameters: {
             query?: {
@@ -1540,6 +1654,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OwnerPendingItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    people_scorecard_api_analytics_people_get: {
+        parameters: {
+            query?: {
+                team_id?: number | null;
+                owner_id?: number | null;
+                support_assignee_id?: number | null;
+                category_id?: number | null;
+                priority?: components["schemas"]["TicketPriority"] | null;
+                status?: components["schemas"]["TicketStatus"] | null;
+                state?: string | null;
+                sla_status?: string | null;
+                date_from?: string | null;
+                date_to?: string | null;
+                search?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonScore"][];
                 };
             };
             /** @description Validation Error */
