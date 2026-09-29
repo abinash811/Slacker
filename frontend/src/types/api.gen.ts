@@ -891,6 +891,8 @@ export interface components {
             search?: string | null;
             /** Sla Status */
             sla_status?: ("breached" | "ok") | null;
+            /** State */
+            state?: ("active" | "done") | null;
             status?: components["schemas"]["TicketStatus"] | null;
             /** Support Assignee Id */
             support_assignee_id?: number | null;
@@ -1269,6 +1271,7 @@ export interface operations {
                 category_id?: number | null;
                 priority?: components["schemas"]["TicketPriority"] | null;
                 status?: components["schemas"]["TicketStatus"] | null;
+                state?: string | null;
                 sla_status?: string | null;
                 date_from?: string | null;
                 date_to?: string | null;
@@ -1309,6 +1312,7 @@ export interface operations {
                 category_id?: number | null;
                 priority?: components["schemas"]["TicketPriority"] | null;
                 status?: components["schemas"]["TicketStatus"] | null;
+                state?: string | null;
                 sla_status?: string | null;
                 date_from?: string | null;
                 date_to?: string | null;
@@ -1349,6 +1353,7 @@ export interface operations {
                 category_id?: number | null;
                 priority?: components["schemas"]["TicketPriority"] | null;
                 status?: components["schemas"]["TicketStatus"] | null;
+                state?: string | null;
                 sla_status?: string | null;
                 date_from?: string | null;
                 date_to?: string | null;
@@ -1389,6 +1394,7 @@ export interface operations {
                 category_id?: number | null;
                 priority?: components["schemas"]["TicketPriority"] | null;
                 status?: components["schemas"]["TicketStatus"] | null;
+                state?: string | null;
                 sla_status?: string | null;
                 date_from?: string | null;
                 date_to?: string | null;
@@ -1429,6 +1435,7 @@ export interface operations {
                 category_id?: number | null;
                 priority?: components["schemas"]["TicketPriority"] | null;
                 status?: components["schemas"]["TicketStatus"] | null;
+                state?: string | null;
                 sla_status?: string | null;
                 date_from?: string | null;
                 date_to?: string | null;
@@ -1470,6 +1477,7 @@ export interface operations {
                 category_id?: number | null;
                 priority?: components["schemas"]["TicketPriority"] | null;
                 status?: components["schemas"]["TicketStatus"] | null;
+                state?: string | null;
                 sla_status?: string | null;
                 date_from?: string | null;
                 date_to?: string | null;
@@ -2372,6 +2380,7 @@ export interface operations {
                 category_id?: number | null;
                 priority?: components["schemas"]["TicketPriority"] | null;
                 status?: components["schemas"]["TicketStatus"] | null;
+                state?: string | null;
                 sla_status?: string | null;
                 date_from?: string | null;
                 date_to?: string | null;

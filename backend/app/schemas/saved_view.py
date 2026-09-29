@@ -18,6 +18,7 @@ class SavedViewFilters(BaseModel):
     category_id: int | None = None
     priority: TicketPriority | None = None
     status: TicketStatus | None = None
+    state: Literal["active", "done"] | None = None
     sla_status: Literal["breached", "ok"] | None = None
     date_from: str | None = None
     date_to: str | None = None

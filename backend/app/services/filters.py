@@ -21,6 +21,8 @@ class TicketFilters:
     category_id: int | None = None
     priority: TicketPriority | None = None
     status: TicketStatus | None = None
+    # "active": not yet resolved or closed; "done": resolved or closed.
+    state: str | None = None
     sla_status: str | None = None  # "breached" | "ok"
     date_from: datetime | None = None
     date_to: datetime | None = None
@@ -42,6 +44,9 @@ def apply(stmt: Select, filters: TicketFilters, now: datetime) -> Select:
         stmt = stmt.where(Ticket.priority == filters.priority)
     if filters.status is not None:
         stmt = stmt.where(Ticket.status == filters.status)
+    if filters.state is not None:
+        done = Ticket.status.in_([TicketStatus.RESOLVED, TicketStatus.CLOSED])
+        stmt = stmt.where(done if filters.state == "done" else ~done)
     if filters.date_from is not None:
         stmt = stmt.where(Ticket.created_at >= filters.date_from)
     if filters.date_to is not None:

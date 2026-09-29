@@ -30,6 +30,7 @@ export const EMPTY_FILTERS: Partial<TicketFiltersState> = {
   category_id: undefined,
   priority: undefined,
   status: undefined,
+  state: undefined,
   sla_status: undefined,
   date_from: undefined,
   date_to: undefined,

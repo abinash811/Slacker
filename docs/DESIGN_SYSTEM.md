@@ -216,7 +216,8 @@ directly only for actions that aren't mutations.
   missing and who to ask. A 403 from the server still surfaces as an error
   toast with the server's reason.
 - **Views:** the Tickets page's `ViewsBar` offers built-in views ("Pending
-  on me", "My support tickets", "SLA breached") and the user's saved views
+  on me", "My support tickets", "SLA breached") — these show only tickets that
+  aren't resolved or closed (`state=active`) — and the user's saved views
   (`/api/me/views`, private, max 20). Picking a view replaces all filters;
   the view matching the current filters is highlighted (`aria-pressed`), and
   "Save view" shows only when the current filters aren't already a view.

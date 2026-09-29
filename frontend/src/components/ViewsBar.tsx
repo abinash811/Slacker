@@ -42,11 +42,11 @@ export function ViewsBar({
     { key: 'all', name: 'All tickets', filters: {} },
     ...(myId !== undefined
       ? [
-          { key: 'mine', name: 'Pending on me', filters: { owner_id: myId } },
-          { key: 'support', name: 'My support tickets', filters: { support_assignee_id: myId } },
+          { key: 'mine', name: 'Pending on me', filters: { owner_id: myId, state: 'active' as const } },
+          { key: 'support', name: 'My support tickets', filters: { support_assignee_id: myId, state: 'active' as const } },
         ]
       : []),
-    { key: 'breached', name: 'SLA breached', filters: { sla_status: 'breached' as const } },
+    { key: 'breached', name: 'SLA breached', filters: { sla_status: 'breached' as const, state: 'active' as const } },
   ]
   const views: (View & { id?: number })[] = [
     ...presets,

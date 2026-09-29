@@ -48,6 +48,8 @@ export interface TicketFiltersState {
   category_id?: number
   priority?: TicketPriority
   status?: TicketStatus
+  /** 'active' = not resolved or closed; 'done' = resolved or closed. */
+  state?: 'active' | 'done'
   sla_status?: 'breached' | 'ok'
   date_from?: string
   date_to?: string

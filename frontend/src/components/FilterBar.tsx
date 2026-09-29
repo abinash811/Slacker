@@ -68,10 +68,18 @@ export function FilterBar({ filters, onChange }: Props) {
       <OptionSelect
         aria-label="Status"
         className="w-auto min-w-32"
-        value={filters.status ?? null}
-        onValueChange={(v) => onChange({ status: (v ?? undefined) as TicketFiltersState['status'] })}
+        value={filters.status ?? (filters.state ? `state:${filters.state}` : null)}
+        onValueChange={(v) =>
+          v?.startsWith('state:')
+            ? onChange({ status: undefined, state: v.slice(6) as TicketFiltersState['state'] })
+            : onChange({ status: (v ?? undefined) as TicketFiltersState['status'], state: undefined })
+        }
         emptyLabel="All statuses"
-        options={STATUS_OPTIONS}
+        options={[
+          { value: 'state:active', label: 'Not resolved' },
+          { value: 'state:done', label: 'Resolved or closed' },
+          ...STATUS_OPTIONS,
+        ]}
       />
       <OptionSelect
         aria-label="SLA"

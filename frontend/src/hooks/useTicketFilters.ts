@@ -16,6 +16,7 @@ export function useTicketFilters(): [TicketFiltersState, (next: Partial<TicketFi
     category_id: params.get('category_id') ? Number(params.get('category_id')) : undefined,
     priority: (params.get('priority') as TicketPriority) || undefined,
     status: (params.get('status') as TicketStatus) || undefined,
+    state: (params.get('state') as 'active' | 'done') || undefined,
     sla_status: (params.get('sla_status') as 'breached' | 'ok') || undefined,
     date_from: params.get('date_from') || undefined,
     date_to: params.get('date_to') || undefined,

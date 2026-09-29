@@ -64,3 +64,29 @@ def test_created_date_range(db_session, tickets):
     assert total == 1 and items[0].id == new.id
     items, _ = ticket_service.list_tickets(db_session, TicketFilters(date_to=since))
     assert [t.id for t in items] == [old.id]
+
+
+def test_state_filter_splits_ongoing_from_resolved(db_session, seed):
+    from app.models.enums import EventSource, TicketPriority, TicketStatus
+    from app.services import ticket_service
+    from app.services.filters import TicketFilters
+
+    def make(title):
+        return ticket_service.create_ticket(
+            db_session, title=title, description="d", customer="c", category_id=seed["category"].id,
+            team_id=seed["team"].id, priority=TicketPriority.LOW, owner_id=None, created_by=seed["creator"],
+            source=EventSource.DASHBOARD,
+        )
+
+    make("open one")
+    working = make("in progress")
+    ticket_service.change_status(db_session, working, TicketStatus.IN_PROGRESS, seed["creator"], EventSource.DASHBOARD)
+    ticket_service.resolve_ticket(db_session, make("resolved"), seed["creator"], EventSource.DASHBOARD)
+    ticket_service.change_status(db_session, make("closed"), TicketStatus.CLOSED, seed["creator"], EventSource.DASHBOARD)
+
+    def titles(state):
+        items, _ = ticket_service.list_tickets(db_session, TicketFilters(state=state), page=1, page_size=50)
+        return sorted(t.title for t in items)
+
+    assert titles("active") == ["in progress", "open one"]
+    assert titles("done") == ["closed", "resolved"]
