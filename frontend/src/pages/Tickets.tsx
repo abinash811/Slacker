@@ -1,88 +1,22 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Inbox, SearchX } from 'lucide-react'
 import { FilterBar } from '@/components/FilterBar'
 import { ViewsBar } from '@/components/ViewsBar'
 import { CreateTicketDialog } from '@/components/CreateTicketDialog'
-import { PriorityBadge, SlaBadge, StatusBadge } from '@/components/StatusPriorityBadges'
 import { Button } from '@/components/ui/button'
 import { DataTable, type PaginationState, type SortingState } from '@/components/patterns/data-table'
 import { EmptyState } from '@/components/patterns/states'
-import { Caption, PageHeader } from '@/components/patterns/typography'
+import { PageHeader } from '@/components/patterns/typography'
 import { useTickets } from '@/hooks/useApi'
 import { useTicketFilters } from '@/hooks/useTicketFilters'
-import { columnHelper } from '@/lib/data-table'
-import { formatDateTime, formatDuration } from '@/lib/format'
 import { EMPTY_FILTERS } from '@/lib/tickets'
+import { TICKET_COLUMNS } from '@/lib/ticket-columns'
 import type { TicketListItem, TicketSortColumn } from '@/types/api'
 
 const PAGE_SIZE = 50
 const EMPTY_ROWS: TicketListItem[] = []
 const DEFAULT_SORT: SortingState = [{ id: 'created_at', desc: true }]
-
-const col = columnHelper<TicketListItem>()
-const dash = (v: string | null) => v ?? '—'
-
-// Every column sorts on the server. Column ids are the backend's sort keys
-// (SORTABLE_COLUMNS in ticket_service.py); Tickets.test.ts checks every
-// column id against the API schema, so a mismatch fails the tests.
-export const COLUMNS = col.columns([
-  col.accessor('ticket_number', {
-    header: 'Ticket',
-    meta: { className: 'font-medium' },
-    cell: (info) => (
-      // The real link: keyboard and screen-reader path into the ticket; the row click is a mouse shortcut.
-      <Link
-        to={`/tickets/${info.row.original.id}`}
-        className="focus-ring rounded-sm hover:underline"
-        onClick={(e) => e.stopPropagation()}
-      >
-        #{info.getValue()}
-      </Link>
-    ),
-  }),
-  col.accessor('title', {
-    header: 'Title',
-    meta: { className: 'max-w-64 truncate' },
-    cell: (i) => {
-      const parent = i.row.original.parent_ticket_number
-      return parent ? (
-        <div className="flex flex-col">
-          <span className="truncate">{i.getValue()}</span>
-          <Caption>Sub-issue of #{parent}</Caption>
-        </div>
-      ) : (
-        i.getValue()
-      )
-    },
-  }),
-  col.accessor('customer', { header: 'Business name', meta: { muted: true } }),
-  col.accessor('business_id', { header: 'Business ID', meta: { muted: true }, cell: (i) => dash(i.getValue()) }),
-  col.accessor('mobile_number', { header: 'Mobile', meta: { muted: true }, cell: (i) => dash(i.getValue()) }),
-  col.accessor('doctor_name', { header: 'Doctor', meta: { muted: true }, cell: (i) => dash(i.getValue()) }),
-  col.accessor('category_name', { header: 'Category', meta: { muted: true } }),
-  col.accessor('team_name', { header: 'Team', meta: { muted: true } }),
-  col.accessor('owner_name', { header: 'Pending on', meta: { muted: true }, cell: (i) => i.getValue() ?? 'Unassigned' }),
-  col.accessor('priority', { header: 'Priority', cell: (i) => <PriorityBadge priority={i.getValue()} /> }),
-  col.accessor('status', { header: 'Status', cell: (i) => <StatusBadge status={i.getValue()} /> }),
-  col.accessor('sla_breached', {
-    id: 'sla_due_at',
-    header: 'SLA',
-    cell: (i) => <SlaBadge breached={i.getValue()} remainingSeconds={i.row.original.sla_remaining_seconds} />,
-  }),
-  col.accessor('created_at', {
-    header: 'Created',
-    meta: { muted: true },
-    // Date it was raised, with how long it has been open underneath.
-    cell: (i) => (
-      <div className="flex flex-col">
-        <span>{formatDateTime(i.getValue())}</span>
-        <Caption className="tabular-nums">{formatDuration(i.row.original.age_seconds)} ago</Caption>
-      </div>
-    ),
-  }),
-  col.accessor('updated_at', { header: 'Updated', meta: { muted: true }, cell: (i) => formatDateTime(i.getValue()) }),
-])
 
 export function Tickets() {
   const [filters, setFilters] = useTicketFilters()
@@ -119,7 +53,7 @@ export function Tickets() {
       <FilterBar filters={filters} onChange={setFilters} />
 
       <DataTable
-        columns={COLUMNS}
+        columns={TICKET_COLUMNS}
         data={tickets.data?.items ?? EMPTY_ROWS}
         getRowId={(t) => String(t.id)}
         sorting={sorting}

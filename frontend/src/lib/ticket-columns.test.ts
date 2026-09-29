@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import openapi from '../../openapi.json'
-import { COLUMNS } from '@/pages/Tickets'
+import { TICKET_COLUMNS } from '@/lib/ticket-columns'
 
 describe('Tickets table', () => {
   it('only uses column ids the API can sort by', () => {
@@ -8,7 +8,7 @@ describe('Tickets table', () => {
       schema: { enum: string[] }
     }
     const sortable = param.schema.enum
-    const ids = COLUMNS.map((c) => c.id ?? ('accessorKey' in c ? String(c.accessorKey) : ''))
+    const ids = TICKET_COLUMNS.map((c) => c.id ?? ('accessorKey' in c ? String(c.accessorKey) : ''))
     expect(ids.filter((id) => !sortable.includes(id))).toEqual([])
   })
 })
