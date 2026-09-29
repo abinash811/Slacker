@@ -40,6 +40,7 @@ TICKET_LOAD_OPTIONS = (
     joinedload(Ticket.support_assignee),
     joinedload(Ticket.custom_field_values).joinedload(TicketCustomFieldValue.field_definition),
     joinedload(Ticket.tags),
+    joinedload(Ticket.parent),
 )
 
 
@@ -71,7 +72,9 @@ def create_ticket(
     source: EventSource,
     custom_field_values: list[tuple[int, str]] | None = None,
     tag_ids: list[int] | None = None,
+    parent_id: int | None = None,
 ) -> Ticket:
+    parent = _validate_parent(db, parent_id) if parent_id is not None else None
     sla_hours = sla_service.get_default_hours(db)
 
     now = datetime.now(timezone.utc)
@@ -95,6 +98,7 @@ def create_ticket(
         sla_due_at=sla_service.compute_due_at(now, sla_hours),
         owner_id=owner_id,
         created_by_id=created_by.id,
+        parent_id=parent.id if parent else None,
     )
     db.add(ticket)
     db.flush()  # assign ticket.id (and ticket_number via server default)
@@ -122,10 +126,28 @@ def create_ticket(
         event_type="ticket_created",
         payload={"title": title},
     )
+    if parent is not None:
+        audit_service.record_event(
+            db,
+            ticket_id=parent.id,
+            actor_id=created_by.id,
+            source=source,
+            event_type="sub_issue_created",
+            payload={"ticket_number": ticket.ticket_number, "title": title},
+        )
 
     db.commit()
     db.refresh(ticket)
     return get_ticket_or_404(db, ticket.id)
+
+
+def _validate_parent(db: Session, parent_id: int) -> Ticket:
+    parent = db.get(Ticket, parent_id)
+    if parent is None:
+        raise HTTPException(status_code=404, detail="Parent ticket not found")
+    if parent.parent_id is not None:
+        raise HTTPException(status_code=400, detail="A sub-issue can't have its own sub-issues. Add it to the main ticket instead.")
+    return parent
 
 
 # Editable details and how the timeline names them.
@@ -462,7 +484,8 @@ def get_timeline(db: Session, ticket: Ticket) -> list[TimelineEvent]:
     actor_ids: set[int] = set()
     raw_events: list[tuple] = []  # (timestamp, event_type, description_fn, actor_id)
 
-    raw_events.append((ticket.created_at, "created", lambda _: "Ticket created", ticket.created_by_id))
+    created = f"Created as a sub-issue of #{ticket.parent.ticket_number}" if ticket.parent else "Ticket created"
+    raw_events.append((ticket.created_at, "created", lambda _: created, ticket.created_by_id))
     actor_ids.add(ticket.created_by_id)
 
     status_rows = db.execute(
@@ -537,14 +560,20 @@ def get_timeline(db: Session, ticket: Ticket) -> list[TimelineEvent]:
             actor_ids.add(row.author_id)
         raw_events.append((row.created_at, "comment", lambda names: "Replied in Slack thread", row.author_id))
 
-    edit_rows = db.execute(
-        select(AuditEvent).where(AuditEvent.ticket_id == ticket.id, AuditEvent.event_type == "details_edited")
+    audit_rows = db.execute(
+        select(AuditEvent).where(
+            AuditEvent.ticket_id == ticket.id,
+            AuditEvent.event_type.in_(["details_edited", "sub_issue_created"]),
+        )
     ).scalars().all()
-    for row in edit_rows:
+    for row in audit_rows:
         if row.actor_id:
             actor_ids.add(row.actor_id)
-        fields = ", ".join(row.payload.get("fields", [])) or "details"
-        raw_events.append((row.created_at, "details_edited", lambda _, f=fields: f"Edited {f}", row.actor_id))
+        if row.event_type == "details_edited":
+            text = f"Edited {', '.join(row.payload.get('fields', [])) or 'details'}"
+        else:
+            text = f"Sub-issue #{row.payload.get('ticket_number')} created: {row.payload.get('title')}"
+        raw_events.append((row.created_at, row.event_type, lambda _, t=text: t, row.actor_id))
 
     names: dict[int, str] = {}
     if actor_ids:

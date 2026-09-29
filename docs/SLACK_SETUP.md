@@ -31,6 +31,16 @@ a notification, and everyone following the thread sees it in Activity.
 A dashboard user whose email has no Slack account is shown by name and
 isn't notified.
 
+### One issue per ticket, and sub-issues
+
+Each ticket message ends with a reminder: one issue per ticket. Its
+**Sub-issue** button opens the create form prefilled from that ticket. The
+sub-issue is posted as its own message (own thread, own buttons) with a
+"Sub-issue of #1042" line, and the main ticket's thread gets a reply
+linking to it. The main ticket's message shows "Sub-issues: 1 of 2 done".
+Sub-issues are one level deep: the button on a sub-issue adds to its
+main ticket.
+
 ## 3. Event Subscriptions
 
 Under **Event Subscriptions**:

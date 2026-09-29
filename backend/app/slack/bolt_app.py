@@ -132,6 +132,8 @@ def handle_create_ticket_submission(ack, body, client, view):
             created_by=creator,
             source=EventSource.SLACK,
             custom_field_values=_extract_custom_field_values(values),
+            # Set when the modal was opened from a ticket's Sub-issue button.
+            parent_id=int(view["private_metadata"]) if view.get("private_metadata") else None,
         )
         slack_service.post_ticket_message(db, ticket)
 
@@ -148,6 +150,19 @@ def handle_assign_click(ack, body, client):
     with SessionLocal() as db:
         ticket = ticket_service.get_ticket_or_404(db, ticket_id)
         view = slack_service.build_assign_modal(ticket)
+    client.views_open(trigger_id=body["trigger_id"], view=view)
+
+
+@bolt_app.action("ticket_sub_issue")
+def handle_sub_issue_click(ack, body, client):
+    ack()
+    ticket_id = int(body["actions"][0]["value"])
+    with SessionLocal() as db:
+        ticket = ticket_service.get_ticket_or_404(db, ticket_id)
+        if ticket.parent_id is not None:
+            # One level only: offer the main ticket instead.
+            ticket = ticket_service.get_ticket_or_404(db, ticket.parent_id)
+        view = slack_service.build_create_ticket_modal(db, parent=ticket)
     client.views_open(trigger_id=body["trigger_id"], view=view)
 
 

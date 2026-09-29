@@ -1023,6 +1023,8 @@ export interface components {
             mobile_number?: string | null;
             /** Owner Id */
             owner_id?: number | null;
+            /** Parent Id */
+            parent_id?: number | null;
             /** @default medium */
             priority: components["schemas"]["TicketPriority"];
             /**
@@ -1065,6 +1067,8 @@ export interface components {
             mobile_number: string | null;
             /** Owner Name */
             owner_name: string | null;
+            /** Parent Ticket Number */
+            parent_ticket_number?: number | null;
             priority: components["schemas"]["TicketPriority"];
             /** Sla Breached */
             sla_breached: boolean;
@@ -1123,6 +1127,7 @@ export interface components {
             /** Mobile Number */
             mobile_number: string | null;
             owner: components["schemas"]["UserOut"] | null;
+            parent?: components["schemas"]["TicketRef"] | null;
             priority: components["schemas"]["TicketPriority"];
             /** Resolved At */
             resolved_at: string | null;
@@ -1142,6 +1147,11 @@ export interface components {
             /** Slack Message Ts */
             slack_message_ts: string | null;
             status: components["schemas"]["TicketStatus"];
+            /**
+             * Sub Issues
+             * @default []
+             */
+            sub_issues: components["schemas"]["TicketRef"][];
             support_assignee: components["schemas"]["UserOut"] | null;
             /**
              * Tags
@@ -1164,6 +1174,20 @@ export interface components {
          * @enum {string}
          */
         TicketPriority: "low" | "medium" | "high" | "urgent";
+        /**
+         * TicketRef
+         * @description A short reference to another ticket (a parent or a sub-issue).
+         */
+        TicketRef: {
+            /** Id */
+            id: number;
+            owner: components["schemas"]["UserOut"] | null;
+            status: components["schemas"]["TicketStatus"];
+            /** Ticket Number */
+            ticket_number: number;
+            /** Title */
+            title: string;
+        };
         /**
          * TicketStatus
          * @enum {string}

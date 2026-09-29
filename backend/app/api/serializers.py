@@ -4,7 +4,7 @@ from app.models.ticket import Ticket
 from app.schemas.custom_field import CustomFieldValueOut
 from app.schemas.lookup import CategoryOut, TeamOut
 from app.schemas.tag import TagOut
-from app.schemas.ticket import TicketListItem, TicketOut
+from app.schemas.ticket import TicketListItem, TicketOut, TicketRef
 from app.schemas.user import UserOut
 from app.services import sla_service
 
@@ -45,6 +45,8 @@ def to_ticket_out(ticket: Ticket) -> TicketOut:
             for v in ticket.custom_field_values
         ],
         tags=[TagOut.model_validate(t) for t in ticket.tags],
+        parent=TicketRef.model_validate(ticket.parent) if ticket.parent else None,
+        sub_issues=[TicketRef.model_validate(t) for t in ticket.sub_issues],
     )
 
 
@@ -69,4 +71,5 @@ def to_list_item(ticket: Ticket) -> TicketListItem:
         created_at=ticket.created_at,
         age_seconds=int((now - ticket.created_at).total_seconds()),
         updated_at=ticket.updated_at,
+        parent_ticket_number=ticket.parent.ticket_number if ticket.parent else None,
     )

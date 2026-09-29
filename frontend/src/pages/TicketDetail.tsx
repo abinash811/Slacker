@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, History } from 'lucide-react'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ButtonLink, LoadingButton } from '@/components/patterns/buttons'
@@ -11,6 +11,7 @@ import { ErrorState } from '@/components/patterns/states'
 import { Caption, PageHeader } from '@/components/patterns/typography'
 import { PriorityBadge, StatusBadge, SlaBadge } from '@/components/StatusPriorityBadges'
 import { EditTicketDialog } from '@/components/EditTicketDialog'
+import { SubIssuesCard } from '@/components/SubIssuesCard'
 import { TagPicker } from '@/components/TagPicker'
 import { NotFound } from '@/pages/NotFound'
 import {
@@ -72,6 +73,15 @@ export function TicketDetail() {
     <div className="flex flex-col gap-4">
       <BackLink />
 
+      {ticket.parent && (
+        <Caption>
+          Sub-issue of{' '}
+          <Link to={`/tickets/${ticket.parent.id}`} className="focus-ring rounded-sm font-medium text-foreground hover:underline">
+            #{ticket.parent.ticket_number} — {ticket.parent.title}
+          </Link>
+        </Caption>
+      )}
+
       <PageHeader
         title={`#${ticket.ticket_number} — ${ticket.title}`}
         description={`Opened ${formatDateTime(ticket.created_at)} by ${ticket.created_by.name}`}
@@ -126,6 +136,8 @@ export function TicketDetail() {
               </dl>
             </CardContent>
           </Card>
+
+          {!ticket.parent && <SubIssuesCard ticket={ticket} />}
 
           <Card>
             <CardHeader>

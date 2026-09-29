@@ -75,6 +75,10 @@ class Ticket(Base, TimestampMixin):
     # to the default team (see ticket_service.change_team).
     support_assignee_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
+    # Set on a sub-issue: the ticket it's part of. One level only — a
+    # sub-issue can't have sub-issues of its own (see ticket_service).
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("tickets.id"), index=True, nullable=True)
+
     # Slack references only — never message content (see docs/DATABASE.md).
     slack_channel_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
     slack_message_ts: Mapped[str | None] = mapped_column(String(32), nullable=True)
@@ -95,6 +99,10 @@ class Ticket(Base, TimestampMixin):
         TicketCustomFieldValue, cascade="all, delete-orphan"
     )
     tags: Mapped[list[Tag]] = relationship(Tag, secondary=ticket_tags, order_by=Tag.name)
+    parent: Mapped["Ticket | None"] = relationship("Ticket", remote_side=[id], back_populates="sub_issues")
+    sub_issues: Mapped[list["Ticket"]] = relationship(
+        "Ticket", back_populates="parent", order_by="Ticket.ticket_number"
+    )
 
 
 class TicketAssignment(Base, TimestampMixin):

@@ -19,7 +19,7 @@ import { describeError } from '@/lib/api'
 import { useZodForm } from '@/lib/form'
 import { ticketSchema } from '@/lib/schemas'
 import { PRIORITY_OPTIONS, toOptions } from '@/lib/tickets'
-import type { TicketPriority } from '@/types/api'
+import type { Ticket, TicketPriority } from '@/types/api'
 
 type TicketForm = z.input<typeof ticketSchema>
 
@@ -43,7 +43,7 @@ const EMPTY_FORM: TicketForm = {
  * so its form libraries aren't downloaded until someone opens the dialog.
  * Mounts fresh on every open, so it starts empty with the default team chosen.
  */
-export function CreateTicketForm({ onCreated }: { onCreated: () => void }) {
+export function CreateTicketForm({ parent, onCreated }: { parent?: Ticket; onCreated: () => void }) {
   const { data: teams } = useTeams()
   const { data: categories } = useCategories()
   const { data: users } = useUsers()
@@ -51,10 +51,19 @@ export function CreateTicketForm({ onCreated }: { onCreated: () => void }) {
   const { data: tags } = useTags(false)
   const createTicket = useCreateTicket()
 
-  const defaultTeamId = (teams ?? []).find((t) => t.is_default)?.id
+  const defaultTeamId = parent?.team.id ?? (teams ?? []).find((t) => t.is_default)?.id
   const form = useZodForm(ticketSchema, {
     ...EMPTY_FORM,
     team_id: defaultTeamId !== undefined ? String(defaultTeamId) : '',
+    // A sub-issue is about the same business: start from the main ticket's details.
+    ...(parent && {
+      customer: parent.customer,
+      business_id: parent.business_id ?? '',
+      mobile_number: parent.mobile_number ?? '',
+      doctor_name: parent.doctor_name ?? '',
+      category_id: String(parent.category.id),
+      priority: parent.priority,
+    }),
   })
   const { errors, isSubmitting } = form.formState
   const { control } = form
@@ -77,6 +86,7 @@ export function CreateTicketForm({ onCreated }: { onCreated: () => void }) {
           .filter(([, value]) => value)
           .map(([field_definition_id, value]) => ({ field_definition_id: Number(field_definition_id), value })),
         tag_ids: v.tag_ids,
+        parent_id: parent?.id ?? null,
       })
       onCreated()
     } catch {
@@ -165,7 +175,7 @@ export function CreateTicketForm({ onCreated }: { onCreated: () => void }) {
         <DialogFooter>
           <DialogClose render={<Button variant="outline" type="button" />}>Cancel</DialogClose>
           <LoadingButton type="submit" loading={isSubmitting}>
-            {isSubmitting ? 'Creating…' : 'Create & post to Slack'}
+            {isSubmitting ? 'Creating…' : parent ? 'Create sub-issue' : 'Create & post to Slack'}
           </LoadingButton>
         </DialogFooter>
       </form>

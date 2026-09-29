@@ -1178,6 +1178,17 @@
             ],
             "title": "Owner Id"
           },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
           "priority": {
             "$ref": "#/components/schemas/TicketPriority",
             "default": "medium"
@@ -1293,6 +1304,17 @@
               }
             ],
             "title": "Owner Name"
+          },
+          "parent_ticket_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Ticket Number"
           },
           "priority": {
             "$ref": "#/components/schemas/TicketPriority"
@@ -1480,6 +1502,16 @@
               }
             ]
           },
+          "parent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TicketRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "priority": {
             "$ref": "#/components/schemas/TicketPriority"
           },
@@ -1543,6 +1575,14 @@
           },
           "status": {
             "$ref": "#/components/schemas/TicketStatus"
+          },
+          "sub_issues": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TicketRef"
+            },
+            "title": "Sub Issues",
+            "type": "array"
           },
           "support_assignee": {
             "anyOf": [
@@ -1620,6 +1660,45 @@
         ],
         "title": "TicketPriority",
         "type": "string"
+      },
+      "TicketRef": {
+        "description": "A short reference to another ticket (a parent or a sub-issue).",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/TicketStatus"
+          },
+          "ticket_number": {
+            "title": "Ticket Number",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "ticket_number",
+          "title",
+          "status",
+          "owner"
+        ],
+        "title": "TicketRef",
+        "type": "object"
       },
       "TicketStatus": {
         "enum": [

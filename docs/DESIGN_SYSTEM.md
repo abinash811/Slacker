@@ -207,6 +207,12 @@ directly only for actions that aren't mutations.
   sections (`TicketFormSections.tsx`, read through `useFormContext`) so the
   two never drift. Fields with their own tracked history (owner, team,
   status, priority) stay in the Actions card, not the edit form.
+- **Sub-issues:** one level deep. A main ticket's `SubIssuesCard` lists
+  them with a `Progress` bar ("1 of 2 done") and an outline "Add sub-issue"
+  button that opens `CreateTicketDialog parent={ticket}`, prefilled with the
+  main ticket's business details, category and team. A sub-issue shows
+  "Sub-issue of #1042" above its title and has no sub-issues card; in the
+  Tickets list it has a "Sub-issue of #1042" caption under its title.
 - **Permissions:** the server enforces Settings permissions
   (`backend/app/core/permissions.py`); the UI mirrors them with
   `useSettingsPermissions()` and **hides** controls the user can't use

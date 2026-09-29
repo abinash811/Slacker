@@ -37,6 +37,8 @@ _STATUS_LABELS = {
     "resolved": "Resolved",
     "closed": "Closed",
 }
+ONE_ISSUE_HINT = "One issue per ticket. For a related problem, click *Sub-issue*; for anything else, create a new ticket."
+
 _PRIORITY_EMOJI = {"low": "🔵", "medium": "🟡", "high": "🟠", "urgent": "🔴"}
 
 
@@ -124,7 +126,7 @@ def build_ticket_blocks(ticket: Ticket) -> list[dict]:
         {"type": "section", "fields": fields},
         {
             "type": "context",
-            "elements": [{"type": "mrkdwn", "text": f"Status: *{status_label}*"}],
+            "elements": [{"type": "mrkdwn", "text": _status_context(ticket, status_label)}],
         },
         {
             "type": "actions",
@@ -155,6 +157,12 @@ def build_ticket_blocks(ticket: Ticket) -> list[dict]:
                 },
                 {
                     "type": "button",
+                    "text": {"type": "plain_text", "text": "Sub-issue"},
+                    "action_id": "ticket_sub_issue",
+                    "value": str(ticket.id),
+                },
+                {
+                    "type": "button",
                     "text": {"type": "plain_text", "text": "Resolve"},
                     "style": "primary",
                     "action_id": "ticket_resolve",
@@ -168,8 +176,28 @@ def build_ticket_blocks(ticket: Ticket) -> list[dict]:
                 },
             ],
         },
+        {
+            "type": "context",
+            "elements": [{"type": "mrkdwn", "text": ONE_ISSUE_HINT}],
+        },
     ]
+    if ticket.parent is not None:
+        blocks.insert(0, {"type": "context", "elements": [{"type": "mrkdwn", "text": _parent_line(ticket.parent)}]})
     return blocks
+
+
+def _parent_line(parent: Ticket) -> str:
+    link = build_permalink(parent)
+    ref = f"<{link}|#{parent.ticket_number} — {parent.title}>" if link else f"#{parent.ticket_number} — {parent.title}"
+    return f"↳ Sub-issue of {ref}"
+
+
+def _status_context(ticket: Ticket, status_label: str) -> str:
+    text = f"Status: *{status_label}*"
+    if ticket.sub_issues:
+        done = sum(1 for s in ticket.sub_issues if s.status.value in ("resolved", "closed"))
+        text += f"  ·  Sub-issues: {done} of {len(ticket.sub_issues)} done"
+    return text
 
 
 def fallback_text(ticket: Ticket) -> str:
@@ -244,6 +272,11 @@ def notify_ticket_change(db: Session, ticket: Ticket, actor: User, change: Ticke
         return  # ticket was never pushed to Slack
     _link_ticket_people(db, ticket)  # before writing, so mentions resolve
     update_ticket_message(ticket)
+    if change == "status" and ticket.parent is not None:
+        try:
+            update_ticket_message(ticket.parent)  # its "Sub-issues: 1 of 2 done" line
+        except SlackApiError:
+            logger.exception("Failed to refresh parent of ticket %s", ticket.id)
     if change is None:
         return
     note = assignment_note(ticket, actor) if change == "assigned" else status_note(ticket, actor)
@@ -274,7 +307,37 @@ def post_ticket_message(db: Session, ticket: Ticket) -> Ticket:
     ticket.slack_message_ts = response["ts"]
     db.commit()
     db.refresh(ticket)
+    if ticket.parent is not None:
+        _announce_sub_issue(ticket)
     return ticket
+
+
+def _announce_sub_issue(sub_issue: Ticket) -> None:
+    """Tells the parent ticket's thread about a new sub-issue (with a link
+    to the sub-issue's own message) and refreshes the parent's progress
+    line. Failures are logged: the sub-issue itself is already posted.
+    """
+    parent = sub_issue.parent
+    if not parent.slack_channel_id or not parent.slack_message_ts:
+        return
+    client = get_client()
+    try:
+        link = client.chat_getPermalink(channel=sub_issue.slack_channel_id, message_ts=sub_issue.slack_message_ts)[
+            "permalink"
+        ]
+    except SlackApiError:
+        link = build_permalink(sub_issue)
+    ref = f"<{link}|#{sub_issue.ticket_number} — {sub_issue.title}>" if link else f"#{sub_issue.ticket_number} — {sub_issue.title}"
+    try:
+        _call_with_retry(
+            client.chat_postMessage,
+            channel=parent.slack_channel_id,
+            thread_ts=parent.slack_message_ts,
+            text=f"Sub-issue created: {ref}",
+        )
+        update_ticket_message(parent)
+    except SlackApiError:
+        logger.exception("Failed to announce sub-issue %s on ticket %s", sub_issue.id, parent.id)
 
 
 def update_ticket_message(ticket: Ticket) -> None:
@@ -301,10 +364,13 @@ def _team_select_element(teams: list[Team], *, initial: Team | None) -> dict:
     return element
 
 
-def build_create_ticket_modal(db: Session) -> dict:
-    """Workflow B (spec section 5): Slack -> dashboard ticket creation."""
+def build_create_ticket_modal(db: Session, parent: Ticket | None = None) -> dict:
+    """Workflow B (spec section 5): Slack -> dashboard ticket creation.
+    With `parent`, creates a sub-issue of it: the business details,
+    category and team start as the parent's.
+    """
     teams = db.execute(select(Team).order_by(Team.name)).scalars().all()
-    default_team = next((t for t in teams if t.is_default), None)
+    default_team = parent.team if parent else next((t for t in teams if t.is_default), None)
     categories = db.execute(
         select(Category).where(Category.is_archived.is_(False)).order_by(Category.name)
     ).scalars().all()
@@ -315,13 +381,34 @@ def build_create_ticket_modal(db: Session) -> dict:
     def option(text: str, value: str) -> dict:
         return {"text": {"type": "plain_text", "text": text}, "value": value}
 
-    return {
+    def text_input(initial: str | None, **extra) -> dict:
+        element = {"type": "plain_text_input", "action_id": "value", **extra}
+        if initial:
+            element["initial_value"] = initial
+        return element
+
+    category_select = {
+        "type": "static_select",
+        "action_id": "value",
+        "options": [option(c.name, str(c.id)) for c in categories],
+    }
+    if parent is not None and any(c.id == parent.category_id for c in categories):
+        category_select["initial_option"] = option(parent.category.name, str(parent.category_id))
+
+    intro = (
+        f"Sub-issue of *#{parent.ticket_number} — {parent.title}*. It gets its own message and thread."
+        if parent
+        else ONE_ISSUE_HINT.replace("click *Sub-issue*", "use *Sub-issue* on its ticket")
+    )
+
+    view = {
         "type": "modal",
         "callback_id": "create_ticket_modal",
-        "title": {"type": "plain_text", "text": "Create Ticket"},
+        "title": {"type": "plain_text", "text": f"Sub-issue of #{parent.ticket_number}" if parent else "Create Ticket"},
         "submit": {"type": "plain_text", "text": "Create"},
         "close": {"type": "plain_text", "text": "Cancel"},
         "blocks": [
+            {"type": "context", "elements": [{"type": "mrkdwn", "text": intro}]},
             {
                 "type": "input",
                 "block_id": "title",
@@ -339,38 +426,34 @@ def build_create_ticket_modal(db: Session) -> dict:
                 # Stored as `customer`; shown to people as "Business name".
                 "block_id": "customer",
                 "label": {"type": "plain_text", "text": "Business name"},
-                "element": {"type": "plain_text_input", "action_id": "value"},
+                "element": text_input(parent.customer if parent else None),
             },
             {
                 "type": "input",
                 "block_id": "business_id",
                 "label": {"type": "plain_text", "text": "Business ID"},
-                "element": {"type": "plain_text_input", "action_id": "value"},
+                "element": text_input(parent.business_id if parent else None),
                 "optional": True,
             },
             {
                 "type": "input",
                 "block_id": "mobile_number",
                 "label": {"type": "plain_text", "text": "Mobile number"},
-                "element": {"type": "plain_text_input", "action_id": "value"},
+                "element": text_input(parent.mobile_number if parent else None),
                 "optional": True,
             },
             {
                 "type": "input",
                 "block_id": "doctor_name",
                 "label": {"type": "plain_text", "text": "Doctor name"},
-                "element": {"type": "plain_text_input", "action_id": "value"},
+                "element": text_input(parent.doctor_name if parent else None),
                 "optional": True,
             },
             {
                 "type": "input",
                 "block_id": "category",
                 "label": {"type": "plain_text", "text": "Category"},
-                "element": {
-                    "type": "static_select",
-                    "action_id": "value",
-                    "options": [option(c.name, str(c.id)) for c in categories],
-                },
+                "element": category_select,
             },
             {
                 "type": "input",
@@ -392,6 +475,9 @@ def build_create_ticket_modal(db: Session) -> dict:
         ]
         + [_build_custom_field_block(field) for field in custom_fields],
     }
+    if parent is not None:
+        view["private_metadata"] = str(parent.id)
+    return view
 
 
 def _build_custom_field_block(field: CustomFieldDefinition) -> dict:

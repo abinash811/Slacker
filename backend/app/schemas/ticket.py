@@ -26,6 +26,8 @@ class TicketCreateRequest(BaseModel):
     slack_channel_id: str | None = None  # explicit override; else team routing applies
     custom_field_values: list[CustomFieldValueInput] = []
     tag_ids: list[int] = []
+    # Creates this ticket as a sub-issue of that one.
+    parent_id: int | None = None
 
 
 class TicketUpdateRequest(BaseModel):
@@ -64,6 +66,18 @@ class TagsUpdateRequest(BaseModel):
     tag_ids: list[int]
 
 
+class TicketRef(BaseModel):
+    """A short reference to another ticket (a parent or a sub-issue)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    ticket_number: int
+    title: str
+    status: TicketStatus
+    owner: UserOut | None
+
+
 class TicketOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -99,6 +113,8 @@ class TicketOut(BaseModel):
 
     custom_field_values: list[CustomFieldValueOut] = []
     tags: list[TagOut] = []
+    parent: TicketRef | None = None
+    sub_issues: list[TicketRef] = []
 
 
 class TicketListItem(BaseModel):
@@ -119,6 +135,7 @@ class TicketListItem(BaseModel):
     created_at: datetime
     age_seconds: int
     updated_at: datetime
+    parent_ticket_number: int | None = None
 
 
 class TicketListResponse(BaseModel):

@@ -41,7 +41,21 @@ export const COLUMNS = col.columns([
       </Link>
     ),
   }),
-  col.accessor('title', { header: 'Title', meta: { className: 'max-w-64 truncate' } }),
+  col.accessor('title', {
+    header: 'Title',
+    meta: { className: 'max-w-64 truncate' },
+    cell: (i) => {
+      const parent = i.row.original.parent_ticket_number
+      return parent ? (
+        <div className="flex flex-col">
+          <span className="truncate">{i.getValue()}</span>
+          <Caption>Sub-issue of #{parent}</Caption>
+        </div>
+      ) : (
+        i.getValue()
+      )
+    },
+  }),
   col.accessor('customer', { header: 'Business name', meta: { muted: true } }),
   col.accessor('business_id', { header: 'Business ID', meta: { muted: true }, cell: (i) => dash(i.getValue()) }),
   col.accessor('mobile_number', { header: 'Mobile', meta: { muted: true }, cell: (i) => dash(i.getValue()) }),

@@ -101,6 +101,8 @@ export function ticketDetail(id: number): Ticket {
     age_seconds: 22 * 3600,
     custom_field_values: [],
     tags: [],
+    parent: null,
+    sub_issues: [],
   }
 }
 

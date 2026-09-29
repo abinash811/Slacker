@@ -77,6 +77,7 @@ def create_ticket(
         source=EventSource.DASHBOARD,
         custom_field_values=[(v.field_definition_id, v.value) for v in payload.custom_field_values],
         tag_ids=payload.tag_ids,
+        parent_id=payload.parent_id,
     )
 
     if payload.push_to_slack:
