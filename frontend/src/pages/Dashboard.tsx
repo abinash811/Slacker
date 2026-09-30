@@ -1,9 +1,10 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { AlarmClock, AlertTriangle, CheckCircle2, Clock, Hourglass, Inbox, TimerReset } from 'lucide-react'
+import { AlarmClock, AlertTriangle, CheckCircle2, Hourglass, Inbox, TimerReset } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ButtonLink } from '@/components/patterns/buttons'
-import { Caption, PageHeader } from '@/components/patterns/typography'
+import { Caption, PageHeader, SectionHeader, SectionLabel } from '@/components/patterns/typography'
 import { EmptyState } from '@/components/patterns/states'
 import { ErrorState } from '@/components/patterns/states'
 import { Progress } from '@/components/ui/progress'
@@ -40,97 +41,163 @@ export function Dashboard() {
   const s = summary.data
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Dashboard"
-        description="What's happening, what's overdue, who's overloaded."
-        actions={<CreateTicketDialog />}
-      />
-
-      <FilterBar filters={filters} onChange={setFilters} />
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 empty:hidden">
-        <TicketAlert
-          tone="danger"
-          title="SLA breached"
-          result={overdue}
-          viewAll={{ ...filters, sla_status: 'breached', state: 'active' }}
-          detail={(t) => `open ${formatDuration(t.age_seconds)}`}
+    <div className="flex flex-col gap-10">
+      <div className="flex flex-col gap-4">
+        <PageHeader
+          title="Dashboard"
+          description="What's happening, what's overdue, who's overloaded."
+          actions={<CreateTicketDialog />}
         />
-        <TicketAlert
-          tone="warning"
-          title="Due in the next 24 hours"
-          result={dueSoon}
-          viewAll={{ ...filters, sla_status: 'at_risk' }}
-          detail={(t) => `due in ${formatDuration(t.sla_remaining_seconds ?? 0)}`}
-        />
+        <FilterBar filters={filters} onChange={setFilters} />
       </div>
 
-      {summary.isError ? (
-        <ErrorState
-          bordered
-          title="Couldn't load dashboard numbers"
-          error={summary.error}
-          onRetry={() => summary.refetch()}
-          retrying={summary.isFetching}
-        />
-      ) : (
-        <>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {!s ? (
-              Array.from({ length: 7 }, (_, i) => <StatTileSkeleton key={i} />)
-            ) : (
-              <>
-                <StatTile label="Open tickets" value={String(s.total_open_tickets)} icon={Inbox} />
-                <StatTile label="Pending" value={String(s.tickets_pending)} icon={Clock} />
-                <StatTile
-                  label="SLA breached"
-                  value={String(s.sla_breached_tickets)}
-                  tone={s.sla_breached_tickets > 0 ? 'danger' : 'default'}
-                  icon={AlertTriangle}
-                />
-                <StatTile label="SLA compliance" value={formatPct(s.sla_compliance_pct)} icon={CheckCircle2} tone="success" />
-                <StatTile label="Avg first response" value={formatHours(s.avg_first_response_hours)} icon={Hourglass} />
-                <StatTile label="Avg resolution time" value={formatHours(s.avg_resolution_hours)} icon={TimerReset} />
-                <StatTile label="Resolved (total)" value={String(s.total_resolved_tickets)} icon={CheckCircle2} tone="success" />
-              </>
-            )}
+      <DashboardSection id="attention" title="Needs attention" description="Open tickets past their SLA, and those due within a day.">
+        {overdue?.total === 0 && dueSoon?.total === 0 ? (
+          <Alert>
+            <CheckCircle2 className="text-success" />
+            <AlertTitle>All clear</AlertTitle>
+            <AlertDescription>Nothing is past its SLA or due in the next 24 hours.</AlertDescription>
+          </Alert>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <TicketAlert
+              tone="danger"
+              title="SLA breached"
+              result={overdue}
+              viewAll={{ ...filters, sla_status: 'breached', state: 'active' }}
+              detail={(t) => `open ${formatDuration(t.age_seconds)}`}
+            />
+            <TicketAlert
+              tone="warning"
+              title="Due in the next 24 hours"
+              result={dueSoon}
+              viewAll={{ ...filters, sla_status: 'at_risk' }}
+              detail={(t) => `due in ${formatDuration(t.sla_remaining_seconds ?? 0)}`}
+            />
           </div>
+        )}
+      </DashboardSection>
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            {!s ? (
-              Array.from({ length: 3 }, (_, i) => <StatTileSkeleton key={i} />)
-            ) : (
-              <>
-                <StatTile label="Created this week" value={String(s.tickets_created_this_week)} comparison={s.created_comparison} />
-                <StatTile label="Resolved this week" value={String(s.tickets_resolved_this_week)} comparison={s.resolved_comparison} />
-                <StatTile
-                  label="SLA breaches this week"
-                  value={String(s.sla_breached_this_week)}
-                  comparison={s.sla_breach_comparison}
-                  invertComparisonTone
-                />
-              </>
-            )}
+      <DashboardSection id="glance" title="At a glance">
+        {summary.isError ? (
+          <ErrorState
+            bordered
+            title="Couldn't load dashboard numbers"
+            error={summary.error}
+            onRetry={() => summary.refetch()}
+            retrying={summary.isFetching}
+          />
+        ) : (
+          <div className="flex flex-col gap-6">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              {!s ? (
+                Array.from({ length: 4 }, (_, i) => <StatTileSkeleton key={i} />)
+              ) : (
+                <>
+                  <StatTile label="Open tickets" value={String(s.total_open_tickets)} hint={`${s.tickets_pending} pending`} icon={Inbox} />
+                  <StatTile
+                    label="SLA breached"
+                    value={String(s.sla_breached_tickets)}
+                    hint="Open or resolved late"
+                    tone={s.sla_breached_tickets > 0 ? 'danger' : 'default'}
+                    icon={AlertTriangle}
+                  />
+                  <StatTile
+                    label="SLA compliance"
+                    value={formatPct(s.sla_compliance_pct)}
+                    hint={`Of ${s.total_resolved_tickets} resolved`}
+                    tone={complianceTone(s.sla_compliance_pct)}
+                    icon={CheckCircle2}
+                  />
+                  <StatTile
+                    label="Avg resolution time"
+                    value={formatHours(s.avg_resolution_hours)}
+                    hint={`First response ${formatHours(s.avg_first_response_hours)}`}
+                    icon={TimerReset}
+                  />
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <SectionLabel>This week vs last week</SectionLabel>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                {!s ? (
+                  Array.from({ length: 3 }, (_, i) => <StatTileSkeleton key={i} />)
+                ) : (
+                  <>
+                    <StatTile label="Created" value={String(s.tickets_created_this_week)} comparison={s.created_comparison} />
+                    <StatTile label="Resolved" value={String(s.tickets_resolved_this_week)} comparison={s.resolved_comparison} />
+                    <StatTile
+                      label="SLA breaches"
+                      value={String(s.sla_breached_this_week)}
+                      comparison={s.sla_breach_comparison}
+                      invertComparisonTone
+                    />
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-        </>
-      )}
+        )}
+      </DashboardSection>
 
-      <Suspense fallback={<Skeleton className="h-80 w-full" />}>
-        <TrendCharts filters={filters} />
-      </Suspense>
+      <DashboardSection id="workload" title="Workload" description="Who holds what, and how long it has waited.">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          <div className="xl:col-span-2">
+            <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+              <PeopleScorecard filters={filters} />
+            </Suspense>
+          </div>
+          <AgingCard query={aging} />
+        </div>
+      </DashboardSection>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <BreakdownCard title="By team" query={teamBreakdown} />
-        <BreakdownCard title="By category" query={categoryBreakdown} />
-        <AgingCard query={aging} />
-      </div>
+      <DashboardSection
+        id="trends"
+        title="Trends"
+        description="The last 12 weeks. This week is still in progress, so it looks lower until it ends."
+      >
+        <Suspense fallback={<Skeleton className="h-80 w-full" />}>
+          <TrendCharts filters={filters} />
+        </Suspense>
+      </DashboardSection>
 
-      <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-        <PeopleScorecard filters={filters} />
-      </Suspense>
+      <DashboardSection id="breakdown" title="Breakdown" description="Where tickets come from and where they get stuck.">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <BreakdownCard title="By team" query={teamBreakdown} />
+          <BreakdownCard title="By category" query={categoryBreakdown} />
+        </div>
+      </DashboardSection>
     </div>
   )
+}
+
+/** A titled band of the dashboard. Sections are spaced apart so each reads as one group. */
+function DashboardSection({
+  id,
+  title,
+  description,
+  children,
+}: {
+  id: string
+  title: string
+  description?: string
+  children: ReactNode
+}) {
+  return (
+    <section aria-labelledby={`${id}-heading`}>
+      <SectionHeader id={`${id}-heading`} title={title} description={description} />
+      {children}
+    </section>
+  )
+}
+
+/** Green when on target, red when well below, neutral in between. */
+function complianceTone(pct: number | null): 'success' | 'danger' | 'default' {
+  if (pct === null) return 'default'
+  if (pct >= 90) return 'success'
+  return pct < 75 ? 'danger' : 'default'
 }
 
 function ListSkeleton() {

@@ -11,7 +11,6 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { ChartCard } from '@/components/patterns/chart-card'
 import { EmptyState, ErrorState } from '@/components/patterns/states'
-import { SectionLabel } from '@/components/patterns/typography'
 import { useTrends } from '@/hooks/useApi'
 import type { TicketFiltersState, WeeklyTrend } from '@/types/api'
 
@@ -49,17 +48,14 @@ function weekAxis(data: WeeklyTrend[]) {
 /**
  * Weekly trends for the last 12 weeks: ticket volume (created vs resolved),
  * median resolution time, and SLA breaches. Respects the dashboard filters
- * except date range. Lazy-loaded (recharts is large).
+ * except date range. Lazy-loaded (recharts is large). The Dashboard supplies
+ * the section heading.
  */
 export function TrendCharts({ filters }: { filters: TicketFiltersState }) {
   const trends = useTrends(filters)
 
   return (
-    <section className="flex flex-col gap-3" aria-labelledby="trends-heading">
-      <SectionLabel as="h2" id="trends-heading">
-        <TrendingUp aria-hidden /> Last 12 weeks
-      </SectionLabel>
-      <p className="-mt-2 text-xs text-muted-foreground">"This week" is still in progress, so it looks lower until the week ends.</p>
+    <>
       {trends.isPending ? (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {Array.from({ length: 3 }, (_, i) => (
@@ -73,7 +69,7 @@ export function TrendCharts({ filters }: { filters: TicketFiltersState }) {
       ) : (
         <Charts data={trends.data} />
       )}
-    </section>
+    </>
   )
 }
 

@@ -4,7 +4,7 @@ import { mockApi } from './mock-api'
 test('dashboard shows 12-week trends with hover values and a table view', async ({ page }) => {
   const api = await mockApi(page)
   await page.goto('/?team_id=2')
-  const trends = page.getByRole('region', { name: 'Last 12 weeks' })
+  const trends = page.getByRole('region', { name: 'Trends' })
   await expect(trends.getByText('Created vs resolved')).toBeVisible()
   await expect(trends.getByText('Median resolution time')).toBeVisible()
   await expect(trends.getByText('SLA breaches', { exact: true })).toBeVisible()

@@ -12,6 +12,8 @@ interface Props {
   /** true when an increase is bad news (e.g. SLA breaches) — flips the color. */
   invertComparisonTone?: boolean
   icon?: LucideIcon
+  /** A secondary line under the value, e.g. "3 pending". */
+  hint?: string
 }
 
 const TONE_ICON: Record<NonNullable<Props['tone']>, string> = {
@@ -20,8 +22,8 @@ const TONE_ICON: Record<NonNullable<Props['tone']>, string> = {
   success: 'bg-success/10 text-success',
 }
 
-/** A metric on a shadcn Card: label, icon (CardAction), value and week-over-week change. */
-export function StatTile({ label, value, tone = 'default', comparison, invertComparisonTone, icon: Icon }: Props) {
+/** A metric on a shadcn Card: label, icon (CardAction), value, an optional hint and week-over-week change. */
+export function StatTile({ label, value, tone = 'default', comparison, invertComparisonTone, icon: Icon, hint }: Props) {
   const good = comparison && comparison.change_pct !== null && (comparison.change_pct >= 0) !== !!invertComparisonTone
   return (
     <Card size="sm">
@@ -39,6 +41,7 @@ export function StatTile({ label, value, tone = 'default', comparison, invertCom
         <p className={cn('text-2xl font-semibold tabular-nums', tone === 'danger' && 'text-destructive', tone === 'success' && 'text-success')}>
           {value}
         </p>
+        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
         {comparison && comparison.change_pct !== null && (
           <p className={cn('text-xs font-medium', good ? 'text-success' : 'text-destructive')}>
             {comparison.change_pct >= 0 ? '+' : ''}

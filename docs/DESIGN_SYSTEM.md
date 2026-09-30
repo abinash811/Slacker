@@ -107,7 +107,7 @@ ui.shadcn.com.
 | List of records | `DataTable` (pattern: shadcn's data-table recipe, meaning TanStack Table + shadcn `Table`, `Button`, `Pagination`). Columns from `columnHelper<T>()` in `lib/data-table.ts`; server-side sorting and paging; built-in loading, error and empty states. Per-column `meta`: `muted`, `align`, `className`, `invertSortIndicator`. Column ids must be server sort keys (a unit test checks them against the API schema); `enableSorting: false` only for a column the API truly can't sort. Omit `sorting` for a static table |
 | Status pill | `ToneBadge` (pattern over shadcn `Badge`: tones `neutral`, `info`, `success`, `warning`, `danger`); tickets use `StatusBadge`, `PriorityBadge`, `SlaBadge` |
 | Card | shadcn `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardAction`, `CardContent` |
-| Metric | `StatTile` / `StatTileSkeleton` |
+| Metric | `StatTile` / `StatTileSkeleton`; `hint` adds a secondary line ("3 pending") instead of another tile |
 | Part-of-whole bar | shadcn `Progress` |
 | Chart | shadcn `Chart` (Recharts) inside `ChartCard` (pattern: shadcn `Card` + a "Show table" toggle). See Charts below |
 | Multi-select chips | `TagPicker` (shadcn `Toggle`s) |
@@ -215,6 +215,11 @@ directly only for actions that aren't mutations.
   "Copied" toast.
 - **Switching between alternatives** in one card (e.g. setup per app on
   the Connect page): shadcn `Tabs`. Not for page navigation.
+- **Dashboards:** titled sections (`SectionHeader` with an `id`, inside
+  `<section aria-labelledby>`), spaced `gap-10` apart, ordered by urgency:
+  needs attention, at a glance, workload, trends, breakdown. At most four
+  headline `StatTile`s per row; fold related numbers into a tile's `hint`.
+  An empty "needs attention" section says "All clear" rather than vanishing.
 - **Sub-issues:** one level deep. A main ticket's `SubIssuesCard` lists
   them with a `Progress` bar ("1 of 2 done") and an outline "Add sub-issue"
   button that opens `CreateTicketDialog parent={ticket}`, prefilled with the
